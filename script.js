@@ -16,10 +16,21 @@ document.addEventListener("DOMContentLoaded", function () {
       </select>
 
       <div class="rules"></div>
-      <button type="button" onclick="addRule(this)">Add Billing Rule</button>
-      <button type="button" onclick="this.parentElement.remove()">Remove Rule Group</button>
+      <button type="button" class="addRule">Add Billing Rule</button>
+      <button type="button" class="removeRuleGroup">Remove Rule Group</button>
     `;
     document.getElementById('ruleGroups').appendChild(div);
+
+    // Add event listeners for buttons inside the new rule group
+    const addRuleButton = div.querySelector('.addRule');
+    addRuleButton.addEventListener('click', function() {
+      addRule(addRuleButton);
+    });
+
+    const removeRuleGroupButton = div.querySelector('.removeRuleGroup');
+    removeRuleGroupButton.addEventListener('click', function() {
+      div.remove();
+    });
   }
 
   // Function to add Billing Rule dynamically
@@ -178,28 +189,4 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         const lineItems = rule.querySelectorAll('.lineItemDescriptions .sub-entry');
-        lineItems.forEach(item => {
-          const key = item.querySelector('.lineItemType').value;
-          const val = item.querySelector('.lineItemValue').value;
-          if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
-        });
-
-        if (subTags) {
-          xml += `${subTags}\n\t\t\t</Product>\n`;
-        } else {
-          xml += `</Product>\n`;
-        }
-
-        xml += `\t\t</BillingRule>\n`;
-      });
-
-      xml += `\t</RuleGroup>\n`;
-    });
-
-    xml += `</CHTBillingRules>`;
-    document.getElementById('output').value = xml;
-  }
-
-  // Attach the event to the generate button
-  document.querySelector("button[onclick='generateXML()']").addEventListener("click", generateXML);
-});
+        lineItems.forEach
