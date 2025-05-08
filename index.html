@@ -3,36 +3,638 @@
 <head>
   <meta charset="UTF-8" />
   <title>CPB XML/JSON Generator</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { font-family: Arial; margin: 20px; }
+
+    input, select, button, textarea { margin: 5px 0; }
+    .ruleGroup, .rule, .sub-entry {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+    }
+
+    .section-title { margin-top: 20px; font-weight: bold; }
+    .sub-group { margin-top: 10px; }
+    .sub-entry {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .sub-entry input[type="text"] {
+      flex-grow: 1;
+      max-width: 80%;
+    }
+    .sub-entry select.lineItemType {
+      width: 125px;
+      flex-shrink: 0;
+      padding: 6px;
+    }
+    .sub-entry button {
+      padding: 0 8px;
+    }
+
+    /* ✅ Updated select style with padding and round corners */
+    select {
+      padding: 5px;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .small-label {
+      font-size: 0.8em;
+      margin-top: 5px;
+    }
+
+    .small-select select {
+      font-size: 0.8em;
+      padding: 2px 4px;
+    }
+
+    input.ruleName,
+    input.productName,
+    .sub-entry input.usageTypeName,
+    .sub-entry input.lineItemValue {
+      display: block;
+      width: 75%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    input.billingAdjustment,
+    input.startDate,
+    input.endDate,
+    input.region {
+      padding: 5px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    #bookName,
+    #createdBy,
+    #comment {
+      width: 15%;
+      padding: 5px;
+      border-radius: 6px;
+      margin-right: 15px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    #bookName + label,
+    #createdBy + label,
+    #comment + label {
+      margin-top: 15px;
+    }
+
+    .ruleGroup label,
+    .ruleGroup input {
+      margin-bottom: 10px;
+    }
+
+    .ruleGroup .startDate,
+    .ruleGroup .endDate {
+      margin-right: 30px;
+    }
+
+    .rule .billingAdjustment {
+      margin-right: 30px;
+      margin-bottom: 15px;
+    }
+
+    .rule .billingRuleType {
+      margin-top: 10px;
+    }
+
+    select.includeRIPurchases,
+    select.productIncludeRIPurchases {
+      margin-bottom: 20px;
+    }
+
+    body {
+      background-color: #fff;
+      color: #000;
+    }
+
+    /* ✅ Updated button styling */
+    button.export-json {
+  background-color: #3f88c5; /* soft blue */
+  color: white;
+}
+
+button.export-json:hover {
+  background-color: #357bb3;
+}
+button.remove-usagetype,
+button.remove-lineitem,
+button.remove-rule,
+button.remove-rule-group {
+  background-color: #d9534f; /* soft bootstrap-style red */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s, transform 0.2s;
+}
+button.remove-usagetype:hover,
+button.remove-lineitem:hover,
+button.remove-rule:hover,
+button.remove-rule-group:hover {
+  background-color: #c9302c; /* darker red for hover */
+  transform: scale(1.05);
+}
+button.remove-usagetype:focus,
+button.remove-lineitem:focus,
+button.remove-rule:focus,
+button.remove-rule-group:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(217, 83, 79, 0.5);
+}
+    button {
+      padding: 6px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+      transform: scale(1.05);
+    }
+
+    button:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ✅ Dark mode styles including select updates */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1e1e1e;
+        color: #f0f0f0;
+      }
+
+      input, select, textarea, button {
+        background-color: #333;
+        color: #f0f0f0;
+        border: 1px solid #555;
+      }
+
+      .ruleGroup, .rule, .sub-entry {
+        border-color: #444;
+      }
+
+      button {
+        background-color: #444;
+        color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      button:hover {
+        background-color: #555;
+        transform: scale(1.05);
+      }
+
+      button:focus {
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      }
+
+      select {
+        background-color: #333;
+        border-radius: 6px;
+      }
+    }
+
+    footer {
+      text-align: right;
+      margin-top: 20px;
+      padding: 5px 0;
+      font-size: 0.80em;
+      color: #616060f2;
+    }
+</style>
 </head>
 <body>
   <h1>Custom Price Book XML/JSON Generator</h1>
 
-  <label for="bookName">Price Book Name (required):</label>
-  <input type="text" id="bookName" required />
+  <label>Price Book Name (required):</label>
+  <input type="text" id="bookName" placeholder="Enter CPB Name"required />
 
-  <label for="createdBy">Created By (required):</label>
-  <input type="text" id="createdBy" required />
+  <label>Created By (required):</label>
+  <input type="email" id="createdBy" placeholder="Enter Name/Email"required />
 
-  <label for="comment">Comment:</label>
-  <input type="text" id="comment" />
+  <label>Comment:</label>
+  <input type="text" id="comment" placeholder="Enter CPB Description" />
 
-  <div id="ruleGroups"></div>
   <button onclick="addRuleGroup()">Add Rule Group</button>
 
-  <br /><br />
-  <button onclick="generateXML()">Generate XML</button>
-  <button onclick="generateJSON()">Generate JSON for REST API Payload Body</button>
+  <div id="groupsContainer"></div>
+
+  <button onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
+  <button class="export-json" onclick="exportJSON()">Generate JSON for REST API Payload Body</button>
 
   <h2>Generated XML:</h2>
-  <textarea id="outputXML" rows="10" cols="80"></textarea>
+  <textarea id="outputXML" rows="10" style="width:75%;"></textarea>
 
   <h2>Custom Pricebook JSON Payload:</h2>
-  <textarea id="outputJSON" rows="10" cols="80"></textarea>
+  <textarea id="outputJSON" rows="10" style="width:75%;"></textarea>
 
-  <footer class="footer-note">Created by Sunil Kumar – CloudHealth</footer>
+  <script>
+    function addRuleGroup() {
+      const div = document.createElement('div');
+      div.className = 'ruleGroup';
+      div.innerHTML = `
+        <div class="section-title">Rule Group</div>
+        <label>Start Date:</label>
+        <input type="date" class="startDate" required />
+        <label>End Date (optional):</label>
+        <input type="date" class="endDate" />
+        <label>Enabled:</label>
+        <select class="enabled">
+          <option value="true" selected>true</option>
+          <option value="false">false</option>
+        </select>
 
-  <script src="script.js"></script>
+        <div class="rules"></div>
+        <button onclick="addRule(this)">Add Billing Rule</button>
+        <button class="remove-rule-group" onclick="this.parentElement.remove()">Remove Rule Group</button>
+      `;
+      document.getElementById('groupsContainer').appendChild(div);
+    }
+
+    function addRule(button) {
+      const rulesContainer = button.previousElementSibling;
+      const div = document.createElement('div');
+      div.className = 'rule';
+      div.innerHTML = `
+        <label>Billing Rule Name:</label>
+        <input type="text" class="ruleName" placeholder="Enter Billing Rule name" />
+
+        <label>Billing Adjustment (e.g. 0.00):</label>
+        <input type="int" class="billingAdjustment" />
+
+        <label>Billing Rule Type:</label>
+        <select class="billingRuleType">
+          <option value="percentDiscount">percentDiscount</option>
+          <option value="percentIncrease">percentIncrease</option>
+          <option value="fixedRate">fixedRate</option>
+        </select>
+
+        <div class="small-label">Include Data Transfer:</div>
+        <div class="small-select">
+          <select class="includeDataTransfer">
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+
+        <div class="small-label">Include RI Purchases:</div>
+        <div class="small-select">
+          <select class="includeRIPurchases">
+            <option value="true">true</option>
+            <option value="false" selected>false</option>
+          </select>
+        </div>
+
+        <label>Product Name:</label>
+        <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
+            <datalist id="productList">
+  <option value="Amazon API Gateway" />
+  <option value="Amazon AppFlow" />
+  <option value="Amazon AppStream" />
+  <option value="Amazon Athena" />
+  <option value="Amazon Bedrock" />
+  <option value="Amazon Chime" />
+  <option value="Amazon CloudFront" />
+  <option value="Amazon CloudSearch" />
+  <option value="Amazon CodeWhisperer" />
+  <option value="Amazon Cognito" />
+  <option value="Amazon Comprehend" />
+  <option value="Amazon Connect" />
+  <option value="Amazon DataZone" />
+  <option value="Amazon Detective" />
+  <option value="Amazon DevOps Guru" />
+  <option value="Amazon DocumentDB (with MongoDB compatibility)" />
+  <option value="Amazon DynamoDB" />
+  <option value="Amazon EC2" />
+  <option value="Amazon EC2 Container Registry (ECR)" />
+  <option value="Amazon Elastic Compute Cloud" />
+  <option value="Amazon Elastic Container Registry Public" />
+  <option value="Amazon Elastic Container Service" />
+  <option value="Amazon Elastic Container Service for Kubernetes" />
+  <option value="Amazon Elastic File System" />
+  <option value="Amazon Elastic MapReduce" />
+  <option value="Amazon Elastic Transcoder" />
+  <option value="Amazon ElastiCache" />
+  <option value="Amazon FSx" />
+  <option value="Amazon Glacier" />
+  <option value="Amazon GuardDuty" />
+  <option value="Amazon HealthLake" />
+  <option value="Amazon Inspector" />
+  <option value="Amazon Interactive Video Service" />
+  <option value="Amazon Kendra" />
+  <option value="Amazon Keyspaces (for Apache Cassandra)" />
+  <option value="Amazon Kinesis" />
+  <option value="Amazon Kinesis Analytics" />
+  <option value="Amazon Kinesis Firehose" />
+  <option value="Amazon Lambda" />
+  <option value="Amazon Lex" />
+  <option value="Amazon Lightsail" />
+  <option value="Amazon Location Service" />
+  <option value="Amazon Machine Learning" />
+  <option value="Amazon Macie" />
+  <option value="Amazon Managed Blockchain" />
+  <option value="Amazon Managed Grafana" />
+  <option value="Amazon Managed Service for Prometheus" />
+  <option value="Amazon Managed Streaming for Apache Kafka" />
+  <option value="Amazon Managed Workflows for Apache Airflow" />
+  <option value="Amazon Mechanical Turk" />
+  <option value="Amazon Mechanical Turk Worker Rewards" />
+  <option value="Amazon MemoryDB" />
+  <option value="Amazon MQ" />
+  <option value="Amazon Neptune" />
+  <option value="Amazon Omics" />
+  <option value="Amazon OpenSearch Service" />
+  <option value="Amazon Personalize" />
+  <option value="Amazon Polly" />
+  <option value="Amazon Q" />
+  <option value="Amazon Quantum Ledger Database" />
+  <option value="Amazon QuickSight" />
+  <option value="Amazon RDS" />
+  <option value="Amazon Redshift" />
+  <option value="Amazon Registrar" />
+  <option value="Amazon Rekognition" />
+  <option value="Amazon Relational Database Service" />
+  <option value="Amazon Route 53" />
+  <option value="Amazon S3" />
+  <option value="Amazon S3 Glacier Deep Archive" />
+  <option value="Amazon SageMaker" />
+  <option value="Amazon Security Lake" />
+  <option value="Amazon Simple Email Service" />
+  <option value="Amazon Simple Notification Service" />
+  <option value="Amazon Simple Queue Service" />
+  <option value="Amazon Simple Storage Service" />
+  <option value="Amazon Simple Workflow Service" />
+  <option value="Amazon SimpleDB" />
+  <option value="Amazon Textract" />
+  <option value="Amazon Timestream" />
+  <option value="Amazon Transcribe" />
+  <option value="Amazon Translate" />
+  <option value="Amazon Verified Permissions" />
+  <option value="Amazon Virtual Private Cloud" />
+  <option value="Amazon VPC" />
+  <option value="Amazon WorkDocs" />
+  <option value="Amazon WorkSpaces" />
+  <option value="Amazon WorkSpaces Web" />
+  <option value="AmazonCloudWatch" />
+  <option value="AmazonWorkMail" />
+  <option value="AWS Amplify" />
+  <option value="AWS App Runner" />
+  <option value="AWS AppSync" />
+  <option value="AWS Application Migration Service" />
+  <option value="AWS Audit Manager" />
+  <option value="AWS Backup" />
+  <option value="AWS Billing Conductor" />
+  <option value="AWS Budgets" />
+  <option value="AWS Certificate Manager" />
+  <option value="AWS Cloud Map" />
+  <option value="AWS Cloud WAN" />
+  <option value="AWS CloudFormation" />
+  <option value="AWS CloudHSM" />
+  <option value="AWS CloudShell" />
+  <option value="AWS CloudTrail" />
+  <option value="AWS CodeArtifact" />
+  <option value="AWS CodeBuild" />
+  <option value="AWS CodeCommit" />
+  <option value="AWS CodePipeline" />
+  <option value="AWS Compute Optimizer" />
+  <option value="AWS Config" />
+  <option value="AWS Cost Explorer" />
+  <option value="AWS Data Pipeline" />
+  <option value="AWS Data Transfer" />
+  <option value="AWS Database Migration Service" />
+  <option value="AWS DataSync" />
+  <option value="AWS DeepRacer" />
+  <option value="AWS Device Farm" />
+  <option value="AWS Direct Connect" />
+  <option value="AWS Directory Service" />
+  <option value="AWS Elemental MediaConnect" />
+  <option value="AWS Elemental MediaConvert" />
+  <option value="AWS Elemental MediaLive" />
+  <option value="AWS Elemental MediaStore" />
+  <option value="AWS End User Messaging" />
+  <option value="AWS Firewall Manager" />
+  <option value="AWS Global Accelerator" />
+  <option value="AWS Glue" />
+  <option value="AWS HealthImaging" />
+  <option value="AWS Identity and Access Management Access Analyzer" />
+  <option value="AWS IoT" />
+  <option value="AWS IoT Device Defender" />
+  <option value="AWS IoT Device Management" />
+  <option value="AWS IoT Events" />
+  <option value="AWS IoT TwinMaker" />
+  <option value="AWS Key Management Service" />
+  <option value="AWS Lambda" />
+  <option value="AWS Migration Hub Refactor Spaces" />
+  <option value="AWS Network Firewall" />
+  <option value="AWS Payment Cryptography" />
+  <option value="AWS Route 53 Application Recovery Controller" />
+  <option value="AWS Secrets Manager" />
+  <option value="AWS Security Hub" />
+  <option value="AWS Service Catalog" />
+  <option value="AWS Shield" />
+  <option value="AWS Skill Builder Individual" />
+  <option value="AWS Step Functions" />
+  <option value="AWS Storage Gateway" />
+  <option value="AWS Support (Business)" />
+  <option value="AWS Support (Developer)" />
+  <option value="AWS Support (Enterprise)" />
+  <option value="AWS Premium Support" />
+  <option value="AWS Systems Manager" />
+  <option value="AWS Telco Network Builder" />
+  <option value="AWS Transfer Family" />
+  <option value="AWS WAF" />
+  <option value="AWS X-Ray" />
+  <option value="CloudWatch Events" />
+  <option value="CodeBuild" />
+  <option value="Contact Lens for Amazon Connect" />
+  <option value="DynamoDB Accelerator (DAX)" />
+  <option value="Elastic Load Balancing" />
+  <option value="Savings Plans for AWS Compute usage" />
+  <option value="Savings Plans for AWS Machine Learning" />
+</datalist>
+        <div class="small-label">Product Include Data Transfer:</div>
+        <div class="small-select">
+          <select class="productIncludeDataTransfer">
+            <option value="">(inherit)</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+
+        <div class="small-label">Product Include RI Purchases:</div>
+        <div class="small-select">
+          <select class="productIncludeRIPurchases">
+            <option value="">(inherit)</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+
+        <label>Region (optional):</label>
+        <input type="text" class="region" />
+
+        <div class="sub-group">
+          <label>Usage Types:</label>
+          <div class="usageTypes"></div>
+          <div class="sub-entry">
+            <button type="button" onclick="addUsageType(this)">+</button>
+          </div>
+        </div>
+
+        <div class="sub-group">
+          <label>Line Item Descriptions:</label>
+          <div class="lineItemDescriptions"></div>
+          <div class="sub-entry">
+            <button type="button" onclick="addLineItemDescription(this)">+</button>
+          </div>
+        </div>
+
+        <button class="remove-rule" onclick="this.parentElement.remove()">Remove Billing Rule</button>
+      `;
+      rulesContainer.appendChild(div);
+    }
+
+    function addUsageType(button) {
+      const container = button.closest('.sub-group').querySelector('.usageTypes');
+      const div = document.createElement('div');
+      div.className = 'sub-entry';
+      div.innerHTML = `
+        <button type="button" class="remove-usagetype" onclick="this.parentElement.remove()">×</button>
+        <input type="text" class="usageTypeName" placeholder="UsageType name..." />
+      `;
+      container.appendChild(div);
+    }
+
+    function addLineItemDescription(button) {
+      const container = button.closest('.sub-group').querySelector('.lineItemDescriptions');
+      const div = document.createElement('div');
+      div.className = 'sub-entry';
+      div.innerHTML = `
+        <button type="button" class="remove-lineitem" onclick="this.parentElement.remove()">×</button>
+        <select class="lineItemType">
+          <option value="contains">contains</option>
+          <option value="startsWith">startsWith</option>
+          <option value="matchesRegex">matchesRegex</option>
+        </select>
+        <input type="text" class="lineItemValue" placeholder="Enter LineItem Description..." />
+      `;
+      container.appendChild(div);
+    }
+
+    function generateXML() {
+      const createdBy = document.getElementById('createdBy').value;
+      const comment = document.getElementById('comment').value || '';
+      if (!createdBy) {
+        alert("Created By is required.");
+        return;
+      }
+
+      const groups = document.querySelectorAll('.ruleGroup');
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
+
+      groups.forEach(group => {
+        const startDate = group.querySelector('.startDate').value;
+        const endDate = group.querySelector('.endDate').value;
+        const enabled = group.querySelector('.enabled').value;
+
+        xml += `\t<RuleGroup startDate="${startDate}"${endDate ? ` endDate="${endDate}"` : ''}${enabled === "false" ? ` enabled="false"` : ''}>\n`;
+
+        const rules = group.querySelectorAll('.rule');
+        rules.forEach(rule => {
+          const name = rule.querySelector('.ruleName').value;
+          const adj = rule.querySelector('.billingAdjustment').value || '0.00';
+          const type = rule.querySelector('.billingRuleType').value;
+          const dataTransfer = rule.querySelector('.includeDataTransfer').value;
+          const rip = rule.querySelector('.includeRIPurchases').value;
+          const product = rule.querySelector('.productName').value || 'ANY';
+
+          const prodDT = rule.querySelector('.productIncludeDataTransfer').value;
+          const prodRIP = rule.querySelector('.productIncludeRIPurchases').value;
+          const region = rule.querySelector('.region').value;
+
+          xml += `\t\t<BillingRule name="${name}" includeDataTransfer="${dataTransfer}"${rip === "true" ? ` includeRIPurchases="true"` : ''}>\n`;
+          xml += `\t\t\t<BasicBillingRule billingAdjustment="${adj}" billingRuleType="${type}"/>\n`;
+          xml += `\t\t\t<Product productName="${product}"${prodDT ? ` includeDataTransfer="${prodDT}"` : ''}${prodRIP ? ` includeRIPurchases="${prodRIP}"` : ''}>`;
+
+          let subTags = '';
+
+          if (region) subTags += `\n\t\t\t\t<Region name="${region}"/>`;
+
+          const usageTypes = rule.querySelectorAll('.usageTypes .usageTypeName');
+          usageTypes.forEach(typeEl => {
+            const usageName = typeEl.value.trim();
+            if (usageName) subTags += `\n\t\t\t\t<UsageType name="${usageName}"/>`;
+          });
+
+          const lineItems = rule.querySelectorAll('.lineItemDescriptions .sub-entry');
+          lineItems.forEach(item => {
+            const key = item.querySelector('.lineItemType').value;
+            const val = item.querySelector('.lineItemValue').value;
+            if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
+          });
+
+          if (subTags) {
+            xml += `${subTags}\n\t\t\t</Product>\n`;
+          } else {
+            xml += `</Product>\n`;
+          }
+
+          xml += `\t\t</BillingRule>\n`;
+        });
+
+        xml += `\t</RuleGroup>\n`;
+      });
+
+      xml += `</CHTBillingRules>`;
+      document.getElementById('outputXML').value = xml;
+    }
+
+    function exportJSON() {
+      const bookName = document.getElementById('bookName').value.trim();
+      const xml = document.getElementById('outputXML').value;
+
+      if (!bookName) {
+        alert("Book Name is required.");
+        return;
+      }
+
+      if (!xml) {
+        alert("Generate XML before exporting JSON.");
+        return;
+      }
+
+      const escapedXML = xml.replace(/"/g, '\\"');
+      const json = `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
+      document.getElementById('outputJSON').value = json;
+    }
+  </script>
+    <footer>
+      Created by Sunil Kumar - CloudHealth
+    </footer>
 </body>
 </html>
