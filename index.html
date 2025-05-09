@@ -344,6 +344,28 @@
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     }
 
+    .icon-actions {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-actions button {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+
+    .icon-actions button:hover {
+      background-color: #eee;
+    }
+
     /* Dark mode styles including select updates */
     @media (prefers-color-scheme: dark) {
       body {
@@ -365,7 +387,13 @@
         border-color: #444;
       }
 
-      /*
+      .icon-actions button:hover {
+        background-color: #444;
+        color: #fff;
+      }
+    }
+
+    /*
       button {
         background-color: #444;
         color: #fff;
@@ -383,10 +411,10 @@
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
       } */
 
-      select {
-        background-color: #333;
-        border-radius: 6px;
-      }
+    select {
+      background-color: #333;
+      border-radius: 6px;
+    }
     }
 
     footer {
@@ -456,10 +484,23 @@
   <button class="export-json" onclick="exportForTerminal()">For Terminal Command Use</button>
 
   <h2>Generated XML:</h2>
-  <textarea id="outputXML" rows="10" style="width:75%;"></textarea>
+  <div style="position: relative; width: 75%;">
+    <textarea id="outputXML" rows="10" style="width: 100%;"></textarea>
+    <div class="icon-actions">
+      <button onclick="copyToClipboard('outputXML')" title="Copy to clipboard">📋</button>
+      <button onclick="downloadText('outputXML', 'output.xml')" title="Download as file">💾</button>
+    </div>
+  </div>
 
   <h2>Custom Pricebook JSON Payload:</h2>
-  <textarea id="outputJSON" rows="10" style="width:75%;"></textarea>
+  <div style="position: relative; width: 75%;">
+    <textarea id="outputJSON" rows="10" style="width: 100%;"></textarea>
+    <div class="icon-actions">
+      <button onclick="copyToClipboard('outputJSON')" title="Copy to clipboard">📋</button>
+      <button onclick="downloadText('outputJSON', 'output.JSON')" title="Download as file">💾</button>
+    </div>
+  </div>
+
 
   <script>
     function addRuleGroup() {
@@ -988,6 +1029,22 @@
 
       document.getElementById('outputJSON').value = curlCommand;
     }
+    function copyToClipboard(textareaId) {
+      const textarea = document.getElementById(textareaId);
+      textarea.select();
+      textarea.setSelectionRange(0, 99999); // For mobile
+      document.execCommand("copy");
+    }
+
+    function downloadText(textareaId, filename) {
+      const text = document.getElementById(textareaId).value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    }
+
 
     document.getElementById('infoButton').addEventListener('mouseover', function () {
       var infoTooltip = document.getElementById('infoTooltip');
