@@ -37,7 +37,7 @@
       padding: 0 8px;
     }
 
-    /* ✅ Updated select style with padding and round corners */
+    /*Updated select style with padding and round corners */
     select {
       padding: 5px;
       background-color: #eee;
@@ -122,19 +122,34 @@
       color: #000;
     }
 
-    /* ✅ Updated button styling */
+    /* Updated button styling */
     #infoButton:hover {
       background-color: #3b8e96; /* Slightly darker shade of teal */
       transform: scale(1.1); /* Slightly enlarge the button */
     }
+
     button.export-json {
-  background-color: #3f88c5; /* soft blue */
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #4a90e2, #256dbe);
   color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s, transform 0.2s;
 }
 
 button.export-json:hover {
-  background-color: #357bb3;
+  background: linear-gradient(135deg, #3f7fd9, #1e5fa8);
+  transform: scale(1.05);
 }
+
+button.export-json:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
 button.remove-usagetype,
 button.remove-lineitem,
 button.remove-rule,
@@ -163,6 +178,50 @@ button.remove-rule-group:focus {
   outline: none;
   box-shadow: 0 0 5px rgba(217, 83, 79, 0.5);
 }
+button.addUsageType,
+button.addLineItem{
+  background-color: #4CAF50; /* soft bootstrap-style red */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s, transform 0.2s;
+}
+button.addUsageType:hover,
+button.addLineItem:hover{
+  background-color: #4CAF50; /* darker red for hover */
+  transform: scale(1.05);
+}
+button.addUsageType:focus,
+button.addLineItem:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+button.xmlGen {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #3aa76d, #359e9b);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s, transform 0.2s;
+}
+
+button.xmlGen:hover {
+  background: linear-gradient(135deg, #339864, #2f9091);
+  transform: scale(1.05);
+}
+
+button.xmlGen:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
     button {
       padding: 6px 12px;
       background-color: #4CAF50;
@@ -184,15 +243,14 @@ button.remove-rule-group:focus {
       outline: none;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     }
-
-    /* ✅ Dark mode styles including select updates */
+    /* Dark mode styles including select updates */
     @media (prefers-color-scheme: dark) {
       body {
         background-color: #1e1e1e;
         color: #f0f0f0;
       }
 
-      input, select, textarea, button {
+      input, select, textarea{
         background-color: #333;
         color: #f0f0f0;
         border: 1px solid #555;
@@ -201,7 +259,7 @@ button.remove-rule-group:focus {
       .ruleGroup, .rule, .sub-entry {
         border-color: #444;
       }
-
+      /*
       button {
         background-color: #444;
         color: #fff;
@@ -217,7 +275,7 @@ button.remove-rule-group:focus {
       button:focus {
         outline: none;
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-      }
+      } */
 
       select {
         background-color: #333;
@@ -272,8 +330,9 @@ button.remove-rule-group:focus {
 
   <div id="groupsContainer"></div>
 
-  <button onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
-  <button class="export-json" onclick="exportJSON()">Generate JSON for REST API Payload Body</button>
+  <button class="xmlGen" onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
+  <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;">Generate JSON for REST API Payload Body</button>
+  <button class="export-json" onclick="exportForTerminal()">For Terminal Command Use</button>
 
   <h2>Generated XML:</h2>
   <textarea id="outputXML" rows="10" style="width:75%;"></textarea>
@@ -298,8 +357,9 @@ button.remove-rule-group:focus {
         </select>
 
         <div class="rules"></div>
-        <button onclick="addRule(this)">Add Billing Rule</button>
-        <button class="remove-rule-group" onclick="this.parentElement.remove()">Remove Rule Group</button>
+        <button onclick="addRule(this)" style="margin-right: 15px;">Add Billing Rule</button>
+        <button onclick="addRuleGroup()" style="margin-right: 15px;">Add Rule Group</button>
+        <button class="remove-rule-group" onclick="this.parentElement.remove()" style="margin-right: 15px;">Remove Rule Group</button>
       `;
       document.getElementById('groupsContainer').appendChild(div);
     }
@@ -530,7 +590,7 @@ button.remove-rule-group:focus {
           <label>Usage Types:</label>
           <div class="usageTypes"></div>
           <div class="sub-entry">
-            <button type="button" onclick="addUsageType(this)">+</button>
+            <button class="addUsageType" type="button" onclick="addUsageType(this)">+</button>
           </div>
         </div>
 
@@ -538,7 +598,7 @@ button.remove-rule-group:focus {
           <label>Line Item Descriptions:</label>
           <div class="lineItemDescriptions"></div>
           <div class="sub-entry">
-            <button type="button" onclick="addLineItemDescription(this)">+</button>
+            <button class="addLineItem" type="button" onclick="addLineItemDescription(this)">+</button>
           </div>
         </div>
 
@@ -575,12 +635,18 @@ button.remove-rule-group:focus {
     }
 
     function generateXML() {
-      const createdBy = document.getElementById('createdBy').value;
-      const comment = document.getElementById('comment').value || '';
+      const createdByInput = document.getElementById('createdBy');
+  const createdBy = createdByInput.value;
+  const comment = document.getElementById('comment').value || '';
       if (!createdBy) {
-        alert("Created By is required.");
-        return;
-      }
+    alert("Created By is required.");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    createdByInput.style.border = '2px solid red';
+    createdByInput.focus();
+
+    return;
+  }
+  createdByInput.style.border = '';
 
       const groups = document.querySelectorAll('.ruleGroup');
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
@@ -643,13 +709,19 @@ button.remove-rule-group:focus {
     }
 
     function exportJSON() {
-      const bookName = document.getElementById('bookName').value.trim();
-      const xml = document.getElementById('outputXML').value;
+  const bookNameInput = document.getElementById('bookName');
+  const bookName = bookNameInput.value.trim();
+  const xml = document.getElementById('outputXML').value;
 
-      if (!bookName) {
-        alert("Book Name is required.");
-        return;
-      }
+  if (!bookName) {
+    alert("Price Book Name is required.");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    bookNameInput.style.border = '2px solid red';
+    bookNameInput.focus();
+    return;
+  } else {
+    bookNameInput.style.border = '';
+  }
 
       if (!xml) {
         alert("Generate XML before exporting JSON.");
@@ -660,6 +732,30 @@ button.remove-rule-group:focus {
       const json = `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
       document.getElementById('outputJSON').value = json;
     }
+    function exportForTerminal() {
+  const xml = document.getElementById('outputXML').value.trim();
+
+  if (!xml) {
+    alert("Please paste your XML first.");
+    return;
+  }
+
+  // Escape double quotes and replace newlines with \r\n
+  const escapedXML = xml
+    .replace(/\\/g, '\\\\')       // escape backslashes first
+    .replace(/"/g, '\\"')         // escape double quotes
+    .replace(/\r?\n/g, '\\r\\n'); // convert actual newlines to \r\n literals
+
+  const jsonPayload = `{"specification": "${escapedXML}"}`;
+
+  const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
+    `  -H "Authorization: Bearer <your_api_token>" \\\n` +
+    `  -H "Content-Type: application/json" \\\n` +
+    `  -d '${jsonPayload}'`;
+
+  document.getElementById('outputJSON').value = curlCommand;
+}
+
     document.getElementById('infoButton').addEventListener('mouseover', function() {
     var infoTooltip = document.getElementById('infoTooltip');
     infoTooltip.style.display = 'block';
