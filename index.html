@@ -322,6 +322,31 @@
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     }
 
+    button.importJSON {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #6a5acd, #4682b4);
+      /* SlateBlue to SteelBlue */
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    button.importJSON:hover {
+      background: linear-gradient(135deg, #5a4fcf, #3b75a5);
+      /* Slightly darker on hover */
+      transform: scale(1.05);
+    }
+
+    button.importJSON:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+
     button {
       padding: 6px 12px;
       background-color: #4CAF50;
@@ -392,7 +417,7 @@
         color: #fff;
       }
 
-    /*
+      /*
       button {
         background-color: #444;
         color: #fff;
@@ -410,11 +435,11 @@
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
       } */
 
-    select {
-      background-color: #333;
-      border-radius: 6px;
+      select {
+        background-color: #333;
+        border-radius: 6px;
+      }
     }
-  }
 
     footer {
       text-align: right;
@@ -437,7 +462,7 @@
 
   <label>Comment:</label>
   <input type="text" id="comment" placeholder="Enter CPB Description" />
-
+  <br>
   <button onclick="addRuleGroup()">Add Rule Group</button>
 
   <button id="infoButton" title="Click for more info"
@@ -474,13 +499,20 @@
         style="background-color: #4ca1af; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Close</button>
     </div>
   </div>
+  <button class="importJSON" id="importButton"
+    title="Export the existing price book specification JSON and import it to modify the existing CPB"
+    style="margin-left: 360px;">Import Existing Pricebook JSON</button>
+  <input type="file" id="importFile" accept=".json" style="display: none;" />
 
   <div id="groupsContainer"></div>
 
   <button class="xmlGen" onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
-  <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;" title="Copy the JSON content to use in Postman's Body tab">Generate JSON for REST API Payload
+  <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;"
+    title="Copy the JSON content to use in Postman's Body tab">Generate JSON for REST API Payload
     Body</button>
-  <button class="export-json" onclick="exportForTerminal()" title="Copy the JSON payload content and replace the API key for the Terminal Command">For Terminal Command Use</button>
+  <button class="export-json" onclick="exportForTerminal()"
+    title="Copy the JSON payload content and replace the API key for the Terminal Command">For Terminal Command
+    Use</button>
 
   <h2>Generated XML:</h2>
   <div style="position: relative; width: 75%;">
@@ -1028,6 +1060,88 @@
         `  -d '${jsonPayload}'`;
 
       document.getElementById('outputJSON').value = curlCommand;
+    }
+    document.getElementById('importButton').addEventListener('click', function () {
+      document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const jsonContent = JSON.parse(e.target.result);
+          populateFields(jsonContent);
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    function populateFields(jsonContent) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(jsonContent.specification, 'application/xml');
+
+      const comment = xmlDoc.querySelector('Comment')?.textContent || '';
+      document.getElementById('comment').value = comment;
+
+      // Clear existing groups
+      document.getElementById('groupsContainer').innerHTML = '';
+
+      const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
+      Array.from(ruleGroups).forEach(ruleGroup => {
+        addRuleGroup();
+        const currentGroup = document.querySelector('.ruleGroup:last-child');
+
+        currentGroup.querySelector('.startDate').value = ruleGroup.getAttribute('startDate');
+        currentGroup.querySelector('.endDate').value = ruleGroup.getAttribute('endDate');
+
+        const billingRules = ruleGroup.getElementsByTagName('BillingRule');
+        Array.from(billingRules).forEach(billingRule => {
+          addRule(currentGroup.querySelector('button')); // Add a new rule
+          const currentRule = currentGroup.querySelector('.rule:last-child');
+
+          currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name');
+          currentRule.querySelector('.billingAdjustment').value = billingRule.getElementsByTagName('BasicBillingRule')[0].getAttribute('billingAdjustment');
+          currentRule.querySelector('.billingRuleType').value = billingRule.getElementsByTagName('BasicBillingRule')[0].getAttribute('billingRuleType');
+          currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer');
+
+          const product = billingRule.getElementsByTagName('Product')[0];
+          if (product) {
+            currentRule.querySelector('.productName').value = product.getAttribute('productName');
+            const region = product.getElementsByTagName('Region')[0];
+            if (region) {
+              currentRule.querySelector('.region').value = region.getAttribute('name');
+            }
+
+            populateSubEntries(currentRule.querySelector('.usageTypes'), product.getElementsByTagName('UsageType'), 'name', addUsageType);
+            populateSubEntries(currentRule.querySelector('.operations'), product.getElementsByTagName('Operation'), 'name', addOperation);
+            populateSubEntries(currentRule.querySelector('.recordTypes'), product.getElementsByTagName('RecordType'), 'name', addRecordType);
+            populateSubEntries(currentRule.querySelector('.instanceProperties'), product.getElementsByTagName('InstanceProperties'), null, addInstanceProperty, ['instanceType', 'instanceSize', 'reserved']);
+            populateSubEntries(currentRule.querySelector('.lineItemDescriptions'), product.getElementsByTagName('LineItemDescription'), null, addLineItemDescription, ['contains', 'startsWith', 'matchesRegex']);
+            populateSubEntries(currentRule.querySelector('.savingsPlanOfferingTypes'), product.getElementsByTagName('SavingsPlanOfferingType'), 'name', addSavingsPlanOfferingType);
+          }
+        });
+      });
+    }
+
+    function populateSubEntries(container, xmlElements, attrName, addFunction, specificAttrs) {
+      Array.from(xmlElements).forEach(element => {
+        const button = container.nextElementSibling.querySelector('button');
+        addFunction(button);
+        const newEntry = container.querySelector('.sub-entry:last-child');
+        if (attrName) {
+          newEntry.querySelector('input').value = element.getAttribute(attrName);
+        } else if (specificAttrs) {
+          specificAttrs.forEach(attr => {
+            const input = newEntry.querySelector(`.${attr}`);
+            if (input.type === 'checkbox') {
+              input.checked = element.getAttribute(attr) === 'true';
+            } else {
+              input.value = element.getAttribute(attr);
+            }
+          });
+        }
+      });
     }
     function copyToClipboard(textareaId) {
       const textarea = document.getElementById(textareaId);
