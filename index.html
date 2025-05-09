@@ -1,38 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>CPB XML/JSON Generator</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial; margin: 20px; }
-    
-    input, select, button, textarea { margin: 5px 0; }
-    .ruleGroup, .rule, .sub-entry {
+    body {
+      font-family: Arial;
+      margin: 20px;
+    }
+
+    input,
+    select,
+    button,
+    textarea {
+      margin: 5px 0;
+    }
+
+    .ruleGroup,
+    .rule,
+    .sub-entry {
       border: 1px solid #ccc;
       padding: 10px;
       margin-bottom: 10px;
       border-radius: 6px;
     }
 
-    .section-title { margin-top: 20px; font-weight: bold; }
-    .sub-group { margin-top: 10px; }
+    .section-title {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    .sub-group {
+      margin-top: 10px;
+    }
+
     .sub-entry {
       display: flex;
       align-items: center;
       gap: 6px;
       margin-top: 5px;
     }
+
     .sub-entry input[type="text"] {
       flex-grow: 1;
       max-width: 80%;
     }
+
     .sub-entry select.lineItemType {
       width: 125px;
       flex-shrink: 0;
       padding: 6px;
     }
+
     .sub-entry button {
       padding: 0 8px;
     }
@@ -67,6 +89,54 @@
       box-sizing: border-box;
     }
 
+    .sub-entry input.operationName,
+    .sub-entry input.recordTypeName,
+    .sub-entry input.savingsPlanOfferingTypeName {
+      display: block;
+      width: 75%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    /* .sub-entry input.instanceType,
+    .sub-entry input.instanceSize{
+      display: block;
+      width: 40%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    } */
+    .sub-entry input.instanceType,
+    .sub-entry input.instanceSize,
+    .sub-entry .checkbox-wrapper input {
+      display: block;
+      width: 40%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .sub-entry .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sub-entry .checkbox-wrapper input[type="checkbox"] {
+      width: auto;
+      margin-right: 6px;
+    }
+
+    .sub-entry .checkbox-wrapper label {
+      font-size: 0.9em;
+      color: inherit;
+    }
+
+
     input.billingAdjustment,
     input.startDate,
     input.endDate,
@@ -87,9 +157,9 @@
       box-sizing: border-box;
     }
 
-    #bookName + label,
-    #createdBy + label,
-    #comment + label {
+    #bookName+label,
+    #createdBy+label,
+    #comment+label {
       margin-top: 15px;
     }
 
@@ -124,103 +194,133 @@
 
     /* Updated button styling */
     #infoButton:hover {
-      background-color: #3b8e96; /* Slightly darker shade of teal */
-      transform: scale(1.1); /* Slightly enlarge the button */
+      background-color: #3b8e96;
+      /* Slightly darker shade of teal */
+      transform: scale(1.1);
+      /* Slightly enlarge the button */
     }
 
     button.export-json {
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #4a90e2, #256dbe);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s, transform 0.2s;
-}
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #4a90e2, #256dbe);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, transform 0.2s;
+    }
 
-button.export-json:hover {
-  background: linear-gradient(135deg, #3f7fd9, #1e5fa8);
-  transform: scale(1.05);
-}
+    button.export-json:hover {
+      background: linear-gradient(135deg, #3f7fd9, #1e5fa8);
+      transform: scale(1.05);
+    }
 
-button.export-json:focus {
-  outline: none;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-}
+    button.export-json:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
 
-button.remove-usagetype,
-button.remove-lineitem,
-button.remove-rule,
-button.remove-rule-group {
-  background-color: #d9534f; /* soft bootstrap-style red */
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 6px 12px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s, transform 0.2s;
-}
-button.remove-usagetype:hover,
-button.remove-lineitem:hover,
-button.remove-rule:hover,
-button.remove-rule-group:hover {
-  background-color: #c9302c; /* darker red for hover */
-  transform: scale(1.05);
-}
-button.remove-usagetype:focus,
-button.remove-lineitem:focus,
-button.remove-rule:focus,
-button.remove-rule-group:focus {
-  outline: none;
-  box-shadow: 0 0 5px rgba(217, 83, 79, 0.5);
-}
-button.addUsageType,
-button.addLineItem{
-  background-color: #4CAF50; /* soft bootstrap-style red */
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 6px 12px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s, transform 0.2s;
-}
-button.addUsageType:hover,
-button.addLineItem:hover{
-  background-color: #4CAF50; /* darker red for hover */
-  transform: scale(1.05);
-}
-button.addUsageType:focus,
-button.addLineItem:focus {
-  outline: none;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-}
-button.xmlGen {
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #3aa76d, #359e9b);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s, transform 0.2s;
-}
+    button.remove-usagetype,
+    button.remove-lineitem,
+    button.remove-rule,
+    button.remove-rule-group {
+      background-color: #d9534f;
+      /* soft bootstrap-style red */
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
 
-button.xmlGen:hover {
-  background: linear-gradient(135deg, #339864, #2f9091);
-  transform: scale(1.05);
-}
+    button.remove-usagetype:hover,
+    button.remove-lineitem:hover,
+    button.remove-rule:hover,
+    button.remove-rule-group:hover {
+      background-color: #c9302c;
+      /* darker red for hover */
+      transform: scale(1.05);
+    }
 
-button.xmlGen:focus {
-  outline: none;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-}
+    button.remove-usagetype:focus,
+    button.remove-lineitem:focus,
+    button.remove-rule:focus,
+    button.remove-rule-group:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(217, 83, 79, 0.5);
+    }
+
+    button.addUsageType,
+    button.addLineItem {
+      background-color: #4CAF50;
+      /* soft bootstrap-style red */
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button.addOperation,
+    button.addRecordType,
+    button.addInstanceProperty,
+    button.addSavingsPlanOfferingType {
+      padding: 6px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button.addOperation:hover,
+    button.addRecordType:hover,
+    button.addInstanceProperty:hover,
+    button.addSavingsPlanOfferingType:hover {
+      background-color: #45a049;
+      transform: scale(1.05);
+    }
+
+    button.addOperation:focus,
+    button.addRecordType:focus,
+    button.addInstanceProperty:focus,
+    button.addSavingsPlanOfferingType:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    button.xmlGen {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #3aa76d, #359e9b);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    button.xmlGen:hover {
+      background: linear-gradient(135deg, #339864, #2f9091);
+      transform: scale(1.05);
+    }
+
+    button.xmlGen:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
 
     button {
       padding: 6px 12px;
@@ -243,6 +343,7 @@ button.xmlGen:focus {
       outline: none;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     }
+
     /* Dark mode styles including select updates */
     @media (prefers-color-scheme: dark) {
       body {
@@ -250,15 +351,20 @@ button.xmlGen:focus {
         color: #f0f0f0;
       }
 
-      input, select, textarea{
+      input,
+      select,
+      textarea {
         background-color: #333;
         color: #f0f0f0;
         border: 1px solid #555;
       }
 
-      .ruleGroup, .rule, .sub-entry {
+      .ruleGroup,
+      .rule,
+      .sub-entry {
         border-color: #444;
       }
+
       /*
       button {
         background-color: #444;
@@ -290,48 +396,63 @@ button.xmlGen:focus {
       font-size: 0.80em;
       color: #616060f2;
     }
-</style>
+  </style>
 </head>
+
 <body>
   <h1>Custom Price Book XML/JSON Generator</h1>
 
   <label>Price Book Name (required):</label>
-  <input type="text" id="bookName" placeholder="Enter CPB Name"required />
+  <input type="text" id="bookName" placeholder="Enter CPB Name" required />
 
   <label>Created By (required):</label>
-  <input type="email" id="createdBy" placeholder="Enter Name/Email"required />
+  <input type="email" id="createdBy" placeholder="Enter Name/Email" required />
 
   <label>Comment:</label>
   <input type="text" id="comment" placeholder="Enter CPB Description" />
 
   <button onclick="addRuleGroup()">Add Rule Group</button>
- 
-  <button id="infoButton" title="Click for more info" style="background-color: #4ca1af; color: #fff; border: none; padding: 4px 6px; border-radius: 50%; font-size: 14px; cursor: pointer; font-family: 'Pacifico', cursive; font-weight: normal; transition: background-color 0.3s ease, transform 0.2s ease;">
+
+  <button id="infoButton" title="Click for more info"
+    style="background-color: #4ca1af; color: #fff; border: none; padding: 4px 6px; border-radius: 50%; font-size: 14px; cursor: pointer; font-family: 'Pacifico', cursive; font-weight: normal; transition: background-color 0.3s ease, transform 0.2s ease;">
     i
   </button>
 
-<!-- The small text bubble (tooltip) that will appear when hovering over the button -->
-<div id="infoTooltip" style="display:none;">
-  <div style="background-color: #333; color: #fff; padding: 8px 12px; border-radius: 5px; border: 1px solid #888; font-size: 12px; max-width: 300px; position: absolute; top: 30px; left: 0; z-index: 10;">
-    <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
-    <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
-    <p><strong>For more details:</strong> <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" style="color: #4ca1af;">API Documentation</a></p>
+  <!-- The small text bubble (tooltip) that will appear when hovering over the button -->
+  <div id="infoTooltip" style="display:none;">
+    <div
+      style="background-color: #333; color: #fff; padding: 8px 12px; border-radius: 5px; border: 1px solid #888; font-size: 12px; max-width: 300px; position: absolute; top: 30px; left: 0; z-index: 10;">
+      <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first
+        applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules
+        are used for that line item. If no applicable and matching rule is found, the line item will have a 0%
+        calculated price adjustment.</p>
+      <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes
+        in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is
+        actually used depends on its order relative to other rules and the constraints it specifies for matching line
+        items.</p>
+      <p><strong>For more details:</strong> <a
+          href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank"
+          style="color: #4ca1af;">API Documentation</a></p>
+    </div>
   </div>
-</div>
 
-<!-- Modal for detailed info on click -->
-<div id="infoModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000;">
-  <div style="background-color: #222; margin: 15% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 8px; text-align: left; color: #fff;">
-    <h2>Rule Info</h2>
-    <div id="infoContent"></div>
-    <button onclick="closeModal()" style="background-color: #4ca1af; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Close</button>
+  <!-- Modal for detailed info on click -->
+  <div id="infoModal"
+    style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000;">
+    <div
+      style="background-color: #222; margin: 15% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 8px; text-align: left; color: #fff;">
+      <h2>Rule Info</h2>
+      <div id="infoContent"></div>
+      <button onclick="closeModal()"
+        style="background-color: #4ca1af; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Close</button>
+    </div>
   </div>
-</div>
 
   <div id="groupsContainer"></div>
 
   <button class="xmlGen" onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
-  <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;">Generate JSON for REST API Payload Body</button>
+  <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;">Generate JSON for REST API Payload
+    Body</button>
   <button class="export-json" onclick="exportForTerminal()">For Terminal Command Use</button>
 
   <h2>Generated XML:</h2>
@@ -582,10 +703,11 @@ button.xmlGen:focus {
             <option value="false">false</option>
           </select>
         </div>
-
+<!-- Region -->
         <label>Region (optional):</label>
         <input type="text" class="region" />
 
+        <!-- usageType -->
         <div class="sub-group">
           <label>Usage Types:</label>
           <div class="usageTypes"></div>
@@ -594,6 +716,34 @@ button.xmlGen:focus {
           </div>
         </div>
 
+        <!-- Operation -->
+<div class="sub-group">
+  <label>Operations:</label>
+  <div class="operations"></div>
+  <div class="sub-entry">
+    <button class="addOperation" type="button" onclick="addOperation(this)">+</button>
+  </div>
+</div>
+
+<!-- RecordType -->
+<div class="sub-group">
+  <label>Record Types:</label>
+  <div class="recordTypes"></div>
+  <div class="sub-entry">
+    <button class="addRecordType" type="button" onclick="addRecordType(this)">+</button>
+  </div>
+</div>
+
+<!-- InstanceProperties -->
+<div class="sub-group">
+  <label>Instance Properties:</label>
+  <div class="instanceProperties"></div>
+  <div class="sub-entry">
+    <button class="addInstanceProperty" type="button" onclick="addInstanceProperty(this)">+</button>
+  </div>
+</div>
+
+<!-- LineItemDescription -->
         <div class="sub-group">
           <label>Line Item Descriptions:</label>
           <div class="lineItemDescriptions"></div>
@@ -601,6 +751,16 @@ button.xmlGen:focus {
             <button class="addLineItem" type="button" onclick="addLineItemDescription(this)">+</button>
           </div>
         </div>
+
+<!-- SavingsPlanOfferingType -->
+<div class="sub-group">
+  <label>Savings Plan Offering Types:</label>
+  <div class="savingsPlanOfferingTypes"></div>
+  <div class="sub-entry">
+    <button class="addSavingsPlanOfferingType" type="button" onclick="addSavingsPlanOfferingType(this)">+</button>
+  </div>
+</div>
+
 
         <button class="remove-rule" onclick="this.parentElement.remove()">Remove Billing Rule</button>
       `;
@@ -634,19 +794,65 @@ button.xmlGen:focus {
       container.appendChild(div);
     }
 
+    function addOperation(button) {
+      const container = button.closest('.sub-group').querySelector('.operations');
+      const div = document.createElement('div');
+      div.className = 'sub-entry';
+      div.innerHTML = `
+    <button type="button" class="remove-lineitem" onclick="this.parentElement.remove()">×</button>
+    <input type="text" class="operationName" placeholder="Enter Operation name..." />
+  `;
+      container.appendChild(div);
+    }
+    function addRecordType(button) {
+      const container = button.closest('.sub-group').querySelector('.recordTypes');
+      const div = document.createElement('div');
+      div.className = 'sub-entry';
+      div.innerHTML = `
+    <button type="button" class="remove-lineitem" onclick="this.parentElement.remove()">×</button>
+    <input type="text" class="recordTypeName" placeholder="Enter RecordType..." />
+  `;
+      container.appendChild(div);
+    }
+    function addInstanceProperty(button) {
+      const container = button.closest('.sub-group').querySelector('.instanceProperties');
+      const div = document.createElement('div');
+      div.className = 'sub-entry';
+      div.innerHTML = `
+    <button type="button" class="remove-lineitem" onclick="this.parentElement.remove()">×</button>
+    <input type="text" class="instanceType" placeholder="Instance Type (e.g., t2)" />
+    <input type="text" class="instanceSize" placeholder="Instance Size (e.g., 8xlarge)" />
+    <div class="checkbox-wrapper">
+      <input type="checkbox" class="reservedInstance" id="reservedInstance" />
+      <label for="reservedInstance" class="checkbox-label"> Reserved</label>
+    </div>
+  `;
+      container.appendChild(div);
+    }
+    function addSavingsPlanOfferingType(button) {
+      const container = button.closest('.sub-group').querySelector('.savingsPlanOfferingTypes');
+      const div = document.createElement('div');
+      div.className = 'sub-entry';
+      div.innerHTML = `
+    <button type="button" class="remove-lineitem" onclick="this.parentElement.remove()">×</button>
+    <input type="text" class="savingsPlanOfferingTypeName" placeholder="Enter Savings Plan Offering Type..." />
+  `;
+      container.appendChild(div);
+    }
+
     function generateXML() {
       const createdByInput = document.getElementById('createdBy');
-  const createdBy = createdByInput.value;
-  const comment = document.getElementById('comment').value || '';
-      if (!createdBy) {
-    alert("Created By is required.");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    createdByInput.style.border = '2px solid red';
-    createdByInput.focus();
+      const createdBy = createdByInput.value;
+      const comment = document.getElementById('comment').value || '';
 
-    return;
-  }
-  createdByInput.style.border = '';
+      if (!createdBy) {
+        alert("Created By is required.");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        createdByInput.style.border = '2px solid red';
+        createdByInput.focus();
+        return;
+      }
+      createdByInput.style.border = '';
 
       const groups = document.querySelectorAll('.ruleGroup');
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
@@ -679,17 +885,44 @@ button.xmlGen:focus {
 
           if (region) subTags += `\n\t\t\t\t<Region name="${region}"/>`;
 
-          const usageTypes = rule.querySelectorAll('.usageTypes .usageTypeName');
-          usageTypes.forEach(typeEl => {
-            const usageName = typeEl.value.trim();
-            if (usageName) subTags += `\n\t\t\t\t<UsageType name="${usageName}"/>`;
+          rule.querySelectorAll('.usageTypes .usageTypeName').forEach(el => {
+            const val = el.value.trim();
+            if (val) subTags += `\n\t\t\t\t<UsageType name="${val}"/>`;
           });
 
-          const lineItems = rule.querySelectorAll('.lineItemDescriptions .sub-entry');
-          lineItems.forEach(item => {
+          rule.querySelectorAll('.operations .operationName').forEach(el => {
+            const val = el.value.trim();
+            if (val) subTags += `\n\t\t\t\t<Operation name="${val}"/>`;
+          });
+
+          rule.querySelectorAll('.recordTypes .recordTypeName').forEach(el => {
+            const val = el.value.trim();
+            if (val) subTags += `\n\t\t\t\t<RecordType name="${val}"/>`;
+          });
+
+          rule.querySelectorAll('.instanceProperties .sub-entry').forEach(entry => {
+            const type = entry.querySelector('.instanceType').value.trim();
+            const size = entry.querySelector('.instanceSize').value.trim();
+            const reserved = entry.querySelector('.reservedInstance').checked;
+
+            if (type || size || reserved === false || reserved === true) {
+              subTags += `\n\t\t\t\t<InstanceProperties`;
+              if (type) subTags += ` instanceType="${type}"`;
+              if (size) subTags += ` instanceSize="${size}"`;
+              subTags += ` reserved="${reserved ? 'true' : 'false'}"`;
+              subTags += ` />`;
+            }
+          });
+
+          rule.querySelectorAll('.lineItemDescriptions .sub-entry').forEach(item => {
             const key = item.querySelector('.lineItemType').value;
             const val = item.querySelector('.lineItemValue').value;
             if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
+          });
+
+          rule.querySelectorAll('.savingsPlanOfferingTypes .savingsPlanOfferingTypeName').forEach(el => {
+            const val = el.value.trim();
+            if (val) subTags += `\n\t\t\t\t<SavingsPlanOfferingType name="${val}"/>`;
           });
 
           if (subTags) {
@@ -709,19 +942,19 @@ button.xmlGen:focus {
     }
 
     function exportJSON() {
-  const bookNameInput = document.getElementById('bookName');
-  const bookName = bookNameInput.value.trim();
-  const xml = document.getElementById('outputXML').value;
+      const bookNameInput = document.getElementById('bookName');
+      const bookName = bookNameInput.value.trim();
+      const xml = document.getElementById('outputXML').value;
 
-  if (!bookName) {
-    alert("Price Book Name is required.");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    bookNameInput.style.border = '2px solid red';
-    bookNameInput.focus();
-    return;
-  } else {
-    bookNameInput.style.border = '';
-  }
+      if (!bookName) {
+        alert("Price Book Name is required.");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        bookNameInput.style.border = '2px solid red';
+        bookNameInput.focus();
+        return;
+      } else {
+        bookNameInput.style.border = '';
+      }
 
       if (!xml) {
         alert("Generate XML before exporting JSON.");
@@ -733,63 +966,64 @@ button.xmlGen:focus {
       document.getElementById('outputJSON').value = json;
     }
     function exportForTerminal() {
-  const xml = document.getElementById('outputXML').value.trim();
+      const xml = document.getElementById('outputXML').value.trim();
 
-  if (!xml) {
-    alert("Please paste your XML first.");
-    return;
-  }
+      if (!xml) {
+        alert("Please paste your XML first.");
+        return;
+      }
 
-  // Escape double quotes and replace newlines with \r\n
-  const escapedXML = xml
-    .replace(/\\/g, '\\\\')       // escape backslashes first
-    .replace(/"/g, '\\"')         // escape double quotes
-    .replace(/\r?\n/g, '\\r\\n'); // convert actual newlines to \r\n literals
+      // Escape double quotes and replace newlines with \r\n
+      const escapedXML = xml
+        .replace(/\\/g, '\\\\')       // escape backslashes first
+        .replace(/"/g, '\\"')         // escape double quotes
+        .replace(/\r?\n/g, '\\r\\n'); // convert actual newlines to \r\n literals
 
-  const jsonPayload = `{"specification": "${escapedXML}"}`;
+      const jsonPayload = `{"specification": "${escapedXML}"}`;
 
-  const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
-    `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
-    `  -H "Content-Type: application/json" \\\n` +
-    `  -d '${jsonPayload}'`;
+      const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
+        `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
+        `  -H "Content-Type: application/json" \\\n` +
+        `  -d '${jsonPayload}'`;
 
-  document.getElementById('outputJSON').value = curlCommand;
-}
+      document.getElementById('outputJSON').value = curlCommand;
+    }
 
-    document.getElementById('infoButton').addEventListener('mouseover', function() {
-    var infoTooltip = document.getElementById('infoTooltip');
-    infoTooltip.style.display = 'block';
+    document.getElementById('infoButton').addEventListener('mouseover', function () {
+      var infoTooltip = document.getElementById('infoTooltip');
+      infoTooltip.style.display = 'block';
 
-    // Position the tooltip near the button
-    var buttonRect = document.getElementById('infoButton').getBoundingClientRect();
-    infoTooltip.style.left = buttonRect.left + window.scrollX + 'px';
-    infoTooltip.style.top = buttonRect.top + window.scrollY + 20 + 'px';
-  });
+      // Position the tooltip near the button
+      var buttonRect = document.getElementById('infoButton').getBoundingClientRect();
+      infoTooltip.style.left = buttonRect.left + window.scrollX + 'px';
+      infoTooltip.style.top = buttonRect.top + window.scrollY + 20 + 'px';
+    });
 
-  // Hide the tooltip when mouse leaves the button
-  document.getElementById('infoButton').addEventListener('mouseout', function() {
-    var infoTooltip = document.getElementById('infoTooltip');
-    infoTooltip.style.display = 'none';
-  });
+    // Hide the tooltip when mouse leaves the button
+    document.getElementById('infoButton').addEventListener('mouseout', function () {
+      var infoTooltip = document.getElementById('infoTooltip');
+      infoTooltip.style.display = 'none';
+    });
 
-  // Show the modal with detailed info when the button is clicked
-  document.getElementById('infoButton').addEventListener('click', function() {
-    var infoModal = document.getElementById('infoModal');
-    infoModal.style.display = 'block';
-    document.getElementById('infoContent').innerHTML = `
+    // Show the modal with detailed info when the button is clicked
+    document.getElementById('infoButton').addEventListener('click', function () {
+      var infoModal = document.getElementById('infoModal');
+      infoModal.style.display = 'block';
+      document.getElementById('infoContent').innerHTML = `
       <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
       <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
       <p><strong>For more details:</strong> <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" style="color: #4ca1af;">API Documentation</a></p>
     `;
-  });
+    });
 
-  // Function to close the modal
-  function closeModal() {
-    document.getElementById('infoModal').style.display = 'none';
-  }
+    // Function to close the modal
+    function closeModal() {
+      document.getElementById('infoModal').style.display = 'none';
+    }
   </script>
-    <footer>
-      Created by Sunil Kumar - CloudHealth
-    </footer>
+  <footer>
+    Created by Sunil Kumar - CloudHealth
+  </footer>
 </body>
+
 </html>
