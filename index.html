@@ -1006,6 +1006,7 @@
       document.getElementById('outputJSON').value = json;
     }
     function exportForTerminal() {
+      const bookName = document.getElementById('bookName').value.trim();
       const xml = document.getElementById('outputXML').value.trim();
 
       if (!xml) {
@@ -1019,7 +1020,7 @@
         .replace(/"/g, '\\"')         // escape double quotes
         .replace(/\r?\n/g, '\\r\\n'); // convert actual newlines to \r\n literals
 
-      const jsonPayload = `{"specification": "${escapedXML}"}`;
+      const jsonPayload = `{"book_name":"${bookName}", specification": "${escapedXML}"}`;
 
       const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
         `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
