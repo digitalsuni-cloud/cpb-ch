@@ -749,7 +749,7 @@ button.xmlGen:focus {
   const jsonPayload = `{"specification": "${escapedXML}"}`;
 
   const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
-    `  -H "Authorization: Bearer <your_api_token>" \\\n` +
+    `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
     `  -H "Content-Type: application/json" \\\n` +
     `  -d '${jsonPayload}'`;
 
