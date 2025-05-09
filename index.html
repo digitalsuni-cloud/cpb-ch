@@ -501,8 +501,8 @@
   </div>
   <button class="importJSON" id="importButton"
     title="Export the existing price book specification JSON and import it to modify the existing CPB"
-    style="margin-left: 360px;">Import Existing Pricebook JSON</button>
-  <input type="file" id="importFile" accept=".json" style="display: none;" />
+    style="margin-left: 360px;">Import Existing Pricebook</button>
+  <input type="file" id="importFile" accept=".json, .xml" style="display: none;" />
 
   <div id="groupsContainer"></div>
 
@@ -1061,6 +1061,9 @@
 
       document.getElementById('outputJSON').value = curlCommand;
     }
+
+    //import file function
+
     document.getElementById('importButton').addEventListener('click', function () {
       document.getElementById('importFile').click();
     });
@@ -1070,21 +1073,33 @@
       if (file) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          const jsonContent = JSON.parse(e.target.result);
-          populateFields(jsonContent);
+          const result = e.target.result;
+          if (file.type === 'application/json' || file.name.endsWith('.json')) {
+            const jsonContent = JSON.parse(result);
+            populateFieldsFromXMLString(jsonContent.specification, jsonContent);
+          } else if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
+            populateFieldsFromXMLString(result);
+          } else {
+            alert('Unsupported file format. Please upload a JSON or XML file.');
+          }
         };
         reader.readAsText(file);
       }
     });
 
-    function populateFields(jsonContent) {
+    function populateFieldsFromXMLString(xmlString, jsonContent = null) {
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(jsonContent.specification, 'application/xml');
+      const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+
+      const bookNameValue = jsonContent ? jsonContent.book_name : '';
+      document.getElementById('bookName').value = bookNameValue;
+
+      const createdByValue = jsonContent ? jsonContent.createdBy : xmlDoc.documentElement.getAttribute('createdBy');
+      document.getElementById('createdBy').value = createdByValue || '';
 
       const comment = xmlDoc.querySelector('Comment')?.textContent || '';
       document.getElementById('comment').value = comment;
 
-      // Clear existing groups
       document.getElementById('groupsContainer').innerHTML = '';
 
       const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
@@ -1094,20 +1109,25 @@
 
         currentGroup.querySelector('.startDate').value = ruleGroup.getAttribute('startDate');
         currentGroup.querySelector('.endDate').value = ruleGroup.getAttribute('endDate');
+        currentGroup.querySelector('.enabled').value = ruleGroup.getAttribute('enabled') || 'true';
 
         const billingRules = ruleGroup.getElementsByTagName('BillingRule');
         Array.from(billingRules).forEach(billingRule => {
-          addRule(currentGroup.querySelector('button')); // Add a new rule
+          addRule(currentGroup.querySelector('button'));
           const currentRule = currentGroup.querySelector('.rule:last-child');
 
           currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name');
           currentRule.querySelector('.billingAdjustment').value = billingRule.getElementsByTagName('BasicBillingRule')[0].getAttribute('billingAdjustment');
           currentRule.querySelector('.billingRuleType').value = billingRule.getElementsByTagName('BasicBillingRule')[0].getAttribute('billingRuleType');
           currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer');
+          currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases');
 
           const product = billingRule.getElementsByTagName('Product')[0];
           if (product) {
             currentRule.querySelector('.productName').value = product.getAttribute('productName');
+            currentRule.querySelector('.productIncludeDataTransfer').value = product.getAttribute('includeDataTransfer');
+            currentRule.querySelector('.productIncludeRIPurchases').value = product.getAttribute('includeRIPurchases');
+
             const region = product.getElementsByTagName('Region')[0];
             if (region) {
               currentRule.querySelector('.region').value = region.getAttribute('name');
@@ -1116,33 +1136,55 @@
             populateSubEntries(currentRule.querySelector('.usageTypes'), product.getElementsByTagName('UsageType'), 'name', addUsageType);
             populateSubEntries(currentRule.querySelector('.operations'), product.getElementsByTagName('Operation'), 'name', addOperation);
             populateSubEntries(currentRule.querySelector('.recordTypes'), product.getElementsByTagName('RecordType'), 'name', addRecordType);
-            populateSubEntries(currentRule.querySelector('.instanceProperties'), product.getElementsByTagName('InstanceProperties'), null, addInstanceProperty, ['instanceType', 'instanceSize', 'reserved']);
-            populateSubEntries(currentRule.querySelector('.lineItemDescriptions'), product.getElementsByTagName('LineItemDescription'), null, addLineItemDescription, ['contains', 'startsWith', 'matchesRegex']);
+
+            Array.from(product.getElementsByTagName('InstanceProperties')).forEach(instanceProperty => {
+              addInstanceProperty(currentRule.querySelector('.instanceProperties + .sub-entry button'));
+              const newInstance = currentRule.querySelector('.instanceProperties .sub-entry:last-child');
+              newInstance.querySelector('.instanceType').value = instanceProperty.getAttribute('instanceType');
+              newInstance.querySelector('.instanceSize').value = instanceProperty.getAttribute('instanceSize');
+              const reservedAttr = instanceProperty.getAttribute('reserved');
+              newInstance.querySelector('.reservedInstance').checked = reservedAttr === 'true';
+            });
+
+            Array.from(product.getElementsByTagName('LineItemDescription')).forEach(lineItem => {
+              addLineItemDescription(currentRule.querySelector('.lineItemDescriptions + .sub-entry button'));
+              const newDescription = currentRule.querySelector('.lineItemDescriptions .sub-entry:last-child');
+              ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
+                if (lineItem.getAttribute(type)) {
+                  newDescription.querySelector('.lineItemType').value = type;
+                  newDescription.querySelector('.lineItemValue').value = lineItem.getAttribute(type);
+                }
+              });
+            });
+
             populateSubEntries(currentRule.querySelector('.savingsPlanOfferingTypes'), product.getElementsByTagName('SavingsPlanOfferingType'), 'name', addSavingsPlanOfferingType);
           }
         });
       });
     }
 
-    function populateSubEntries(container, xmlElements, attrName, addFunction, specificAttrs) {
+    function populateSubEntries(container, xmlElements, attrName, addFunction, specificAttrs = []) {
       Array.from(xmlElements).forEach(element => {
         const button = container.nextElementSibling.querySelector('button');
         addFunction(button);
         const newEntry = container.querySelector('.sub-entry:last-child');
         if (attrName) {
-          newEntry.querySelector('input').value = element.getAttribute(attrName);
-        } else if (specificAttrs) {
+          newEntry.querySelector('input').value = element.getAttribute(attrName) || '';
+        } else if (specificAttrs.length) {
           specificAttrs.forEach(attr => {
             const input = newEntry.querySelector(`.${attr}`);
-            if (input.type === 'checkbox') {
+            if (attr === 'reserved') {
               input.checked = element.getAttribute(attr) === 'true';
             } else {
-              input.value = element.getAttribute(attr);
+              input.value = element.getAttribute(attr) || '';
             }
           });
         }
       });
     }
+
+    //copy to clipBoard function
+
     function copyToClipboard(textareaId) {
       const textarea = document.getElementById(textareaId);
       textarea.select();
