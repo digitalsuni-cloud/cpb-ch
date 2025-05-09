@@ -465,28 +465,11 @@
   <br>
   <button onclick="addRuleGroup()">Add Rule Group</button>
 
-  <button id="infoButton" title="Click for more info"
+  <!-- Info Button -->
+  <button id="infoButton" title="Click for more info on Rule Groups"
     style="background-color: #4ca1af; color: #fff; border: none; padding: 4px 6px; border-radius: 50%; font-size: 14px; cursor: pointer; font-family: 'Pacifico', cursive; font-weight: normal; transition: background-color 0.3s ease, transform 0.2s ease;">
     i
   </button>
-
-  <!-- The small text bubble (tooltip) that will appear when hovering over the button -->
-  <div id="infoTooltip" style="display:none;">
-    <div
-      style="background-color: #333; color: #fff; padding: 8px 12px; border-radius: 5px; border: 1px solid #888; font-size: 12px; max-width: 300px; position: absolute; top: 30px; left: 0; z-index: 10;">
-      <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first
-        applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules
-        are used for that line item. If no applicable and matching rule is found, the line item will have a 0%
-        calculated price adjustment.</p>
-      <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes
-        in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is
-        actually used depends on its order relative to other rules and the constraints it specifies for matching line
-        items.</p>
-      <p><strong>For more details:</strong> <a
-          href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank"
-          style="color: #4ca1af;">API Documentation</a></p>
-    </div>
-  </div>
 
   <!-- Modal for detailed info on click -->
   <div id="infoModal"
@@ -499,6 +482,8 @@
         style="background-color: #4ca1af; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Close</button>
     </div>
   </div>
+
+
   <button class="importJSON" id="importButton"
     title="Export the existing price book specification JSON/XML and import it to modify the existing CPB"
     style="margin-left: 360px;">Import Existing Pricebook</button>
@@ -1200,39 +1185,24 @@
       link.download = filename;
       link.click();
     }
+    //info button
+    document.addEventListener('DOMContentLoaded', function () {
+      document.getElementById('infoButton').addEventListener('click', function () {
+        var infoModal = document.getElementById('infoModal');
+        infoModal.style.display = 'block';
+        document.getElementById('infoContent').innerHTML = `
+        <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
+        <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
+        <p><strong>For more details:</strong> <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" style="color: #4ca1af;">API Documentation</a></p>
+      `;
+      });
 
-
-    document.getElementById('infoButton').addEventListener('mouseover', function () {
-      var infoTooltip = document.getElementById('infoTooltip');
-      infoTooltip.style.display = 'block';
-
-      // Position the tooltip near the button
-      var buttonRect = document.getElementById('infoButton').getBoundingClientRect();
-      infoTooltip.style.left = buttonRect.left + window.scrollX + 'px';
-      infoTooltip.style.top = buttonRect.top + window.scrollY + 20 + 'px';
+      window.closeModal = function () {
+        document.getElementById('infoModal').style.display = 'none';
+      };
     });
 
-    // Hide the tooltip when mouse leaves the button
-    document.getElementById('infoButton').addEventListener('mouseout', function () {
-      var infoTooltip = document.getElementById('infoTooltip');
-      infoTooltip.style.display = 'none';
-    });
 
-    // Show the modal with detailed info when the button is clicked
-    document.getElementById('infoButton').addEventListener('click', function () {
-      var infoModal = document.getElementById('infoModal');
-      infoModal.style.display = 'block';
-      document.getElementById('infoContent').innerHTML = `
-      <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
-      <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
-      <p><strong>For more details:</strong> <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" style="color: #4ca1af;">API Documentation</a></p>
-    `;
-    });
-
-    // Function to close the modal
-    function closeModal() {
-      document.getElementById('infoModal').style.display = 'none';
-    }
   </script>
   <footer>
     Created by Sunil Kumar - CloudHealth
