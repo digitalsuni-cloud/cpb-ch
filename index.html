@@ -931,7 +931,11 @@
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
 
       groups.forEach(group => {
-        const startDate = group.querySelector('.startDate').value;
+        let startDate = group.querySelector('.startDate').value;
+        if (!startDate) {
+          const now = new Date();
+          startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        }
         const endDate = group.querySelector('.endDate').value;
         const enabled = group.querySelector('.enabled').value;
 
