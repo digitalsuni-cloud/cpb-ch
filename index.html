@@ -1093,6 +1093,8 @@
     });
 
     document.getElementById('importFile').addEventListener('change', function (event) {
+      document.getElementById('outputXML').value = '';
+      document.getElementById('outputJSON').value = '';
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
