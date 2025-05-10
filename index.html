@@ -1023,7 +1023,6 @@
     function exportJSON() {
       const bookNameInput = document.getElementById('bookName');
       const bookName = bookNameInput.value.trim();
-      let xml = document.getElementById('outputXML').value;
 
       if (!bookName) {
         alert("Price Book Name is required.");
@@ -1034,19 +1033,15 @@
       } else {
         bookNameInput.style.border = '';
       }
+      document.getElementById('outputXML').value = '';
+      if (typeof generateXML === 'function') {
+        generateXML();
+      }
 
-      // If XML is missing, try generating it
+      const xml = document.getElementById('outputXML').value;
       if (!xml) {
-        if (typeof generateXML === 'function') {
-          generateXML();
-          xml = document.getElementById('outputXML').value;
-        }
-
-        // Still empty? Abort
-        if (!xml) {
-          alert("Failed to generate XML.");
-          return;
-        }
+        alert("Failed to generate XML.");
+        return;
       }
 
       const escapedXML = xml.replace(/"/g, '\\"');
@@ -1059,7 +1054,6 @@
     function exportForTerminal() {
       const bookNameInput = document.getElementById('bookName');
       const bookName = bookNameInput.value.trim();
-      let xml = document.getElementById('outputXML').value;
 
       if (!bookName) {
         alert("Price Book Name is required.");
@@ -1070,17 +1064,15 @@
       } else {
         bookNameInput.style.border = '';
       }
+      document.getElementById('outputXML').value = '';
+      if (typeof generateXML === 'function') {
+        generateXML();
+      }
 
+      const xml = document.getElementById('outputXML').value;
       if (!xml) {
-        if (typeof generateXML === 'function') {
-          generateXML();
-          xml = document.getElementById('outputXML').value;
-        }
-
-        if (!xml) {
-          alert("Generate XML before exporting JSON.");
-          return;
-        }
+        alert("Failed to generate XML.");
+        return;
       }
 
       const escapedXML = xml.replace(/"/g, '\\"');
