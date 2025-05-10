@@ -463,7 +463,7 @@
   <label>Comment:</label>
   <input type="text" id="comment" placeholder="Enter CPB Description" />
   <br>
-  <button onclick="addRuleGroup()">Add Rule Group</button>
+  <button onclick="addRuleGroup(null, true)">Add Rule Group</button>
 
   <!-- Info Button -->
   <button id="infoButton" title="Click for more info on Rule Groups"
@@ -519,28 +519,42 @@
 
 
   <script>
-    function addRuleGroup() {
+
+    //Add Rule Group Button
+
+    function addRuleGroup(afterElement = null, insertAtTop = false) {
       const div = document.createElement('div');
       div.className = 'ruleGroup';
       div.innerHTML = `
-        <div class="section-title">Rule Group</div>
-        <label>Start Date:</label>
-        <input type="date" class="startDate" required />
-        <label>End Date (optional):</label>
-        <input type="date" class="endDate" />
-        <label>Enabled:</label>
-        <select class="enabled">
-          <option value="true" selected>true</option>
-          <option value="false">false</option>
-        </select>
+    <div class="section-title">Rule Group</div>
+    <label>Start Date:</label>
+    <input type="date" class="startDate" required />
+    <label>End Date (optional):</label>
+    <input type="date" class="endDate" />
+    <label>Enabled:</label>
+    <select class="enabled">
+      <option value="true" selected>true</option>
+      <option value="false">false</option>
+    </select>
 
-        <div class="rules"></div>
-        <button onclick="addRule(this)" style="margin-right: 15px;">Add Billing Rule</button>
-        <button onclick="addRuleGroup()" style="margin-right: 15px;">Add Rule Group</button>
-        <button class="remove-rule-group" onclick="this.parentElement.remove()" style="margin-right: 15px;">Remove Rule Group</button>
-      `;
-      document.getElementById('groupsContainer').appendChild(div);
+    <div class="rules"></div>
+    <button onclick="addRule(this)" style="margin-right: 15px;">Add Billing Rule</button>
+    <button onclick="addRuleGroup(this.parentElement)" style="margin-right: 15px;">Add Rule Group</button>
+    <button class="remove-rule-group" onclick="this.parentElement.remove()" style="margin-right: 15px;">Remove Rule Group</button>
+  `;
+
+      const container = document.getElementById('groupsContainer');
+
+      if (insertAtTop) {
+        container.insertBefore(div, container.firstChild);
+      } else if (afterElement) {
+        container.insertBefore(div, afterElement.nextSibling);
+      } else {
+        container.appendChild(div);
+      }
     }
+
+    // Add Billing Rule Button
 
     function addRule(button) {
       const rulesContainer = button.previousElementSibling;
@@ -897,6 +911,8 @@
       container.appendChild(div);
     }
 
+    //Export XML Button Function
+
     function generateXML() {
       const createdByInput = document.getElementById('createdBy');
       const createdBy = createdByInput.value;
@@ -998,10 +1014,48 @@
       document.getElementById('outputXML').value = xml;
     }
 
+    //ExportJSON Function
+
     function exportJSON() {
       const bookNameInput = document.getElementById('bookName');
       const bookName = bookNameInput.value.trim();
-      const xml = document.getElementById('outputXML').value;
+      let xml = document.getElementById('outputXML').value;
+
+      if (!bookName) {
+        alert("Price Book Name is required.");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        bookNameInput.style.border = '2px solid red';
+        bookNameInput.focus();
+        return;
+      } else {
+        bookNameInput.style.border = '';
+      }
+
+      // If XML is missing, try generating it
+      if (!xml) {
+        if (typeof generateXML === 'function') {
+          generateXML();
+          xml = document.getElementById('outputXML').value;
+        }
+
+        // Still empty? Abort
+        if (!xml) {
+          alert("Failed to generate XML.");
+          return;
+        }
+      }
+
+      const escapedXML = xml.replace(/"/g, '\\"');
+      const json = `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
+      document.getElementById('outputJSON').value = json;
+    }
+
+    // Export for Terminal Function
+
+    function exportForTerminal() {
+      const bookNameInput = document.getElementById('bookName');
+      const bookName = bookNameInput.value.trim();
+      let xml = document.getElementById('outputXML').value;
 
       if (!bookName) {
         alert("Price Book Name is required.");
@@ -1014,30 +1068,19 @@
       }
 
       if (!xml) {
-        alert("Generate XML before exporting JSON.");
-        return;
+        if (typeof generateXML === 'function') {
+          generateXML();
+          xml = document.getElementById('outputXML').value;
+        }
+
+        if (!xml) {
+          alert("Generate XML before exporting JSON.");
+          return;
+        }
       }
 
       const escapedXML = xml.replace(/"/g, '\\"');
-      const json = `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
-      document.getElementById('outputJSON').value = json;
-    }
-    function exportForTerminal() {
-      const bookName = document.getElementById('bookName').value.trim();
-      const xml = document.getElementById('outputXML').value.trim();
-
-      if (!xml) {
-        alert("Please paste your XML first.");
-        return;
-      }
-
-      // Escape double quotes and replace newlines with \r\n
-      const escapedXML = xml
-        .replace(/\\/g, '\\\\')       // escape backslashes first
-        .replace(/"/g, '\\"')         // escape double quotes
-        .replace(/\r?\n/g, '\\r\\n'); // convert actual newlines to \r\n literals
-
-      const jsonPayload = `{"book_name":"${bookName}", specification": "${escapedXML}"}`;
+      const jsonPayload = `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
 
       const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
         `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
