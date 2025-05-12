@@ -499,21 +499,22 @@
     title="Copy the JSON payload content and replace the API key for the Terminal Command">For Terminal Command
     Use</button>
 
-  <h2>Generated XML:</h2>
-  <div style="position: relative; width: 75%;">
-    <textarea id="outputXML" rows="10" style="width: 100%;"></textarea>
-    <div class="icon-actions">
-      <button onclick="copyToClipboard('outputXML')" title="Copy to clipboard">📋</button>
-      <button onclick="downloadText('outputXML', 'output.xml')" title="Download as file">💾</button>
+    <h2>Generated XML:</h2>
+    <div style="position: relative; width: 75%;">
+      <textarea id="outputXML" rows="10" style="width: 100%;"></textarea>
+      <div class="icon-actions">
+        <button onclick="copyToClipboard('outputXML')" title="Copy to clipboard">📋</button>
+        <button onclick="downloadText('outputXML', 'xml')" title="Download as file">💾</button>
+      </div>
     </div>
-  </div>
 
-  <h2>Custom Pricebook JSON Payload:</h2>
-  <div style="position: relative; width: 75%;">
-    <textarea id="outputJSON" rows="10" style="width: 100%;"></textarea>
-    <div class="icon-actions">
-      <button onclick="copyToClipboard('outputJSON')" title="Copy to clipboard">📋</button>
-      <button onclick="downloadText('outputJSON', 'output.JSON')" title="Download as file">💾</button>
+    <h2>Custom Pricebook JSON Payload:</h2>
+    <div style="position: relative; width: 75%;">
+      <textarea id="outputJSON" rows="10" style="width: 100%;"></textarea>
+      <div class="icon-actions">
+        <button onclick="copyToClipboard('outputJSON')" title="Copy to clipboard">📋</button>
+        <button onclick="downloadText('outputJSON', 'json')" title="Download as file">💾</button>
+      </div>
     </div>
   </div>
 
@@ -1267,15 +1268,27 @@ document.getElementById('importFile').addEventListener('change', function (event
       textarea.setSelectionRange(0, 99999); // For mobile
       document.execCommand("copy");
     }
+//Download output
+function downloadText(textareaId, extension) {
+  const text = document.getElementById(textareaId).value;
+  const nameInput = document.getElementById('bookName');
+  let base = nameInput ? nameInput.value.trim() : 'output';
+  if (!base) base = 'output';
 
-    function downloadText(textareaId, filename) {
-      const text = document.getElementById(textareaId).value;
-      const blob = new Blob([text], { type: 'text/plain' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      link.click();
-    }
+  // Sanitize filename
+  base = base.replace(/[^\w\-]/g, '_');
+
+  // Add date timestamp
+  const now = new Date();
+  const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const filename = `${base}_${timestamp}.${extension}`;
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
     //info button
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('infoButton').addEventListener('click', function () {
