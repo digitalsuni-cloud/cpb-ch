@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CloudHealth CPB XML/JSON Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <h1>CloudHealth Custom Price Book XML/JSON/cURL Generator</h1>
+  <button id="importButton" class="importJSON"
+    title="Import an existing Price Book specification in JSON/XML to modify">
+    Import Existing Price Book
+  </button>
+  <input type="file" id="importFile" accept=".json, .xml" style="display: none;" />
+<br>
+  <label for="bookName">Price Book Name <span class="required-asterisk">*</span>:</label>
+  <input type="text" id="bookName" placeholder="Enter CPB Name" required />
+
+  <label for="createdBy">Created By <span class="required-asterisk">*</span>:</label>
+  <input type="email" id="createdBy" placeholder="Enter Name/Email" required />
+
+  <label for="comment">Comment:</label>
+  <input type="text" id="comment" placeholder="Enter CPB Description" />
+<br>
+  <label for="cxAPIId">Customer API ID:</label>
+  <input type="text" id="cxAPIId" placeholder="Enter Customer API ID" required />
+
+  <label for="cxPayerId">Customer Designated Payer ID:</label>
+  <input type="text" id="cxPayerId" placeholder="Enter Customer Payer ID(s), separated by commas, or leave empty for ALL" required />
+
+  <br>
+
+  <button onclick="addRuleGroup(null, true)">Add Rule Group</button>
+
+  <button id="infoButton" title="Click for more info on Rule Groups"
+    style="background-color: #4ca1af; color: #fff; border: none; padding: 4px 6px; border-radius: 50%; font-size: 14px; cursor: pointer; font-family: 'Pacifico', cursive; font-weight: normal; transition: background-color 0.3s ease, transform 0.2s ease;">
+    i
+  </button>
+
+  <!-- Modal for detailed info -->
+  <div id="infoModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000;">
+    <div
+      style="background-color: #222; margin: 15% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 8px; text-align: left; color: #fff;">
+      <h2>Rule Info</h2>
+      <div id="infoContent"></div>
+      <button onclick="closeModal()"
+        style="background-color: #4ca1af; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">
+        Close
+      </button>
+    </div>
+  </div>
+  <div id="groupsContainer"></div>
+<br>
+
+  <button class="xmlGen" onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
+  <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;"
+    title="Generate JSON payload for REST API requests">
+    Generate JSON Payload
+  </button>
+  <button class="export-json" onclick="exportForTerminal()"
+    title="Generate JSON payload formatted for terminal commands">
+    Generate for Terminal Command
+  </button>
+
+  <h2>Generated XML:</h2>
+  <div style="position: relative; width: 75%;">
+    <textarea id="outputXML" rows="10" style="width: 100%;"></textarea>
+    <div class="icon-actions">
+      <button onclick="copyToClipboard('outputXML')" title="Copy to clipboard">📋</button>
+      <button onclick="downloadText('outputXML', 'xml')" title="Download as XML file">💾</button>
+    </div>
+  </div>
+
+  <h2>1: Create Custom Price Book JSON Payload:</h2>
+  <div style="position: relative; width: 75%;">
+    <textarea id="outputJSON" rows="10" style="width: 100%;"></textarea>
+    <div class="icon-actions">
+      <button onclick="copyToClipboard('outputJSON')" title="Copy to clipboard">📋</button>
+      <button onclick="downloadText('outputJSON', 'json')" title="Download as JSON file">💾</button>
+    </div>
+  </div>
+
+  <h2>2: Assign Price Book to Customer:</h2>
+  <div style="position: relative; width: 75%;">
+    <textarea id="assignCustomerJSON" rows="10" style="width: 100%;"></textarea>
+    <div class="icon-actions">
+      <button onclick="copyToClipboard('assignCustomerJSON')" title="Copy to clipboard">📋</button>
+      <button onclick="downloadText('assignCustomerJSON', 'json')" title="Download as JSON file">💾</button>
+    </div>
+  </div>
+
+  <h2>3: Assign Price Book to Customer Designated Payer Account:</h2>
+  <div style="position: relative; width: 75%;">
+    <textarea id="assignCustomerAccountJSON" rows="10" style="width: 100%;"></textarea>
+    <div class="icon-actions">
+      <button onclick="copyToClipboard('assignCustomerAccountJSON')" title="Copy to clipboard">📋</button>
+      <button onclick="downloadText('assignCustomerAccountJSON', 'json')" title="Download as JSON file">💾</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
