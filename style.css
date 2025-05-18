@@ -67,7 +67,8 @@
       font-size: 0.8em;
       padding: 2px 4px;
     }
-    #cxAPIId{
+
+    #cxAPIId {
       width: 20ch;
       padding: 5px;
       border-radius: 6px;
@@ -75,6 +76,7 @@
       margin-bottom: 15px;
       box-sizing: border-box;
     }
+
     input.ruleName,
     input.productName,
     .sub-entry input.usageTypeName,
@@ -143,6 +145,7 @@
       border-radius: 6px;
       box-sizing: border-box;
     }
+
     .required-asterisk {
       color: red;
       margin-left: 2px;
@@ -150,7 +153,7 @@
 
     #bookName,
     #createdBy,
-    #comment{
+    #comment {
       width: 15%;
       padding: 5px;
       border-radius: 6px;
@@ -161,11 +164,11 @@
 
     #bookName+label,
     #createdBy+label,
-    #comment+label{
+    #comment+label {
       margin-top: 15px;
     }
 
-    #cxPayerId{
+    #cxPayerId {
       width: 40%;
       padding: 5px;
       border-radius: 6px;
@@ -173,6 +176,7 @@
       margin-bottom: 15px;
       box-sizing: border-box;
     }
+
     .ruleGroup label,
     .ruleGroup input {
       margin-bottom: 10px;
