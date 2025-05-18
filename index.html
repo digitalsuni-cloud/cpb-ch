@@ -23,19 +23,47 @@
   <input type="file" id="importFile" accept=".json, .xml" style="display: none;" />
 <br>
   <label for="bookName">Price Book Name <span class="required-asterisk">*</span>:</label>
-  <input type="text" id="bookName" placeholder="Enter CPB Name" required />
+  <input
+    type="text"
+    id="bookName"
+    placeholder="Enter CPB Name"
+    required
+    title="Please enter the name of the custom pricebook here."
+  />
 
   <label for="createdBy">Created By <span class="required-asterisk">*</span>:</label>
-  <input type="email" id="createdBy" placeholder="Enter Name/Email" required />
+  <input
+    type="email"
+    id="createdBy"
+    placeholder="Enter Name/Email"
+    required
+    title="Enter your name or email here."
+  />
 
   <label for="comment">Comment:</label>
-  <input type="text" id="comment" placeholder="Enter CPB Description" />
+  <input
+    type="text"
+    id="comment"
+    placeholder="Enter CPB Description"
+    title="Enter CPB Description"
+  />
 <br>
   <label for="cxAPIId">Customer API ID:</label>
-  <input type="text" id="cxAPIId" placeholder="Enter Customer API ID" required />
+  <input type="text"
+    id="cxAPIId"
+    placeholder="Enter Customer API ID"
+    required
+    title="Enter the Customer API ID from the Partner->Customers->List section."
+  />
 
   <label for="cxPayerId">Customer Designated Payer ID:</label>
-  <input type="text" id="cxPayerId" placeholder="Enter Customer Payer ID(s), separated by commas, or leave empty for ALL" required />
+  <input
+    type="text"
+    id="cxPayerId"
+    placeholder="Enter Customer Payer ID(s), separated by commas, or leave empty for ALL"
+    required
+    title="Enter the Customer designated Payer ID(s) in the PGB Configuration, separated by commas, or leave the field blank for ALL."
+  />
 
   <br>
 
@@ -64,11 +92,11 @@
 
   <button class="xmlGen" onclick="generateXML()" style="margin-right: 30px;">Generate XML</button>
   <button class="export-json" onclick="exportJSON()" style="margin-right: 15px;"
-    title="Generate JSON payload for REST API requests">
+    title="Generate a JSON payload for REST API requests using Postman or Insomnia.">
     Generate JSON Payload
   </button>
   <button class="export-json" onclick="exportForTerminal()"
-    title="Generate JSON payload formatted for terminal commands">
+    title="Generate terminal commands to create and assign a pricebook.">
     Generate for Terminal Command
   </button>
 
