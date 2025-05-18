@@ -28,7 +28,7 @@
     id="bookName"
     placeholder="Enter CPB Name"
     required
-    title="Please enter the name of the custom pricebook here."
+    title="Please enter the name of the custom price book here."
   />
 
   <label for="createdBy">Created By <span class="required-asterisk">*</span>:</label>
@@ -96,11 +96,11 @@
     Generate JSON Payload
   </button>
   <button class="export-json" onclick="exportForTerminal()"
-    title="Generate terminal commands to create and assign a pricebook.">
+    title="Generate terminal commands to create and assign a price book.">
     Generate for Terminal Command
   </button>
 
-  <h2>Generated XML:</h2>
+  <h2>XML Output for the Custom Price Book:</h2>
   <div style="position: relative; width: 75%;">
     <textarea id="outputXML" rows="10" style="width: 100%;"></textarea>
     <div class="icon-actions">
@@ -108,7 +108,7 @@
       <button onclick="downloadText('outputXML', 'xml')" title="Download as XML file">💾</button>
     </div>
   </div>
-  <h2>JSON payload and cURL commands for creating and assigning Custom Pricebook are provided below.</h1>
+  <h2>JSON payloads or cURL commands for creating and assigning Custom Price Book are generated below.</h1>
   <h3>1: Create Custom Price Book:</h2>
   <div style="position: relative; width: 75%;">
     <textarea id="outputJSON" rows="10" style="width: 100%;"></textarea>
