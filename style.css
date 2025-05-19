@@ -49,7 +49,19 @@
     .sub-entry button {
       padding: 0 8px;
     }
-
+    select.includeDataTransfer,
+    select.includeRIPurchases,
+    select.productIncludeDataTransfer,
+    select.productIncludeRIPurchases {
+      font-size: 0.7em;
+      padding: 2px 4px;
+    }
+    input.productName {
+      width: 35%;
+      padding: 5px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
     /*Updated select style with padding and round corners */
     select {
       padding: 5px;
@@ -78,7 +90,6 @@
     }
 
     input.ruleName,
-    input.productName,
     .sub-entry input.usageTypeName,
     .sub-entry input.lineItemValue {
       display: block;
