@@ -96,14 +96,12 @@
     }
 
     input.ruleName {
-      display: block;
-      width: 75%;
+      width: 60%;
       padding: 5px;
       margin-bottom: 10px;
       border-radius: 6px;
       box-sizing: border-box;
     }
-    input.ruleName,
     .sub-entry input.usageTypeName,
     .sub-entry input.lineItemValue {
       display: block;
