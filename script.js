@@ -41,7 +41,7 @@ function addRule(button) {
     div.innerHTML = `
         <label>Billing Rule Name:</label>
         <input type="text" class="ruleName" placeholder="Enter Billing Rule name" />
-
+        <br>
         <label>Billing Adjustment:</label>
         <input type="int" class="billingAdjustment" placeholder="e.g. 0.00"/>
 
