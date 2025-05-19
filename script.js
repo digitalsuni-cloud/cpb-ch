@@ -52,21 +52,17 @@ function addRule(button) {
         <option value="fixedRate">fixedRate</option>
         </select>
         
-        <div class="small-label">Include Data Transfer:</div>
-        <div class="small-select">
-        <select class="includeDataTransfer">
-            <option value="true">true</option>
-            <option value="false">false</option>
-        </select>
-        </div>
-
-        <div class="small-label">Include RI Purchases:</div>
-        <div class="small-select">
-        <select class="includeRIPurchases">
-            <option value="true">true</option>
-            <option value="false" selected>false</option>
-        </select>
-        </div>
+  <label class="includeDataTransfer">Include Data Transfer:</label>
+    <select class="includeDataTransfer">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </select>
+  <label class="includeRIPurchases">Include RI Purchases:</label>
+    <select class="includeRIPurchases">
+      <option value="true">true</option>
+      <option value="false" selected>false</option>
+    </select>
+    <br>
 
         <label>Product Name:</label>
         <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
@@ -235,23 +231,21 @@ function addRule(button) {
         <option value="Savings Plans for AWS Compute usage" />
         <option value="Savings Plans for AWS Machine Learning" />
         </datalist>
-        <div class="small-label">Product Include Data Transfer:</div>
-        <div class="small-select">
-        <select class="productIncludeDataTransfer">
-            <option value="">(inherit)</option>
-            <option value="true">true</option>
-            <option value="false">false</option>
-        </select>
-        </div>
+    <Label class="includeDataTransfer">Product Include Data Transfer:</label>
+      <select class="productIncludeDataTransfer">
+        <option value="">(inherit)</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
 
-        <div class="small-label">Product Include RI Purchases:</div>
-        <div class="small-select">
-        <select class="productIncludeRIPurchases">
-            <option value="">(inherit)</option>
-            <option value="true">true</option>
-            <option value="false">false</option>
-        </select>
-        </div>
+    <label class="includeRIPurchases">Product Include RI Purchases:</label>
+      <select class="productIncludeRIPurchases">
+        <option value="">(inherit)</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+
+    <br>
         <!-- Region -->
         <label>Region (optional):</label>
         <input type="text" class="region" />
