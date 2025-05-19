@@ -23,6 +23,18 @@
       margin-top: 20px;
       font-weight: bold;
     }
+    .inline-options {
+  display: flex;
+  gap: 20px; /* spacing between the two groups */
+  align-items: center;
+  margin-top: 10px;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+}
+
 
     .sub-group {
       margin-top: 10px;
