@@ -49,6 +49,12 @@
     .sub-entry button {
       padding: 0 8px;
     }
+    label.includeDataTransfer,
+    label.includeRIPurchases {
+      font-size: 0.7em;
+      margin-top: 5px;
+      margin-left: 22px;
+    }
     select.includeDataTransfer,
     select.includeRIPurchases,
     select.productIncludeDataTransfer,
