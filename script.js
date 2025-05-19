@@ -52,29 +52,21 @@ function addRule(button) {
         <option value="fixedRate">fixedRate</option>
         </select>
         
-<!-- Wrapper to group them on one line -->
-<div class="inline-options">
-  <div class="option-group">
-    <div class="small-label">Include Data Transfer:</div>
-    <div class="small-select">
-      <select class="includeDataTransfer">
-        <option value="true">true</option>
-        <option value="false">false</option>
-      </select>
-    </div>
-  </div>
+        <div class="small-label">Include Data Transfer:</div>
+        <div class="small-select">
+        <select class="includeDataTransfer">
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </select>
+        </div>
 
-  <div class="option-group">
-    <div class="small-label">Include RI Purchases:</div>
-    <div class="small-select">
-      <select class="includeRIPurchases">
-        <option value="true">true</option>
-        <option value="false" selected>false</option>
-      </select>
-    </div>
-  </div>
-</div>
-
+        <div class="small-label">Include RI Purchases:</div>
+        <div class="small-select">
+        <select class="includeRIPurchases">
+            <option value="true">true</option>
+            <option value="false" selected>false</option>
+        </select>
+        </div>
 
         <label>Product Name:</label>
         <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
