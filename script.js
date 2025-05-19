@@ -42,8 +42,8 @@ function addRule(button) {
         <label>Billing Rule Name:</label>
         <input type="text" class="ruleName" placeholder="Enter Billing Rule name" />
 
-        <label>Billing Adjustment (e.g. 0.00):</label>
-        <input type="int" class="billingAdjustment" />
+        <label>Billing Adjustment:</label>
+        <input type="int" class="billingAdjustment" placeholder="e.g. 0.00"/>
 
         <label>Billing Rule Type:</label>
         <select class="billingRuleType">
@@ -51,22 +51,30 @@ function addRule(button) {
         <option value="percentIncrease">percentIncrease</option>
         <option value="fixedRate">fixedRate</option>
         </select>
+        
+<!-- Wrapper to group them on one line -->
+<div class="inline-options">
+  <div class="option-group">
+    <div class="small-label">Include Data Transfer:</div>
+    <div class="small-select">
+      <select class="includeDataTransfer">
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+    </div>
+  </div>
 
-        <div class="small-label">Include Data Transfer:</div>
-        <div class="small-select">
-        <select class="includeDataTransfer">
-            <option value="true">true</option>
-            <option value="false">false</option>
-        </select>
-        </div>
+  <div class="option-group">
+    <div class="small-label">Include RI Purchases:</div>
+    <div class="small-select">
+      <select class="includeRIPurchases">
+        <option value="true">true</option>
+        <option value="false" selected>false</option>
+      </select>
+    </div>
+  </div>
+</div>
 
-        <div class="small-label">Include RI Purchases:</div>
-        <div class="small-select">
-        <select class="includeRIPurchases">
-            <option value="true">true</option>
-            <option value="false" selected>false</option>
-        </select>
-        </div>
 
         <label>Product Name:</label>
         <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
