@@ -1,3 +1,14 @@
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                body.removeAttribute('data-theme');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+            }
+        }
+
 //Add Rule Group Button
 
 function addRuleGroup(afterElement = null, insertAtTop = false) {
