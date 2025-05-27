@@ -434,6 +434,16 @@
     .icon-actions button:hover {
       background-color: #eee;
     }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+        }
 
     /* Dark mode styles including select updates */
     @media (prefers-color-scheme: dark) {
