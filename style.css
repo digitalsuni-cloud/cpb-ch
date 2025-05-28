@@ -886,6 +886,13 @@
         .line-item-description-value input {
             flex-grow: 1;
         }
+    footer {
+      text-align: right;
+      margin-top: 20px;
+      padding: 5px 0;
+      font-size: 0.70em;
+      color: #616060f2;
+    }
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
