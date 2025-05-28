@@ -936,15 +936,26 @@
                 alert('Copied to clipboard!');
             }
 
-            function downloadOutput(elementId, fileType) {
-                const content = document.getElementById(elementId).value;
-                const filename = `price_book_${new Date().toISOString().split('T')[0]}.${fileType}`;
-                const blob = new Blob([content], { type: 'text/plain' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = filename;
-                link.click();
-            }
+function downloadOutput(elementId, fileType) {
+    const content = document.getElementById(elementId).value;
+    const nameInput = document.getElementById('bookName');
+    let base = nameInput ? nameInput.value.trim() : 'price_book';
+    if (!base) base = 'price_book';
+
+    // Sanitize filename
+    base = base.replace(/[^\w\-]/g, '_');
+
+    // Add date timestamp
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const filename = `${base}_${timestamp}.${fileType}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
 
             function showLoadingIndicator() {
                 document.querySelector('.loading-indicator').classList.add('active');
