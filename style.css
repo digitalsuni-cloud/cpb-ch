@@ -3,6 +3,19 @@
       margin: 20px;
     }
 
+        [data-theme="dark"] {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #2ecc71;
+            --background: #1a1a1a;
+            --surface: #2c2c2c;
+            --text: #f5f5f5;
+            --text-light: #bdbdbd;
+            --border: #444444;
+            --error: #e74c3c;
+            --success: #27ae60;
+        }
+
     input,
     select,
     button,
