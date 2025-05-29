@@ -452,7 +452,7 @@
                 updatePropertySelect(rule.querySelector('.propertySelect'));
             }
 
-            function addPropertySection(propertyType, rule) {
+          function addPropertySection(propertyType, rule) {
                 const container = rule.querySelector('.propertySections');
                 const section = document.createElement('div');
                 section.className = 'property-section';
@@ -460,10 +460,14 @@
 
                 const header = document.createElement('div');
                 header.className = 'property-header';
+                header.style.cursor = 'pointer';
+                header.onclick = () => toggleSection(propertyType, rule);
                 header.innerHTML = `
-        <h3>${propertyTypes[propertyType].name}</h3>
-        <span class="status" id="${propertyType}Status">Not in use</span>
-    `;
+                    <div class="header-content">
+                        <h5>${propertyTypes[propertyType].name}</h5>
+                        <span class="status" id="${propertyType}Status">Not in use</span>
+                    </div>
+                `;
 
                 const content = document.createElement('div');
                 content.className = 'property-content';
@@ -475,7 +479,10 @@
                 const addButton = document.createElement('button');
                 addButton.className = 'add-value';
                 addButton.textContent = `Add ${propertyTypes[propertyType].name}`;
-                addButton.onclick = () => addValue(propertyType, rule);
+                addButton.onclick = (e) => {
+                    e.stopPropagation();
+                    addValue(propertyType, rule);
+                };
 
                 content.appendChild(valuesContainer);
                 content.appendChild(addButton);
@@ -484,18 +491,34 @@
                 section.appendChild(content);
                 container.appendChild(section);
 
-                // Expand the newly added section
-                toggleSection(propertyType);
+                toggleSection(propertyType, rule);
             }
 
-            function toggleSection(propertyType) {
-                const content = document.getElementById(`${propertyType}Content`);
+            // Update toggleSection function to work with both scenarios
+            function toggleSection(propertyType, rule) {
+                // If rule is provided, use it to find the content, otherwise use document.getElementById
+                const content = rule ?
+                    rule.querySelector(`#${propertyType}Content`) :
+                    document.getElementById(`${propertyType}Content`);
+
+                if (!content) return;
+
                 if (content.classList.contains('expanded')) {
                     content.classList.remove('expanded');
-                    expandedSections.delete(propertyType);
+                    if (rule && !rule.expandedSections) {
+                        rule.expandedSections = new Set();
+                    }
+                    if (rule) {
+                        rule.expandedSections.delete(propertyType);
+                    }
                 } else {
                     content.classList.add('expanded');
-                    expandedSections.add(propertyType);
+                    if (rule && !rule.expandedSections) {
+                        rule.expandedSections = new Set();
+                    }
+                    if (rule) {
+                        rule.expandedSections.add(propertyType);
+                    }
                 }
             }
 
