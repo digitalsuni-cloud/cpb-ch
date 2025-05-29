@@ -744,30 +744,44 @@
             margin-bottom: 15px;
         }
 
-        .property-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
+.property-header {
+    padding: 10px 15px;
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s ease;
+}
 
-        .property-header h3 {
-            margin: 0;
-            font-size: 1rem;
-            color: var(--text);
-        }
+.property-header:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
 
-        .property-header .status {
-            font-size: 0.8rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background-color: var(--text-light);
-            color: white;
-        }
+.property-header .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
 
-        .property-header .status.active {
-            background-color: var(--success);
-        }
+.property-header h5 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.property-header .status {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: var(--text-light);
+    color: white;
+    white-space: nowrap;
+}
+
+.property-header .status.active {
+    background-color: var(--success);
+}
 
         .property-content {
             display: none;
