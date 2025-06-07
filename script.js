@@ -417,7 +417,7 @@
 
        // Rules Navigation Bar function
 
-     function updateNavigation() {
+function updateNavigation() {
     const ruleSearch = $('#ruleSearch');
     if (!ruleSearch.length) return;
 
@@ -432,7 +432,8 @@
         const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
         
         ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
-            let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
+            const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
+            let ruleName = fullRuleName;
             
             // Truncate rule name if it's too long
             const maxLength = 80;
@@ -445,6 +446,10 @@
             
             // Add option to Select2
             const option = new Option(optionText, rule.id, false, false);
+            
+            // Add title attribute for hover tooltip showing full name
+            option.title = `${fullRuleName} -> ${startDate} to ${endDate}`;
+            
             ruleSearch.append(option);
         });
     });
@@ -457,7 +462,9 @@
         theme: 'classic',
         dropdownParent: document.querySelector('.rule-nav'),
         containerCssClass: 'select2-container--full-width',
-        dropdownCssClass: 'select2-dropdown--full-width'
+        dropdownCssClass: 'select2-dropdown--full-width',
+        templateResult: formatRuleOption,
+        templateSelection: formatRuleOption
     });
 
     // Handle selection
@@ -466,7 +473,6 @@
         const selectedRule = document.getElementById(ruleId);
         if (selectedRule) {
             expandAndScrollToRule(selectedRule);
-            // Don't clear the selection
         }
     });
 
@@ -487,6 +493,15 @@
     if (previousSelection) {
         ruleSearch.val(previousSelection).trigger('change');
     }
+}
+
+// Function to format the rule option with tooltip
+function formatRuleOption(rule) {
+    if (!rule.id) {
+        return rule.text;
+    }
+    var $rule = $('<span title="' + rule.title + '">' + rule.text + '</span>');
+    return $rule;
 }
 
 // Function to expand and scroll to the selected rule
