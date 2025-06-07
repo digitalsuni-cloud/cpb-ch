@@ -952,15 +952,16 @@
         }
 
         .select2-container--classic .select2-selection--single {
-            height: 37px;
-            border: 2px solid var(--border) !important;
-            border-radius: 8px !important;
-            background-color: var(--surface) !important;
-            background: var(--surface) !important;
-            color: var(--text) !important;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
+    height: 37px;
+    border: 2px solid var(--border) !important;
+    border-radius: 8px !important;
+    background-color: var(--surface) !important;
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    width: 100% !important;
         }
 
         .select2-container--classic .select2-selection--single .select2-selection__rendered {
@@ -969,6 +970,7 @@
             background-color: var(--surface) !important;
             padding-left: 12px !important;
             padding-right: 30px !important;
+                width: 100%;
         }
 
         .select2-container--classic .select2-selection--single .select2-selection__arrow {
