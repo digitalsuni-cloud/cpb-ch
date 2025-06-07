@@ -68,69 +68,80 @@
                 }
             }
 
-            //Add Rule Group
-            function addRuleGroup(afterElement = null, insertAtTop = false) {
-                const div = document.createElement('div');
-                div.className = 'rule-group';
-                const groupId = 'group-' + Date.now();
-                div.id = groupId;
-                div.innerHTML = `
-                    <div class="rule-group-header">
-                        <h3>Rule Group</h3>
-                        <div class="input-row always-visible">
-                            <div class="input-group">
-                                <label for="startDate-${groupId}">Start Date</label>
-                                <input type="date" id="startDate-${groupId}" required>
-                            </div>
-                            <div class="input-group">
-                                <label for="endDate-${groupId}">End Date (Optional)</label>
-                                <input type="date" id="endDate-${groupId}">
-                            </div>
-                            <div class="input-group">
-                                <label for="enabled-${groupId}">Enabled</label>
-                                <select id="enabled-${groupId}">
-                                    <option value="true">Yes</option>
-                                    <option value="false">No</option>
-                                </select>
-                            </div>
-                            <button class="collapse-button" onclick="toggleRuleGroupCollapse(this)">▼</button>
-                        </div>
+        //Add Rule Group
+        function addRuleGroup(afterElement = null, insertAtTop = false) {
+            const div = document.createElement('div');
+            div.className = 'rule-group';
+            const groupId = 'group-' + Date.now();
+            div.id = groupId;
+            div.innerHTML = `
+            <div class="rule-group-header">
+                <h3>Rule Group</h3>
+                <div class="input-row always-visible">
+                    <div class="input-group">
+                        <label for="startDate-${groupId}">Start Date</label>
+                        <input type="date" id="startDate-${groupId}" required oninput="updateNavigation()">
                     </div>
-                    <div class="rule-group-content">
-                        <div class="rules"></div>
-                        <div class="button-group">
-                            <button onclick="addRule(this)" class="button">
-                                <span class="button-icon">➕</span>Add Billing Rule
-                            </button>
-                            <button onclick="addRuleGroup(this.closest('.rule-group'))" class="button">
-                                <span class="button-icon">➕</span>Add Rule Group
-                            </button>
-                            <button class="button button-red" onclick="this.closest('.rule-group').remove()">
-                                <span class="button-icon">×</span>Remove Rule Group
-                            </button>
-                        </div>
+                    <div class="input-group">
+                        <label for="endDate-${groupId}">End Date (Optional)</label>
+                        <input type="date" id="endDate-${groupId}" oninput="updateNavigation()">
                     </div>
-                `;
+                    <div class="input-group">
+                        <label for="enabled-${groupId}">Enabled</label>
+                        <select id="enabled-${groupId}">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <button class="collapse-button" onclick="toggleRuleGroupCollapse(this)">▼</button>
+                </div>
+            </div>
+            <div class="rule-group-content">
+                <div class="rules"></div>
+                <div class="button-group">
+                    <button onclick="addRule(this)" class="button">
+                        <span class="button-icon">➕</span>Add Billing Rule
+                    </button>
+                    <button onclick="addRuleGroup(this.closest('.rule-group'))" class="button">
+                        <span class="button-icon">➕</span>Add Rule Group
+                    </button>
+                    <button class="button button-red" onclick="removeRuleGroup(this)">
+                        <span class="button-icon">×</span>Remove Rule Group
+                    </button>
+                </div>
+            </div>
+        `;
 
-                const container = document.getElementById('groupsContainer');
+            const container = document.getElementById('groupsContainer');
 
-                if (insertAtTop) {
-                    container.insertBefore(div, container.firstChild);
-                } else if (afterElement) {
-                    container.insertBefore(div, afterElement.nextSibling);
-                } else {
-                    container.appendChild(div);
-                }
+            if (insertAtTop) {
+                container.insertBefore(div, container.firstChild);
+            } else if (afterElement) {
+                container.insertBefore(div, afterElement.nextSibling);
+            } else {
+                container.appendChild(div);
             }
 
+            // Update navigation after adding the group
+            setTimeout(updateNavigation, 0);
+        }
+
+        function removeRuleGroup(button) {
+            const ruleGroup = button.closest('.rule-group');
+            if (ruleGroup) {
+                ruleGroup.remove();
+                setTimeout(updateNavigation, 0);
+            }
+        }
+
             //Add Billing Rule
-            function addRule(button) {
-                const rulesContainer = button.closest('.rule-group').querySelector('.rules');
-                const div = document.createElement('div');
-                div.className = 'rule';
-                const ruleId = 'rule-' + Date.now();
-                div.id = ruleId;
-                div.innerHTML = `
+        function addRule(button) {
+            const rulesContainer = button.closest('.rule-group').querySelector('.rules');
+            const div = document.createElement('div');
+            div.className = 'rule';
+            const ruleId = 'rule-' + Date.now();
+            div.id = ruleId;
+            div.innerHTML = `
                 <div class="rule-header">
                     <h4>Billing Rule</h4>
                     <div class="input-group always-visible">
@@ -377,13 +388,124 @@
         <div class="propertySections">
             <!-- Property sections will be dynamically added here -->
         </div>
-                <button class="button button-red" onclick="this.closest('.rule').remove()">
+                <button class="button button-red" onclick="removeRule(this)">
                     <span class="button-icon">×</span>Remove Billing Rule
                 </button>
             `;
-                rulesContainer.appendChild(div);
-                initializePropertySelector(div.querySelector('.propertySelect'));
+            rulesContainer.appendChild(div);
+            initializePropertySelector(div.querySelector('.propertySelect'));
+
+            // Update navigation after adding the rule
+            setTimeout(updateNavigation, 0);
+
+            // Add event listener for rule name changes
+            const ruleNameInput = div.querySelector('.ruleName');
+            ruleNameInput.addEventListener('input', updateNavigation);
+        }
+
+        // Initialize navigation on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(updateNavigation, 0);
+        });
+        function removeRule(button) {
+            const rule = button.closest('.rule');
+            if (rule) {
+                rule.remove();
+                setTimeout(updateNavigation, 0);
             }
+        }
+        function updateNavigation() {
+            const ruleSelect = document.getElementById('ruleSelect');
+            if (!ruleSelect) return;
+
+            ruleSelect.innerHTML = '<option value="">Select a rule</option>';
+
+            document.querySelectorAll('.rule').forEach((rule, index) => {
+                // Get the rule name
+                let ruleName = rule.querySelector('.ruleName').value || `Rule ${index + 1}`;
+
+                // Find the parent rule group
+                const ruleGroup = rule.closest('.rule-group');
+
+                // Get start and end dates from the rule group
+                const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
+                const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
+
+                // Truncate rule name if it's too long (allowing space for dates)
+                const maxLength = 50;
+                if (ruleName.length > maxLength) {
+                    ruleName = ruleName.substring(0, maxLength) + '...';
+                }
+
+                // Create the formatted option text
+                const optionText = `${ruleName} -> ${startDate} to ${endDate}`;
+
+                const option = document.createElement('option');
+                option.value = rule.id;
+                option.textContent = optionText;
+
+                // Add title attribute for hover tooltip showing full name
+                const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${index + 1}`;
+                option.title = `${fullRuleName} -> ${startDate} to ${endDate}`;
+
+                ruleSelect.appendChild(option);
+            });
+
+            // Add event listener to the select
+            ruleSelect.onchange = function () {
+                if (this.value) {
+                    const selectedRule = document.getElementById(this.value);
+                    if (selectedRule) {
+                        expandAndScrollToRule(selectedRule);
+                    }
+                }
+            };
+        }
+        function scrollToRule(rule) {
+            rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function expandAndScrollToRule(rule) {
+            // First, expand the parent rule group if it's collapsed
+            const ruleGroup = rule.closest('.rule-group');
+            const ruleGroupContent = ruleGroup.querySelector('.rule-group-content');
+            const ruleGroupButton = ruleGroup.querySelector('.rule-group-header .collapse-button');
+
+            if (ruleGroupContent.classList.contains('collapsed')) {
+                ruleGroupContent.classList.remove('collapsed');
+                ruleGroupButton.classList.remove('collapsed');
+                ruleGroupButton.textContent = '▼';
+            }
+
+            // Then, expand the billing rule if it's collapsed
+            const ruleContent = rule.querySelector('.rule-content');
+            const ruleButton = rule.querySelector('.rule-header .collapse-button');
+
+            if (ruleContent.classList.contains('collapsed')) {
+                ruleContent.classList.remove('collapsed');
+                ruleButton.classList.remove('collapsed');
+                ruleButton.textContent = '▼';
+            }
+
+            // Finally, scroll to the rule
+            rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function scrollToBottom() {
+            window.scrollTo({
+                top: document.documentElement.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // Initialize navigation on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(updateNavigation, 0);
+        });
 
             // Property types configuration
             const propertyTypes = {
@@ -1303,31 +1425,31 @@ function downloadOutput(elementId, fileType) {
                     button.textContent = '▼';
                 }
             }
-            function toggleRuleGroupCollapse(button) {
-                const ruleGroup = button.closest('.rule-group');
-                const content = ruleGroup.querySelector('.rule-group-content');
-                button.classList.toggle('collapsed');
-                content.classList.toggle('collapsed');
+function toggleRuleGroupCollapse(button) {
+    const ruleGroup = button.closest('.rule-group');
+    const content = ruleGroup.querySelector('.rule-group-content');
+    button.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
 
-                if (button.classList.contains('collapsed')) {
-                    button.textContent = '▶';
-                } else {
-                    button.textContent = '▼';
-                }
-            }
+    if (button.classList.contains('collapsed')) {
+        button.textContent = '▶';
+    } else {
+        button.textContent = '▼';
+    }
+}
 
-            function toggleBillingRuleCollapse(button) {
-                const rule = button.closest('.rule');
-                const content = rule.querySelector('.rule-content');
-                button.classList.toggle('collapsed');
-                content.classList.toggle('collapsed');
+function toggleBillingRuleCollapse(button) {
+    const rule = button.closest('.rule');
+    const content = rule.querySelector('.rule-content');
+    button.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
 
-                if (button.classList.contains('collapsed')) {
-                    button.textContent = '▶';
-                } else {
-                    button.textContent = '▼';
-                }
-            }
+    if (button.classList.contains('collapsed')) {
+        button.textContent = '▶';
+    } else {
+        button.textContent = '▼';
+    }
+}
             //Rest all fields.
             function resetAllFields() {
                 // Check if all main fields are empty
