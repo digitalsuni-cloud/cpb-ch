@@ -31,7 +31,12 @@
             <div class="spinner"></div>
             <span>Processing...</span>
         </div>
-
+                <div class="rule-nav" id="ruleNav">
+            <label for="ruleSelect">Go to Billing Rule:</label>
+            <select id="ruleSelect" class="rule-select">
+                <option value="">Select a rule</option>
+            </select>
+        </div>
         <div class="import-section">
             <button class="button" id="importButton"
                 title="Import an existing Price Book specification in JSON/XML to modify"
@@ -180,6 +185,10 @@
                 <div id="helpContent"></div>
             </div>
         </div>
+            <div class="nav-buttons">
+        <button class="nav-button" onclick="scrollToTop()" title="Go to top">↑</button>
+        <button class="nav-button" onclick="scrollToBottom()" title="Go to bottom">↓</button>
+    </div>
 
     <footer>
         Created by Sunil Kumar - CloudHealth
