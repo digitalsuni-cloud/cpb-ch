@@ -415,10 +415,15 @@
             }
         }
 function updateNavigation() {
-    const ruleSelect = document.getElementById('ruleSelect');
-    if (!ruleSelect) return;
+    const rulesList = document.getElementById('rulesList');
+    const ruleSearch = document.getElementById('ruleSearch');
+    if (!rulesList || !ruleSearch) return;
 
-    ruleSelect.innerHTML = '<option value="">Select a rule</option>';
+    // Clear existing options
+    rulesList.innerHTML = '';
+    
+    // Store rule mappings for quick lookup
+    const ruleMappings = new Map();
     
     document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
         const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
@@ -427,39 +432,42 @@ function updateNavigation() {
         ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
             let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
             
-            // Truncate rule name if it's too long (allowing space for dates and identifiers)
+            // Truncate rule name if it's too long
             const maxLength = 80;
             if (ruleName.length > maxLength) {
                 ruleName = ruleName.substring(0, maxLength) + '...';
             }
             
-            // Create a unique identifier for each rule
             const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
-            
-            // Create the formatted option text
             const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
             
+            // Create option element
             const option = document.createElement('option');
-            option.value = rule.id;
-            option.textContent = optionText;
+            option.value = optionText;
+            option.dataset.ruleId = rule.id;
+            rulesList.appendChild(option);
             
-            // Add title attribute for hover tooltip showing full name
-            const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${ruleIdentifier}`;
-            option.title = `${ruleIdentifier} - ${fullRuleName} -> ${startDate} to ${endDate}`;
-            
-            ruleSelect.appendChild(option);
+            // Store mapping of option text to rule ID
+            ruleMappings.set(optionText, rule.id);
         });
     });
 
-    // Add event listener to the select
-    ruleSelect.onchange = function() {
-        if (this.value) {
-            const selectedRule = document.getElementById(this.value);
+    // Handle input/change events
+    ruleSearch.addEventListener('input', function(e) {
+        const selectedText = e.target.value;
+        const ruleId = ruleMappings.get(selectedText);
+        
+        if (ruleId) {
+            const selectedRule = document.getElementById(ruleId);
             if (selectedRule) {
                 expandAndScrollToRule(selectedRule);
+                // Clear the input after navigation
+                setTimeout(() => {
+                    e.target.value = '';
+                }, 100);
             }
         }
-    };
+    });
 }
         function scrollToRule(rule) {
             rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
