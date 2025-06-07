@@ -414,61 +414,55 @@
                 setTimeout(updateNavigation, 0);
             }
         }
-function updateNavigation() {
-    const rulesList = document.getElementById('rulesList');
-    const ruleSearch = document.getElementById('ruleSearch');
-    if (!rulesList || !ruleSearch) return;
+        function updateNavigation() {
+            const ruleSearch = $('#ruleSearch'); // Using jQuery selector for Select2
 
-    // Clear existing options
-    rulesList.innerHTML = '';
-    
-    // Store rule mappings for quick lookup
-    const ruleMappings = new Map();
-    
-    document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
-        const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
-        const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
-        
-        ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
-            let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
-            
-            // Truncate rule name if it's too long
-            const maxLength = 80;
-            if (ruleName.length > maxLength) {
-                ruleName = ruleName.substring(0, maxLength) + '...';
-            }
-            
-            const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
-            const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
-            
-            // Create option element
-            const option = document.createElement('option');
-            option.value = optionText;
-            option.dataset.ruleId = rule.id;
-            rulesList.appendChild(option);
-            
-            // Store mapping of option text to rule ID
-            ruleMappings.set(optionText, rule.id);
-        });
-    });
+            // Initialize Select2
+            ruleSearch.select2({
+                placeholder: 'Select or search for a Billing rule...',
+                width: '100%',
+                allowClear: true,
+                theme: 'classic',
+                dropdownParent: document.querySelector('.rule-nav'),
+                containerCssClass: 'select2-container--full-width',
+                dropdownCssClass: 'select2-dropdown--full-width'
+            });
+            // Clear existing options
+            ruleSearch.empty().append('<option></option>');
 
-    // Handle input/change events
-    ruleSearch.addEventListener('input', function(e) {
-        const selectedText = e.target.value;
-        const ruleId = ruleMappings.get(selectedText);
-        
-        if (ruleId) {
-            const selectedRule = document.getElementById(ruleId);
-            if (selectedRule) {
-                expandAndScrollToRule(selectedRule);
-                // Clear the input after navigation
-                setTimeout(() => {
-                    e.target.value = '';
-                }, 100);
-            }
+            document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
+                const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
+                const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
+
+                ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
+                    let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
+
+                    // Truncate rule name if it's too long
+                    const maxLength = 80;
+                    if (ruleName.length > maxLength) {
+                        ruleName = ruleName.substring(0, maxLength) + '...';
+                    }
+
+                    const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
+                    const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
+
+                    // Add option to Select2
+                    const option = new Option(optionText, rule.id, false, false);
+                    ruleSearch.append(option);
+                });
+            });
+
+            // Handle selection
+            ruleSearch.on('select2:select', function (e) {
+                const ruleId = e.params.data.id;
+                const selectedRule = document.getElementById(ruleId);
+                if (selectedRule) {
+                    expandAndScrollToRule(selectedRule);
+                    // Clear selection
+                    ruleSearch.val(null).trigger('change');
+                }
+            });
         }
-    });
-}
         function scrollToRule(rule) {
             rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
