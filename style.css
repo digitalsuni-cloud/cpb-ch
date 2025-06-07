@@ -918,7 +918,7 @@
       color: #616060f2;
     }
 
-        /* Navigation Styles */
+        /* Rules Navigation Styles */
         .rule-nav {
             position: sticky;
             top: 0;
@@ -990,16 +990,19 @@
 
         .select2-container--classic .select2-search--dropdown .select2-search__field {
             border: 2px solid var(--border) !important;
+            border-radius: 8px !important;
             background-color: var(--surface) !important;
             color: var(--text) !important;
-            border-radius: 4px !important;
-            padding: 5px 10px;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            height: 37px;
         }
 
         .select2-container--classic .select2-results__option {
             background-color: var(--surface) !important;
             color: var(--text) !important;
-            padding: 8px 12px;
+            font-size: 0.85rem;
+            padding: 6px 10px;
         }
 
         .select2-container--classic .select2-results__option--highlighted[aria-selected] {
@@ -1029,23 +1032,12 @@
         .select2-container--classic .select2-dropdown,
         .select2-container--classic .select2-search--dropdown .select2-search__field {
             background-image: none !important;
+            border-radius: 8px !important;
         }
 
         .select2-container--classic .select2-results {
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
-        }
-
-        /* Add tooltip styles for better visibility */
-        .rule-select option:hover {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .rule-select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
 
@@ -1094,6 +1086,7 @@
             }
 
             .input-group {
+                margin-bottom: 10px;
                 min-width: 100%;
             }
 
@@ -1132,6 +1125,7 @@
             .rule-header .input-with-button .collapse-button {
                 margin-left: 0;
             }
+
             .rule-nav {
                 flex-direction: column;
                 align-items: stretch;
@@ -1144,9 +1138,5 @@
 
             .select2-container--classic {
                 width: 100% !important;
-            }
-
-            .rule-select {
-                max-width: 100%;
             }
         }
