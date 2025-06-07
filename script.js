@@ -455,17 +455,18 @@ function updateNavigation() {
     });
 
     // Initialize or update Select2
-    ruleSearch.select2({
-        placeholder: 'Select or search for a Billing rule...',
-        width: '100%',
-        allowClear: false,
-        theme: 'classic',
-        dropdownParent: document.querySelector('.rule-nav'),
-        containerCssClass: 'select2-container--full-width',
-        dropdownCssClass: 'select2-dropdown--full-width',
-        templateResult: formatRuleOption,
-        templateSelection: formatRuleOption
-    });
+ruleSearch.select2({
+    placeholder: 'Select or search for a Billing rule...',
+    width: '100%',
+    allowClear: false,
+    theme: 'classic',
+    dropdownParent: document.querySelector('.rule-nav'),
+    containerCssClass: 'select2-container--full-width',
+    dropdownCssClass: 'select2-dropdown--full-width',
+    templateResult: formatRuleOption,
+    templateSelection: formatRuleOption,
+    minimumResultsForSearch: 0 // Always show the search box
+});
 
     // Handle selection
     ruleSearch.off('select2:select').on('select2:select', function(e) {
