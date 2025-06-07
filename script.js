@@ -428,7 +428,7 @@ function updateNavigation() {
             let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
             
             // Truncate rule name if it's too long (allowing space for dates and identifiers)
-            const maxLength = 40;
+            const maxLength = 80;
             if (ruleName.length > maxLength) {
                 ruleName = ruleName.substring(0, maxLength) + '...';
             }
@@ -437,7 +437,7 @@ function updateNavigation() {
             const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
             
             // Create the formatted option text
-            const optionText = `${ruleIdentifier} ${ruleName} -> ${startDate} to ${endDate}`;
+            const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
             
             const option = document.createElement('option');
             option.value = rule.id;
@@ -445,7 +445,7 @@ function updateNavigation() {
             
             // Add title attribute for hover tooltip showing full name
             const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${ruleIdentifier}`;
-            option.title = `${fullRuleName} -> ${startDate} to ${endDate}`;
+            option.title = `${ruleIdentifier} - ${fullRuleName} -> ${startDate} to ${endDate}`;
             
             ruleSelect.appendChild(option);
         });
