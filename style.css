@@ -908,6 +908,110 @@
       color: #616060f2;
     }
 
+        /* Navigation Styles */
+        .rule-nav {
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            z-index: 100;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .rule-nav label {
+            font-weight: bold;
+            color: var(--text);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .rule-select {
+            flex-grow: 1;
+            height: 37px;
+            padding: 0 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--surface);
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: all var(--transition-speed);
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+            padding-right: 32px;
+            width: 100%;
+            max-width: calc(100% - 150px);
+            /* Adjust based on your label width */
+        }
+
+        /* Style the options to show full text when dropdown is open */
+        .rule-select option {
+            padding: 8px 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-width: 300px;
+            max-width: 800px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Add tooltip styles for better visibility */
+        .rule-select option:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .rule-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+
+
+        /*scrollbar styles */
+
+
+        .nav-buttons {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .nav-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-button:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .container {
@@ -956,5 +1060,18 @@
 
             .rule-header .input-with-button .collapse-button {
                 margin-left: 0;
+            }
+                .rule-nav {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px;
+            }
+
+            .rule-nav label {
+                margin-bottom: 5px;
+            }
+
+            .rule-select {
+                max-width: 100%;
             }
         }
