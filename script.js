@@ -414,58 +414,107 @@
                 setTimeout(updateNavigation, 0);
             }
         }
-        function updateNavigation() {
-            const ruleSearch = $('#ruleSearch'); // Using jQuery selector for Select2
 
-            // Initialize Select2
-            ruleSearch.select2({
-                placeholder: 'Select or search for a Billing rule...',
-                width: '100%',
-                allowClear: true,
-                theme: 'classic',
-                dropdownParent: document.querySelector('.rule-nav'),
-                containerCssClass: 'select2-container--full-width',
-                dropdownCssClass: 'select2-dropdown--full-width'
-            });
-            // Clear existing options
-            ruleSearch.empty().append('<option></option>');
+       // Rules Navigation Bar function
 
-            document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
-                const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
-                const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
+     function updateNavigation() {
+    const ruleSearch = $('#ruleSearch');
+    if (!ruleSearch.length) return;
 
-                ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
-                    let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
+    // Clear existing options
+    ruleSearch.empty();
+    
+    // Add a default placeholder option
+    ruleSearch.append(new Option('Select or search for a Billing rule...', '', true, true));
 
-                    // Truncate rule name if it's too long
-                    const maxLength = 80;
-                    if (ruleName.length > maxLength) {
-                        ruleName = ruleName.substring(0, maxLength) + '...';
-                    }
+    document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
+        const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
+        const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
+        
+        ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
+            let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
+            
+            // Truncate rule name if it's too long
+            const maxLength = 80;
+            if (ruleName.length > maxLength) {
+                ruleName = ruleName.substring(0, maxLength) + '...';
+            }
+            
+            const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
+            const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
+            
+            // Add option to Select2
+            const option = new Option(optionText, rule.id, false, false);
+            ruleSearch.append(option);
+        });
+    });
 
-                    const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
-                    const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
+    // Initialize or update Select2
+    ruleSearch.select2({
+        placeholder: 'Select or search for a Billing rule...',
+        width: '100%',
+        allowClear: false,
+        theme: 'classic',
+        dropdownParent: document.querySelector('.rule-nav'),
+        containerCssClass: 'select2-container--full-width',
+        dropdownCssClass: 'select2-dropdown--full-width'
+    });
 
-                    // Add option to Select2
-                    const option = new Option(optionText, rule.id, false, false);
-                    ruleSearch.append(option);
-                });
-            });
-
-            // Handle selection
-            ruleSearch.on('select2:select', function (e) {
-                const ruleId = e.params.data.id;
-                const selectedRule = document.getElementById(ruleId);
-                if (selectedRule) {
-                    expandAndScrollToRule(selectedRule);
-                    // Clear selection
-                    ruleSearch.val(null).trigger('change');
-                }
-            });
+    // Handle selection
+    ruleSearch.off('select2:select').on('select2:select', function(e) {
+        const ruleId = e.params.data.id;
+        const selectedRule = document.getElementById(ruleId);
+        if (selectedRule) {
+            expandAndScrollToRule(selectedRule);
+            // Don't clear the selection
         }
-        function scrollToRule(rule) {
-            rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Add placeholder to search field when dropdown is opened
+    ruleSearch.off('select2:open').on('select2:open', function(e) {
+        $('.select2-search__field').attr('placeholder', 'Type to search...');
+    });
+
+    // Handle dropdown closing
+    ruleSearch.off('select2:close').on('select2:close', function(e) {
+        if (!ruleSearch.val()) {
+            ruleSearch.val(null).trigger('change');
         }
+    });
+
+    // Restore previous selection if it exists
+    const previousSelection = ruleSearch.val();
+    if (previousSelection) {
+        ruleSearch.val(previousSelection).trigger('change');
+    }
+}
+
+// Function to expand and scroll to the selected rule
+function expandAndScrollToRule(rule) {
+    // Expand parent rule group if collapsed
+    const ruleGroup = rule.closest('.rule-group');
+    const ruleGroupContent = ruleGroup.querySelector('.rule-group-content');
+    const ruleGroupButton = ruleGroup.querySelector('.rule-group-header .collapse-button');
+    
+    if (ruleGroupContent.classList.contains('collapsed')) {
+        ruleGroupContent.classList.remove('collapsed');
+        ruleGroupButton.classList.remove('collapsed');
+        ruleGroupButton.textContent = '▼';
+    }
+
+    // Expand the rule if collapsed
+    const ruleContent = rule.querySelector('.rule-content');
+    const ruleButton = rule.querySelector('.rule-header .collapse-button');
+    
+    if (ruleContent.classList.contains('collapsed')) {
+        ruleContent.classList.remove('collapsed');
+        ruleButton.classList.remove('collapsed');
+        ruleButton.textContent = '▼';
+    }
+
+    // Scroll to the rule
+    rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
         function expandAndScrollToRule(rule) {
             // First, expand the parent rule group if it's collapsed
