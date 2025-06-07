@@ -414,53 +414,53 @@
                 setTimeout(updateNavigation, 0);
             }
         }
-        function updateNavigation() {
-            const ruleSelect = document.getElementById('ruleSelect');
-            if (!ruleSelect) return;
+function updateNavigation() {
+    const ruleSelect = document.getElementById('ruleSelect');
+    if (!ruleSelect) return;
 
-            ruleSelect.innerHTML = '<option value="">Select a rule</option>';
+    ruleSelect.innerHTML = '<option value="">Select a rule</option>';
+    
+    document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
+        const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
+        const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
+        
+        ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
+            let ruleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
+            
+            // Truncate rule name if it's too long (allowing space for dates and identifiers)
+            const maxLength = 40;
+            if (ruleName.length > maxLength) {
+                ruleName = ruleName.substring(0, maxLength) + '...';
+            }
+            
+            // Create a unique identifier for each rule
+            const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
+            
+            // Create the formatted option text
+            const optionText = `${ruleIdentifier} ${ruleName} -> ${startDate} to ${endDate}`;
+            
+            const option = document.createElement('option');
+            option.value = rule.id;
+            option.textContent = optionText;
+            
+            // Add title attribute for hover tooltip showing full name
+            const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${ruleIdentifier}`;
+            option.title = `${fullRuleName} -> ${startDate} to ${endDate}`;
+            
+            ruleSelect.appendChild(option);
+        });
+    });
 
-            document.querySelectorAll('.rule').forEach((rule, index) => {
-                // Get the rule name
-                let ruleName = rule.querySelector('.ruleName').value || `Rule ${index + 1}`;
-
-                // Find the parent rule group
-                const ruleGroup = rule.closest('.rule-group');
-
-                // Get start and end dates from the rule group
-                const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
-                const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
-
-                // Truncate rule name if it's too long (allowing space for dates)
-                const maxLength = 50;
-                if (ruleName.length > maxLength) {
-                    ruleName = ruleName.substring(0, maxLength) + '...';
-                }
-
-                // Create the formatted option text
-                const optionText = `${ruleName} -> ${startDate} to ${endDate}`;
-
-                const option = document.createElement('option');
-                option.value = rule.id;
-                option.textContent = optionText;
-
-                // Add title attribute for hover tooltip showing full name
-                const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${index + 1}`;
-                option.title = `${fullRuleName} -> ${startDate} to ${endDate}`;
-
-                ruleSelect.appendChild(option);
-            });
-
-            // Add event listener to the select
-            ruleSelect.onchange = function () {
-                if (this.value) {
-                    const selectedRule = document.getElementById(this.value);
-                    if (selectedRule) {
-                        expandAndScrollToRule(selectedRule);
-                    }
-                }
-            };
+    // Add event listener to the select
+    ruleSelect.onchange = function() {
+        if (this.value) {
+            const selectedRule = document.getElementById(this.value);
+            if (selectedRule) {
+                expandAndScrollToRule(selectedRule);
+            }
         }
+    };
+}
         function scrollToRule(rule) {
             rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
