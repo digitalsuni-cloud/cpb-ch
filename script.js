@@ -1145,7 +1145,6 @@ function expandAndScrollToRule(rule) {
                 const outputElement = document.getElementById(elementId);
                 outputElement.select();
                 document.execCommand('copy');
-                alert('Copied to clipboard!');
             }
 
 function downloadOutput(elementId, fileType) {
