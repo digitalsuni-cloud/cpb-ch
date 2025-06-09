@@ -465,7 +465,7 @@ ruleSearch.select2({
     dropdownCssClass: 'select2-dropdown--full-width',
     templateResult: formatRuleOption,
     templateSelection: formatRuleOption,
-    minimumResultsForSearch: 4
+    minimumResultsForSearch: 6
 });
 
     // Handle selection
