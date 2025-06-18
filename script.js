@@ -905,10 +905,12 @@ function generateXML() {
         alert("Please fill in all required fields.");
         return;
     }
+
     const createdByInput = document.getElementById('createdBy');
     const createdBy = createdByInput.value;
     const comment = document.getElementById('comment').value || '';
     const groups = document.querySelectorAll('.rule-group');
+
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
 
     groups.forEach(group => {
@@ -917,6 +919,7 @@ function generateXML() {
             const now = new Date();
             startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
         }
+
         const endDate = group.querySelector('[id^="endDate-"]').value;
         const enabled = group.querySelector('[id^="enabled-"]').value;
 
@@ -930,7 +933,6 @@ function generateXML() {
             const dataTransfer = rule.querySelector('.includeDataTransfer').value;
             const rip = rule.querySelector('.includeRIPurchases').value;
             const product = rule.querySelector('.productName').value || 'ANY';
-
             const prodDT = rule.querySelector('.productIncludeDataTransfer').value;
             const prodRIP = rule.querySelector('.productIncludeRIPurchases').value;
 
@@ -940,6 +942,7 @@ function generateXML() {
 
             let subTags = '';
 
+            // Desired order
             const propertyOrder = [
                 'region',
                 'usageType',
@@ -950,75 +953,79 @@ function generateXML() {
                 'savingsPlanOfferingType'
             ];
 
+            // Get available properties from the rule (assuming it was set somewhere else)
+            const added = Array.isArray(rule.addedProperties) ? rule.addedProperties : [];
+
+            // Iterate in your desired order, but only process if in addedProperties
             propertyOrder.forEach(propertyType => {
-                if (rule.addedProperties && rule.addedProperties.includes(propertyType)) {
-                    const valuesContainer = rule.querySelector(`#${propertyType}Values`);
-                    if (valuesContainer) {
-                        switch (propertyType) {
-                            case 'region':
-                                valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                                    const val = input.value.trim();
-                                    if (val) subTags += `\n\t\t\t\t<Region name="${val}"/>`;
-                                });
-                                break;
+                if (!added.includes(propertyType)) return;
 
-                            case 'usageType':
-                                valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                                    const val = input.value.trim();
-                                    if (val) subTags += `\n\t\t\t\t<UsageType name="${val}"/>`;
-                                });
-                                break;
+                const valuesContainer = rule.querySelector(`#${propertyType}Values`);
+                if (!valuesContainer) return;
 
-                            case 'operation':
-                                valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                                    const val = input.value.trim();
-                                    if (val) subTags += `\n\t\t\t\t<Operation name="${val}"/>`;
-                                });
-                                break;
+                switch (propertyType) {
+                    case 'region':
+                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                            const val = input.value.trim();
+                            if (val) subTags += `\n\t\t\t\t<Region name="${val}"/>`;
+                        });
+                        break;
 
-                            case 'recordType':
-                                valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                                    const val = input.value.trim();
-                                    if (val) subTags += `\n\t\t\t\t<RecordType name="${val}"/>`;
-                                });
-                                break;
+                    case 'usageType':
+                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                            const val = input.value.trim();
+                            if (val) subTags += `\n\t\t\t\t<UsageType name="${val}"/>`;
+                        });
+                        break;
 
-                            case 'instanceProperty':
-                                valuesContainer.querySelectorAll('.instance-property-value').forEach(entry => {
-                                    const inputs = entry.querySelectorAll('input');
-                                    const select = entry.querySelector('select');
-                                    const type = inputs[0].value.trim();
-                                    const size = inputs[1].value.trim();
-                                    const reserved = select.value === 'true';
+                    case 'operation':
+                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                            const val = input.value.trim();
+                            if (val) subTags += `\n\t\t\t\t<Operation name="${val}"/>`;
+                        });
+                        break;
 
-                                    if (type || size || reserved) {
-                                        subTags += `\n\t\t\t\t<InstanceProperties`;
-                                        if (type) subTags += ` instanceType="${type}"`;
-                                        if (size) subTags += ` instanceSize="${size}"`;
-                                        subTags += ` reserved="${reserved}"`;
-                                        subTags += ` />`;
-                                    }
-                                });
-                                break;
+                    case 'recordType':
+                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                            const val = input.value.trim();
+                            if (val) subTags += `\n\t\t\t\t<RecordType name="${val}"/>`;
+                        });
+                        break;
 
-                            case 'lineItemDescription':
-                                valuesContainer.querySelectorAll('.line-item-description-value').forEach(entry => {
-                                    const select = entry.querySelector('select');
-                                    const input = entry.querySelector('input');
-                                    const key = select.value;
-                                    const val = input.value.trim();
-                                    if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
-                                });
-                                break;
+                    case 'instanceProperty':
+                        valuesContainer.querySelectorAll('.instance-property-value').forEach(entry => {
+                            const inputs = entry.querySelectorAll('input');
+                            const select = entry.querySelector('select');
+                            const type = inputs[0].value.trim();
+                            const size = inputs[1].value.trim();
+                            const reserved = select.value === 'true';
 
-                            case 'savingsPlanOfferingType':
-                                valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                                    const val = input.value.trim();
-                                    if (val) subTags += `\n\t\t\t\t<SavingsPlanOfferingType name="${val}"/>`;
-                                });
-                                break;
-                        }
-                    }
+                            if (type || size || reserved) {
+                                subTags += `\n\t\t\t\t<InstanceProperties`;
+                                if (type) subTags += ` instanceType="${type}"`;
+                                if (size) subTags += ` instanceSize="${size}"`;
+                                subTags += ` reserved="${reserved}"`;
+                                subTags += ` />`;
+                            }
+                        });
+                        break;
+
+                    case 'lineItemDescription':
+                        valuesContainer.querySelectorAll('.line-item-description-value').forEach(entry => {
+                            const select = entry.querySelector('select');
+                            const input = entry.querySelector('input');
+                            const key = select.value;
+                            const val = input.value.trim();
+                            if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
+                        });
+                        break;
+
+                    case 'savingsPlanOfferingType':
+                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                            const val = input.value.trim();
+                            if (val) subTags += `\n\t\t\t\t<SavingsPlanOfferingType name="${val}"/>`;
+                        });
+                        break;
                 }
             });
 
@@ -1037,6 +1044,7 @@ function generateXML() {
     xml += `</CHTBillingRules>`;
     return xml;
 }
+
 
 
             //JSON Generator
