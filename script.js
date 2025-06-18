@@ -910,7 +910,6 @@ function generateXML() {
     const createdBy = createdByInput.value;
     const comment = document.getElementById('comment').value || '';
     const groups = document.querySelectorAll('.rule-group');
-
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
 
     groups.forEach(group => {
@@ -919,7 +918,6 @@ function generateXML() {
             const now = new Date();
             startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
         }
-
         const endDate = group.querySelector('[id^="endDate-"]').value;
         const enabled = group.querySelector('[id^="enabled-"]').value;
 
@@ -933,6 +931,7 @@ function generateXML() {
             const dataTransfer = rule.querySelector('.includeDataTransfer').value;
             const rip = rule.querySelector('.includeRIPurchases').value;
             const product = rule.querySelector('.productName').value || 'ANY';
+
             const prodDT = rule.querySelector('.productIncludeDataTransfer').value;
             const prodRIP = rule.querySelector('.productIncludeRIPurchases').value;
 
@@ -942,7 +941,7 @@ function generateXML() {
 
             let subTags = '';
 
-            // Desired order
+            // Proper order of properties
             const propertyOrder = [
                 'region',
                 'usageType',
@@ -953,12 +952,14 @@ function generateXML() {
                 'savingsPlanOfferingType'
             ];
 
-            // Get available properties from the rule (assuming it was set somewhere else)
-            const added = Array.isArray(rule.addedProperties) ? rule.addedProperties : [];
+            // Safely collect addedProperties
+            const addedSet = new Set();
+            if (rule.addedProperties && typeof rule.addedProperties.forEach === 'function') {
+                rule.addedProperties.forEach(p => addedSet.add(p));
+            }
 
-            // Iterate in your desired order, but only process if in addedProperties
             propertyOrder.forEach(propertyType => {
-                if (!added.includes(propertyType)) return;
+                if (!addedSet.has(propertyType)) return;
 
                 const valuesContainer = rule.querySelector(`#${propertyType}Values`);
                 if (!valuesContainer) return;
@@ -1044,6 +1045,7 @@ function generateXML() {
     xml += `</CHTBillingRules>`;
     return xml;
 }
+
 
 
 
