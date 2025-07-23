@@ -626,17 +626,17 @@
             max-width: 600px;
             width: 90%;
         }
-
+        
         .modal-close {
             position: absolute;
             right: 20px;
             top: 20px;
-            width: 35px;
-            height: 35px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background-color: #dc3545;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1rem;
             cursor: pointer;
             border: none;
             display: flex;
@@ -650,7 +650,6 @@
             background-color: #c82333;
             transform: scale(1.1);
         }
-
 
         /* Property Selector Styles */
         .active-properties {
