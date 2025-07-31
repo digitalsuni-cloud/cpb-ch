@@ -87,6 +87,10 @@
                         <input type="date" id="endDate-${groupId}" oninput="updateNavigation()">
                     </div>
                     <div class="input-group">
+                       <label for="payerAccounts-${groupId}">PayerAccount ID (Optional)</label>
+                       <input type="text" id="payerAccounts-${groupId}" placeholder="Enter PayerAccount ID (optional)">
+                    </div>
+                    <div class="input-group">
                         <label for="enabled-${groupId}">Enabled</label>
                         <select id="enabled-${groupId}">
                             <option value="true">Yes</option>
