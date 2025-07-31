@@ -1352,6 +1352,7 @@ function downloadOutput(elementId, fileType) {
 
                     currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
                     currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
+                    currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
                     currentGroup.querySelector('[id^="enabled-"]').value = ruleGroup.getAttribute('enabled') || 'true';
 
                     const billingRules = ruleGroup.getElementsByTagName('BillingRule');
