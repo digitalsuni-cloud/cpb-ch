@@ -87,6 +87,10 @@
                         <input type="date" id="endDate-${groupId}" oninput="updateNavigation()">
                     </div>
                     <div class="input-group">
+                       <label for="payerAccounts-${groupId}">PayerAccount ID (Optional)</label>
+                       <input type="text" id="payerAccounts-${groupId}" placeholder="Enter PayerAccount ID (optional)">
+                    </div>
+                    <div class="input-group">
                         <label for="enabled-${groupId}">Enabled</label>
                         <select id="enabled-${groupId}">
                             <option value="true">Yes</option>
@@ -899,7 +903,7 @@ function expandAndScrollToRule(rule) {
                 }, 500);
             }
 
-           // XML Generator
+ // XML Generator
 function generateXML() {
     if (!validateForm()) {
         alert("Please fill in all required fields.");
@@ -920,8 +924,9 @@ function generateXML() {
         }
         const endDate = group.querySelector('[id^="endDate-"]').value;
         const enabled = group.querySelector('[id^="enabled-"]').value;
+        const payerAccounts = group.querySelector('[id^="payerAccounts-"]').value.trim();  // Fetch and trim for safety
 
-        xml += `\t<RuleGroup startDate="${startDate}"${endDate ? ` endDate="${endDate}"` : ''}${enabled === "false" ? ` enabled="false"` : ''}>\n`;
+        xml += `\t<RuleGroup startDate="${startDate}"${endDate ? ` endDate="${endDate}"` : ''}${payerAccounts ? ` payerAccounts="${payerAccounts}"` : ''}${enabled === "false" ? ` enabled="false"` : ''}>\n`;
 
         const rules = group.querySelectorAll('.rule');
         rules.forEach(rule => {
@@ -1045,9 +1050,6 @@ function generateXML() {
     xml += `</CHTBillingRules>`;
     return xml;
 }
-
-
-
 
             //JSON Generator
             function generateJSON() {
@@ -1350,6 +1352,7 @@ function downloadOutput(elementId, fileType) {
 
                     currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
                     currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
+                    currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
                     currentGroup.querySelector('[id^="enabled-"]').value = ruleGroup.getAttribute('enabled') || 'true';
 
                     const billingRules = ruleGroup.getElementsByTagName('BillingRule');
