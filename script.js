@@ -3990,20 +3990,24 @@ function renderNaturalLanguageSummary() {
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
 
-function generateAndThenSummarize() {
-  generateOutput('xml')
-    .then(() => {
+async function generateAndThenSummarize() {
+  try {
+    const output = await generateOutput('xml');
+    if (output && output.trim().startsWith('<')) {
       const nlSection = document.getElementById('nlOutputSection');
       if (nlSection) {
         nlSection.style.display = 'block';
         renderNaturalLanguageSummary();
         nlSection.scrollIntoView({ behavior: 'smooth' });
       }
-    })
-    .catch((err) => {
-      console.warn('Error generating XML:', err);
-      // fallback: try rendering from current XML anyway
-      renderNaturalLanguageSummary();
-    });
+    } else {
+      console.warn('XML was empty or malformed.');
+      renderNaturalLanguageSummary(); // fallback
+    }
+  } catch (err) {
+    console.warn('Error during XML generation:', err);
+    renderNaturalLanguageSummary(); // fallback on error
+  }
 }
+
 
