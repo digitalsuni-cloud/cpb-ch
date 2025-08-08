@@ -1174,23 +1174,27 @@ transition: all 0.3s ease;
   padding-left: 12px;
   color: var(--text-light);
 }
+
+/* Refresh button styling */
 #refreshNLBtn.icon-button {
-  font-size: 28px;       /* Larger icon */
-  color: #28a745;        /* Green color */
+  font-size: 28px;          /* Larger icon size */
+  color: #28a745;           /* Green color */
   padding: 8px;
-  border-radius: 50%;    /* Circular button */
+  border-radius: 50%;       /* Circular shape */
   border: none;
   background: transparent;
   cursor: pointer;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, transform 0.2s ease;
+  /* Optional subtle shadow for focus */
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 }
 
-#refreshNLBtn.icon-button:hover {
-  color: #1e7e34;        /* Darker green on hover */
+#refreshNLBtn.icon-button:hover,
+#refreshNLBtn.icon-button:focus {
+  color: #1e7e34;           /* Darker green on hover/focus */
+  transform: scale(1.1);    /* Slightly enlarge for feedback */
+  outline: none;
 }
-
-
-
 
 
 
