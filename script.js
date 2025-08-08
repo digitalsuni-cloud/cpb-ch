@@ -2009,7 +2009,7 @@ function generateAndThenSummarize() {
     });
 }
 
-function waitForXMLUpdate(timeout = 2000) {
+function waitForXMLUpdate(timeout = 3000) {
   return new Promise((resolve, reject) => {
     const xmlField = document.getElementById('xmlOutput');
     if (!xmlField) {
