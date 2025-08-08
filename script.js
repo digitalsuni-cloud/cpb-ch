@@ -3990,33 +3990,19 @@ function renderNaturalLanguageSummary() {
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
 
-function generateOutput(type) {
-  if (!validateForm()) {
-    return Promise.reject('Form validation failed');
-  }
-
-  showLoadingIndicator();
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let output = '';
-      switch (type) {
-        case 'xml':
-          output = generateXML();
-          if (output) {
-            document.getElementById('xmlOutput').value = output;
-          }
-          break;
-        // ... other cases
+function generateAndThenSummarize() {
+  generateOutput('xml')
+    .then(() => {
+      const nlSection = document.getElementById('nlOutputSection');
+      if (nlSection) {
+        nlSection.style.display = 'block';
+        renderNaturalLanguageSummary();
+        nlSection.scrollIntoView({ behavior: 'smooth' });
       }
-      hideLoadingIndicator();
-      
-      // Use requestAnimationFrame to ensure DOM update is complete
-      requestAnimationFrame(() => {
-        resolve(output);
-      });
-    }, 500);
-  });
+    })
+    .catch((err) => {
+      console.warn('Error generating XML:', err);
+      // fallback: try rendering from current XML anyway
+      renderNaturalLanguageSummary();
+    });
 }
-
-
