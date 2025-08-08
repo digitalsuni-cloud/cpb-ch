@@ -1758,132 +1758,200 @@ function performReset() {
     addRuleGroup(null, true);
 }
 
+// Fetch current XML, either from textarea or generate fresh
 function getCurrentSpecificationXML() {
-    // Preferred: fetch XML from the textarea if it exists and starts with "<"
-    const xmlOut = document.getElementById('xmlOutput');
-    if (xmlOut && xmlOut.value && xmlOut.value.trim().startsWith('<')) {
-        return xmlOut.value.trim();
+    const xmlEl = document.getElementById('xmlOutput');
+    if (xmlEl && xmlEl.value.trim().startsWith('<')) {
+        return xmlEl.value.trim();
     }
-
-    // Optionally: regenerate the XML from the form if xmlOutput is empty
-    // Uncomment and adapt if you have a function that builds XML from form fields
-    // if (typeof generateXML === 'function') {
-    //   return generateXML();
-    // }
-
+    // Optionally, generate XML here if you have a function
+    // return generateXML();
     return null;
 }
 
-// Entry point: creates NL summary from the current XML specification
+// Convert billing adjustment info to human readable
+function toReadableAdjustment(type, adjustment) {
+    if (!type) return 'No adjustment specified';
+    let adj = adjustment ?? 'unspecified';
+    const t = type.toLowerCase();
+    if (t.includes('discount')) return `a ${adj} % discount`;
+    if (t.includes('increase') || t.includes('markup')) return `a ${adj} % markup`;
+    if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of ${adj}`;
+    return `${type} set to ${adj}`;
+}
+
+// Collect property filters inside a Product node
+function collectProductFilters(productEl) {
+    const filters = [];
+
+    // Collect standard filters via helper
+    addNameList(productEl, 'Region', 'Region', filters);
+    addNameList(productEl, 'UsageType', 'Usage Type', filters);
+    addNameList(productEl, 'Operation', 'Operation', filters);
+    addNameList(productEl, 'RecordType', 'Record Type', filters);
+
+    // InstanceProperties may be multiple sets
+    const instProps = Array.from(productEl.getElementsByTagName('InstanceProperties'));
+    instProps.forEach(ip => {
+        const t = ip.getAttribute('instanceType') ?? 'any';
+        const s = ip.getAttribute('instanceSize') ?? 'any';
+        const r = ip.getAttribute('reserved');
+        let parts = [`instanceType=${t}`, `instanceSize=${s}`];
+        if (r !== null && r !== undefined) parts.push(`reserved=${r}`);
+        filters.push(`Instance with ${parts.join(', ')}`);
+    });
+
+    // LineItemDescription with operator attributes
+    const descNodes = Array.from(productEl.getElementsByTagName('LineItemDescription'));
+    descNodes.forEach(ld => {
+        let added = false;
+        ['contains', 'startsWith', 'matchesRegex'].forEach(op => {
+            if (ld.hasAttribute(op)) {
+                filters.push(`LineItemDescription ${op} "${ld.getAttribute(op)}"`);
+                added = true;
+            }
+        });
+        if (!added) filters.push('LineItemDescription (no operator)');
+    });
+
+    // SavingsPlanOfferingType
+    addNameList(productEl, 'SavingsPlanOfferingType', 'Savings Plan Offering Type', filters);
+
+    return filters;
+}
+
+// Helper to extract names of given tag and join them for description
+function addNameList(parent, tag, label, outputArr) {
+    const nodes = Array.from(parent.getElementsByTagName(tag));
+    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean);
+    if (names.length > 0) {
+        outputArr.push(`${label}: ${names.join(', ')}`);
+    }
+}
+
+// Escape HTML for safe display
+function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+}
+
+// Format lines into HTML blocks with group styling
+function wrapLinesAsHTML(lines) {
+    const htmlBlocks = [];
+    let group = [];
+
+    lines.forEach(line => {
+        if (!line.trim()) {
+            if (group.length > 0) {
+                htmlBlocks.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+                group = [];
+            }
+        } else if (line.startsWith('  ')) {
+            if (line.startsWith('    ')) {
+                group.push(`<div class="filters">${escapeHTML(line)}</div>`);
+            } else {
+                group.push(`<div class="rule">${escapeHTML(line)}</div>`);
+            }
+        } else {
+            group.push(escapeHTML(line));
+        }
+    });
+
+    if (group.length > 0) {
+        htmlBlocks.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+    }
+    return htmlBlocks.join('\n');
+}
+
+// === Main Natural Language summary ===
 function renderNaturalLanguageSummary() {
     const outputEl = document.getElementById('nlSummary');
     if (!outputEl) return;
 
     const xml = getCurrentSpecificationXML();
     if (!xml) {
-        outputEl.textContent = 'No price book loaded. Import a JSON or XML price book to read it out.';
+        outputEl.textContent = 'No price book loaded. Please load or generate a valid XML.';
         return;
     }
 
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xml, 'application/xml');
-    if (xmlDoc.getElementsByTagName('parsererror').length) {
-        outputEl.textContent = 'The XML could not be parsed — check the pricebook format.';
+    const doc = parser.parseFromString(xml, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length > 0) {
+        outputEl.textContent = 'Error parsing XML. Please check the input.';
         return;
     }
 
-    let summary = "";
+    const lines = [];
+    const root = doc.documentElement;
+    const bookName = (document.getElementById('bookName')?.value?.trim()) ?? 'Unnamed';
+    const createdBy = root.getAttribute('createdBy') ?? 'Unknown';
+    const commentNode = doc.querySelector('Comment');
+    const comment = commentNode ? commentNode.textContent.trim() : '';
 
-    // Header information
-    const bookName = (document.getElementById('bookName')?.value || '').trim() || 'Unnamed Price Book';
-    const createdBy = xmlDoc.documentElement.getAttribute('createdBy') || 'Unknown';
-    const comment = xmlDoc.querySelector('Comment')?.textContent?.trim();
+    lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
+    if (comment) lines.push(`💡 Purpose: ${comment}`);
+    lines.push('');
+    lines.push("🛠 Rules are processed top-down — first matching rule applies, later rules are ignored for that line item.");
 
-    summary += `📖 Price Book Name is **"${bookName}"** and Created By **"${createdBy}"**\n\n`;
-    if (comment) {
-        summary += `💡 **Comment (Purpose of this Pricebook)**: ${comment}\n\n`;
-    }
-
-    summary += `🛠 **How Rules are Evaluated?**  
-Rules are processed top‑down — the first matching rule applies, and no later rules are used for that line item.\n\n`;
-
-    const ruleGroups = Array.from(xmlDoc.getElementsByTagName('RuleGroup'));
-
-    if (!ruleGroups.length) {
-        summary += "No RuleGroups found in this Pricebook.";
-        outputEl.innerHTML = formatMarkdown(summary);
+    const groups = Array.from(doc.getElementsByTagName('RuleGroup'));
+    if (groups.length === 0) {
+        lines.push("No RuleGroups found in the price book.");
+        outputEl.innerHTML = wrapLinesAsHTML(lines);
         return;
     }
 
-    ruleGroups.forEach((rg, idx) => {
-        const enabled = rg.getAttribute('enabled') === "true" ? "Enabled" : "Disabled";
-        const startDate = rg.getAttribute('startDate') || "unspecified";
-        const endDate = rg.getAttribute('endDate') || "unspecified";
-        const payerAccounts = rg.getAttribute('payerAccounts');
-
-        summary += `### Rule Group #${idx + 1}:
-(${enabled}) — Effective from **${startDate}** to **${endDate}**`;
-
-        if (payerAccounts) {
-            summary += ` — applies only to Payer Account(s): ${payerAccounts}`;
+    groups.forEach((group, gi) => {
+        const enabled = group.getAttribute('enabled') === 'false' ? 'Disabled' : 'Enabled';
+        const start = group.getAttribute('startDate') ?? 'unspecified';
+        const end = group.getAttribute('endDate') ?? 'unspecified';
+        const payer = group.getAttribute('payerAccounts');
+        let payerText = '';
+        if (payer && payer.trim() !== '') {
+            payerText = ` Applies to Payer Account(s): ${payer}.`;
         }
 
-        summary += `\n`;
+        lines.push('');
+        lines.push(`RuleGroup #${gi + 1}: (${enabled}) — Effective from ${start} to ${end}.${payerText}`);
 
-        const billingRules = Array.from(rg.getElementsByTagName('BillingRule'));
+        const billingRules = Array.from(group.getElementsByTagName('BillingRule'));
+        if (billingRules.length === 0) {
+            lines.push("  (No BillingRules in this group)");
+        }
 
-        billingRules.forEach((br) => {
-            const name = br.getAttribute('name') || '(Unnamed Rule)';
-            const includeDT = br.getAttribute('includeDataTransfer') === "true";
-            const includeRI = br.getAttribute('includeRIPurchases') === "true";
+        billingRules.forEach(rule => {
+            const ruleName = rule.getAttribute('name') ?? '(Unnamed Rule)';
+            const basic = rule.querySelector('BasicBillingRule');
+            const type = basic ? basic.getAttribute('billingRuleType') : 'unspecified';
+            const adj = basic ? basic.getAttribute('billingAdjustment') : 'unspecified';
 
-            const basic = br.getElementsByTagName('BasicBillingRule')[0];
-            const type = basic?.getAttribute('billingRuleType') || '';
-            const adj = basic?.getAttribute('billingAdjustment') || '';
+            const includeDT = rule.getAttribute('includeDataTransfer');
+            const includeRI = rule.getAttribute('includeRIPurchases');
+            const dtText = includeDT === 'true' ? 'Includes Data Transfer' : 'Excludes Data Transfer';
+            const riText = includeRI === 'true' ? 'Includes RI purchases' : 'Excludes RI purchases';
 
-            const adjDisplay = adj.startsWith('-') ? `**${adj}** (negative)` : adj;
+            lines.push(`  • Billing Rule: "${ruleName}"`);
+            lines.push(`    → Applies ${toReadableAdjustment(type, adj)}`);
+            lines.push(`    → ${dtText}, ${riText}`);
 
-            summary += `\n🔹 **BillingRule Name** = "${name}"  
-This rule applies **${readableAdjustment(type, adjDisplay)}**.  
-It ${includeDT ? "includes" : "excludes"} Data Transfer line items and ${includeRI ? "includes" : "excludes"} RI Purchases line items.\n`;
-
-            const product = br.getElementsByTagName('Product')[0];
+            const product = rule.querySelector('Product');
             if (product) {
-                const pname = product.getAttribute('productName') || 'ANY';
-                summary += `\n**Product Name**: ${pname === 'ANY' ? "All the Products" : pname}\n`;
+                const pname = product.getAttribute('productName') ?? 'Any';
+                lines.push(`    Product Name: ${pname === 'Any' ? 'All products' : pname}`);
 
                 const filters = collectProductFilters(product);
-                if (filters.length) {
-                    summary += `**Line Item Filters**:\n`;
-                    filters.forEach(f => {
-                        summary += `- ${f}\n`;
-                    });
+                if (filters.length > 0) {
+                    lines.push('    Filters:');
+                    filters.forEach(f => lines.push(`      - ${f}`));
                 } else {
-                    summary += `(No additional filters)\n`;
+                    lines.push('    No additional filters.');
                 }
+            } else {
+                lines.push('    Applies to all products.');
             }
         });
-
-        summary += `\n`;
     });
 
-    outputEl.innerHTML = formatMarkdown(summary);
-}
-
-// Helper to transform BillingRuleType into readable words
-function readableAdjustment(type, adj) {
-    const t = type.toLowerCase();
-    if (t.includes('discount')) return `a ${adj}% discount`;
-    if (t.includes('increase')) return `a ${adj}% markup`;
-    if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of ${adj}`;
-    return `${type} = ${adj}`;
-}
-
-// Simple Markdown-ish formatter (bold & headings)
-function formatMarkdown(text) {
-    return text
-        .replace(/^### (.*$)/gim, '<h4>$1</h4>')
-        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
+    outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
 
