@@ -1757,6 +1757,23 @@ function performReset() {
     // Add initial rule group
     addRuleGroup(null, true);
 }
+
+function getCurrentSpecificationXML() {
+    // Preferred: fetch XML from the textarea if it exists and starts with "<"
+    const xmlOut = document.getElementById('xmlOutput');
+    if (xmlOut && xmlOut.value && xmlOut.value.trim().startsWith('<')) {
+        return xmlOut.value.trim();
+    }
+
+    // Optionally: regenerate the XML from the form if xmlOutput is empty
+    // Uncomment and adapt if you have a function that builds XML from form fields
+    // if (typeof generateXML === 'function') {
+    //   return generateXML();
+    // }
+
+    return null;
+}
+
 // Entry point: creates NL summary from the current XML specification
 function renderNaturalLanguageSummary() {
     const outputEl = document.getElementById('nlSummary');
