@@ -176,34 +176,5 @@
   </footer>
 
   <script src="script.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const refreshBtn = document.getElementById('refreshNLBtn');
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', function () {
-          if (typeof renderNaturalLanguageSummary === 'function') {
-            renderNaturalLanguageSummary();
-          }
-        });
-      }
-
-      const readOutBtn = document.getElementById('readOutBtn');
-      if (readOutBtn) {
-        readOutBtn.addEventListener('click', function () {
-          // Generate latest XML
-          generateOutput('xml');
-          setTimeout(() => {
-            if (typeof renderNaturalLanguageSummary === 'function') {
-              renderNaturalLanguageSummary();
-              // Make summary output visible
-              document.getElementById('nlOutputSection').style.display = 'block';
-              // Scroll smoothly to it
-              document.getElementById('nlOutputSection').scrollIntoView({behavior:'smooth'});
-            }
-          }, 200);
-        });
-      }
-    });
-  </script>
 </body>
 </html>
