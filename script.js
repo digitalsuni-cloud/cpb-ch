@@ -1990,10 +1990,20 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
-function generateAndThenSummarize() {
+function generateAndThenSummarize(timeout = 4000) {
+  const xmlField = document.getElementById('xmlOutput');
+  if (!xmlField) {
+    console.warn("XML output textarea not found");
+    return;
+  }
+
+  // Store current XML to detect changes
+  const oldValue = xmlField.value;
+
+  // Start generating new XML
   generateOutput('xml');
 
-  waitForXMLUpdate()
+  return waitForXMLUpdate(oldValue, timeout)
     .then(() => {
       const nlSection = document.getElementById('nlOutputSection');
       if (nlSection) {
@@ -2009,7 +2019,13 @@ function generateAndThenSummarize() {
     });
 }
 
-function waitForXMLUpdate(timeout = 3000) {
+/**
+ * Wait for XML output area to update from oldValue or time-out after given milliseconds.
+ * @param {string} oldValue - the XML value before regeneration started
+ * @param {number} timeout - maximum time to wait in ms
+ * @returns {Promise<void>}
+ */
+function waitForXMLUpdate(oldValue, timeout = 4000) {
   return new Promise((resolve, reject) => {
     const xmlField = document.getElementById('xmlOutput');
     if (!xmlField) {
@@ -2017,14 +2033,17 @@ function waitForXMLUpdate(timeout = 3000) {
       return;
     }
 
-    // If XML already exists and valid, resolve immediately
-    if (xmlField.value.trim().startsWith('<')) {
+    let timeoutId;
+
+    // If XML is already different & valid, resolve immediately
+    if (xmlField.value.trim().startsWith('<') && xmlField.value !== oldValue) {
       resolve();
       return;
     }
 
     const observer = new MutationObserver(() => {
-      if (xmlField.value.trim().startsWith('<')) {
+      if (xmlField.value && xmlField.value.trim().startsWith('<') && xmlField.value !== oldValue) {
+        clearTimeout(timeoutId);
         observer.disconnect();
         resolve();
       }
@@ -2033,12 +2052,13 @@ function waitForXMLUpdate(timeout = 3000) {
     observer.observe(xmlField, { characterData: true, childList: true, subtree: true, attributes: true });
 
     // Fallback timeout in case update never happens
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       observer.disconnect();
       reject(new Error("Timeout waiting for XML update"));
     }, timeout);
   });
 }
+
 
 
 
