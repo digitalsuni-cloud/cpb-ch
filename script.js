@@ -932,44 +932,47 @@ function addSavingsPlanOfferingType(button) {
 }
 
 
+// Updated generateOutput to return a Promise that resolves after the async timeout
 function generateOutput(type) {
-    if (!validateForm()) {
-        return;
-    }
+  if (!validateForm()) {
+    return Promise.reject('Form validation failed');
+  }
 
-    showLoadingIndicator();
+  showLoadingIndicator();
 
+  return new Promise((resolve) => {
     setTimeout(() => {
-        let output = '';
-        switch (type) {
-            case 'xml':
-                output = generateXML();
-                if (output) {
-                    document.getElementById('xmlOutput').value = output;
-                }
-                break;
-            case 'json':
-                output = generateJSON();
-                if (output) {
-                    document.getElementById('jsonOutput').value = output;
-                    // Add calls to update the assignment JSONs
-                    updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-                    updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-                }
-                break;
-            case 'curl':
-                output = generateCURL();
-                if (output) {
-                    document.getElementById('jsonOutput').value = output;
-                    // Add calls to update the assignment CURLs
-                    updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-                    updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-                }
-                break;
-        }
-
-        hideLoadingIndicator();
+      let output = '';
+      switch (type) {
+        case 'xml':
+          output = generateXML();
+          if (output) {
+            document.getElementById('xmlOutput').value = output;
+          }
+          break;
+        case 'json':
+          output = generateJSON();
+          if (output) {
+            document.getElementById('jsonOutput').value = output;
+            // Add calls to update the assignment JSONs
+            updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
+            updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
+          }
+          break;
+        case 'curl':
+          output = generateCURL();
+          if (output) {
+            document.getElementById('jsonOutput').value = output;
+            // Add calls to update the assignment CURLs
+            updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
+            updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
+          }
+          break;
+      }
+      hideLoadingIndicator();
+      resolve(output);  // Resolve with the generated output
     }, 500);
+  });
 }
 
 // XML Generator
@@ -1990,19 +1993,23 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
+
+// Updated generateAndThenSummarize to wait on the Promise from generateOutput
 function generateAndThenSummarize() {
-  generateOutput('xml').then(() => {
-    const nlSection = document.getElementById('nlOutputSection');
-    if (nlSection) {
-      nlSection.style.display = 'block';
-    }
-    renderNaturalLanguageSummary();
-    if (nlSection) {
-      nlSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  }).catch(() => {
-    // fallback
-    renderNaturalLanguageSummary();
-  });
+  generateOutput('xml')
+    .then(() => {
+      const nlSection = document.getElementById('nlOutputSection');
+      if (nlSection) {
+        nlSection.style.display = 'block';
+        renderNaturalLanguageSummary();
+        nlSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    })
+    .catch((err) => {
+      console.warn(err);  // Log any errors (e.g., validation failed)
+      // Optional fallback: render with whatever is already in xmlOutput
+      renderNaturalLanguageSummary();
+    });
 }
+
 
