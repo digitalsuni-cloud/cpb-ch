@@ -934,43 +934,60 @@ function addSavingsPlanOfferingType(button) {
 
 function generateOutput(type) {
     if (!validateForm()) {
-        return;
+        return Promise.reject('Validation failed');
     }
 
     showLoadingIndicator();
 
-    setTimeout(() => {
-        let output = '';
-        switch (type) {
-            case 'xml':
-                output = generateXML();
-                if (output) {
-                    document.getElementById('xmlOutput').value = output;
-                }
-                break;
-            case 'json':
-                output = generateJSON();
-                if (output) {
-                    document.getElementById('jsonOutput').value = output;
-                    // Add calls to update the assignment JSONs
-                    updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-                    updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-                }
-                break;
-            case 'curl':
-                output = generateCURL();
-                if (output) {
-                    document.getElementById('jsonOutput').value = output;
-                    // Add calls to update the assignment CURLs
-                    updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-                    updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-                }
-                break;
-        }
-
-        hideLoadingIndicator();
-    }, 500);
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            let output = '';
+            switch (type) {
+                case 'xml':
+                    output = generateXML();
+                    if (output) {
+                        document.getElementById('xmlOutput').value = output;
+                    }
+                    break;
+                case 'json':
+                    output = generateJSON();
+                    if (output) {
+                        document.getElementById('jsonOutput').value = output;
+                        updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
+                        updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
+                    }
+                    break;
+                case 'curl':
+                    output = generateCURL();
+                    if (output) {
+                        document.getElementById('jsonOutput').value = output;
+                        updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
+                        updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
+                    }
+                    break;
+            }
+            hideLoadingIndicator();
+            resolve(output);
+        }, 500);
+    });
 }
+function generateAndThenSummarize() {
+    generateOutput('xml')
+        .then(() => {
+            const nlSection = document.getElementById('nlOutputSection');
+            if (nlSection) {
+                nlSection.style.display = 'block';
+                renderNaturalLanguageSummary();
+                nlSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        })
+        .catch((error) => {
+            console.warn("Error generating XML:", error);
+            // Still try to render summary as fallback
+            renderNaturalLanguageSummary();
+        });
+}
+
 
 // XML Generator
 function generateXML() {
@@ -1989,53 +2006,4 @@ function renderNaturalLanguageSummary() {
     });
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
-}
-function generateAndThenSummarize() {
-  generateOutput('xml');
-
-  waitForXMLUpdate()
-    .then(() => {
-      const nlSection = document.getElementById('nlOutputSection');
-      if (nlSection) {
-        nlSection.style.display = 'block';
-        renderNaturalLanguageSummary();
-        nlSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    })
-    .catch((err) => {
-      console.warn(err.message);
-      // Fallback: try rendering anyway without guaranteed fresh XML
-      renderNaturalLanguageSummary();
-    });
-}
-
-function waitForXMLUpdate(timeout = 2000) {
-  return new Promise((resolve, reject) => {
-    const xmlField = document.getElementById('xmlOutput');
-    if (!xmlField) {
-      reject(new Error("XML output textarea not found"));
-      return;
-    }
-
-    // If XML already exists and valid, resolve immediately
-    if (xmlField.value.trim().startsWith('<')) {
-      resolve();
-      return;
-    }
-
-    const observer = new MutationObserver(() => {
-      if (xmlField.value.trim().startsWith('<')) {
-        observer.disconnect();
-        resolve();
-      }
-    });
-
-    observer.observe(xmlField, { characterData: true, childList: true, subtree: true, attributes: true });
-
-    // Fallback timeout in case update never happens
-    setTimeout(() => {
-      observer.disconnect();
-      reject(new Error("Timeout waiting for XML update"));
-    }, timeout);
-  });
 }
