@@ -1742,3 +1742,171 @@ function performReset() {
     // Add initial rule group
     addRuleGroup(null, true);
 }
+// Entry point: creates NL summary from the current XML specification
+function renderNaturalLanguageSummary() {
+    const outputEl = document.getElementById('nlSummary');
+    if (!outputEl) return;
+
+    const xml = getCurrentSpecificationXML();
+    if (!xml) {
+        outputEl.textContent = 'No price book loaded. Import a JSON or XML price book to see the summary.';
+        return;
+    }
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xml, 'application/xml');
+    if (xmlDoc.getElementsByTagName('parsererror').length) {
+        outputEl.textContent = 'The current XML could not be parsed. Please review the specification.';
+        return;
+    }
+
+    const lines = [];
+    const root = xmlDoc.documentElement;
+    const createdBy = root.getAttribute('createdBy') || 'Unknown';
+    const bookName = (document.getElementById('bookName')?.value || '').trim() || 'Unnamed Price Book';
+    const comment = xmlDoc.querySelector('Comment')?.textContent?.trim();
+    lines.push(`Price Book: "${bookName}" (createdBy: ${createdBy})`);
+    if (comment) lines.push(`Comment: ${comment}`);
+    lines.push('Evaluation: Rules are processed top-down; the first matching rule applies and no later rules are used for that line item.');
+
+    const ruleGroups = Array.from(xmlDoc.getElementsByTagName('RuleGroup'));
+    if (!ruleGroups.length) {
+        lines.push('No RuleGroups found in the specification.');
+        outputEl.innerHTML = wrapLinesAsHTML(lines);
+        return;
+    }
+
+    ruleGroups.forEach((rg, idx) => {
+        const startDate = rg.getAttribute('startDate') || 'unspecified';
+        const endDate = rg.getAttribute('endDate') || 'unspecified';
+        const enabled = (rg.getAttribute('enabled') ?? 'true').toString();
+        const payer = rg.getAttribute('payerAccounts') || 'all';
+        lines.push('');
+        lines.push(`RuleGroup #${idx + 1}: enabled=${enabled}, effective=${startDate} to ${endDate}, payerAccounts=${payer}`);
+
+        const billingRules = Array.from(rg.getElementsByTagName('BillingRule'));
+        if (!billingRules.length) {
+            lines.push('  (No BillingRules in this group)');
+            return;
+        }
+
+        billingRules.forEach((br, j) => {
+            const name = br.getAttribute('name') || `Rule ${j + 1}`;
+            const includeDT = br.getAttribute('includeDataTransfer');
+            const includeRI = br.getAttribute('includeRIPurchases') || 'false';
+
+            const basic = br.getElementsByTagName('BasicBillingRule')[0];
+            const billingRuleType = basic?.getAttribute('billingRuleType') || 'unspecified';
+            const billingAdjustment = basic?.getAttribute('billingAdjustment');
+
+            const action = toReadableAdjustment(billingRuleType, billingAdjustment);
+
+            lines.push(`  BillingRule: "${name}" → ${action} (includeDataTransfer=${includeDT ?? 'default'}, includeRIPurchases=${includeRI})`);
+
+            const product = br.getElementsByTagName('Product')[0];
+            if (!product) {
+                lines.push('    Applies to: all products (no Product filter specified)');
+            } else {
+                const productName = product.getAttribute('productName') || 'Any Product';
+                const pIncludeDT = product.getAttribute('includeDataTransfer');
+                const pIncludeRI = product.getAttribute('includeRIPurchases');
+                lines.push(`    Product: ${productName} ${pIncludeDT ? `(includeDataTransfer=${pIncludeDT})` : ''} ${pIncludeRI ? `(includeRIPurchases=${pIncludeRI})` : ''}`);
+                const filterLines = collectProductFilters(product);
+                if (filterLines.length) {
+                    lines.push('    Filters:');
+                    filterLines.forEach(fl => lines.push(`      - ${fl}`));
+                } else {
+                    lines.push('    Filters: (none)');
+                }
+            }
+        });
+    });
+
+    outputEl.innerHTML = wrapLinesAsHTML(lines);
+}
+
+// Utility functions used by renderNaturalLanguageSummary
+
+function getCurrentSpecificationXML() {
+    // Prefer XML in textarea if available and valid
+    const xmlOut = document.getElementById('xmlOutput');
+    if (xmlOut && xmlOut.value && xmlOut.value.trim().startsWith('<')) {
+        return xmlOut.value.trim();
+    }
+    // No XML available
+    return null;
+}
+
+function toReadableAdjustment(type, adjustment) {
+    if (!type) return 'no adjustment specified';
+    const adj = adjustment != null ? adjustment : 'unspecified';
+    const t = type.toLowerCase();
+    if (t.includes('discount')) return `apply ${adj}% discount`;
+    if (t.includes('increase')) return `apply ${adj}% markup`;
+    if (t.includes('fixed') || t.includes('rate')) return `apply fixed rate ${adj}`;
+    return `apply ${type} = ${adj}`;
+}
+
+function collectProductFilters(productEl) {
+    const filters = [];
+    addNameList(productEl, 'Region', 'Region', filters);
+    addNameList(productEl, 'UsageType', 'Usage Type', filters);
+    addNameList(productEl, 'Operation', 'Operation', filters);
+    addNameList(productEl, 'RecordType', 'Record Type', filters);
+
+    const insts = Array.from(productEl.getElementsByTagName('InstanceProperties'));
+    insts.forEach(ip => {
+        const it = ip.getAttribute('instanceType') || 'any';
+        const is = ip.getAttribute('instanceSize') || 'any';
+        const reserved = ip.getAttribute('reserved');
+        const parts = [`instanceType=${it}`, `instanceSize=${is}`];
+        if (reserved != null) parts.push(`reserved=${reserved}`);
+        filters.push(`Instance: ${parts.join(', ')}`);
+    });
+
+    const lids = Array.from(productEl.getElementsByTagName('LineItemDescription'));
+    lids.forEach(li => {
+        ['contains', 'startsWith', 'matchesRegex'].forEach(k => {
+            if (li.hasAttribute(k)) {
+                filters.push(`LineItemDescription ${k} "${li.getAttribute(k)}"`);
+            }
+        });
+    });
+
+    addNameList(productEl, 'SavingsPlanOfferingType', 'Savings Plan Offering Type', filters);
+
+    return filters;
+}
+
+function addNameList(parent, tag, label, outArr) {
+    const nodes = Array.from(parent.getElementsByTagName(tag));
+    if (!nodes.length) return;
+    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean);
+    if (names.length) outArr.push(`${label}: ${names.join(', ')}`);
+}
+
+function wrapLinesAsHTML(lines) {
+    const html = [];
+    let group = [];
+    lines.forEach(line => {
+        if (line.trim() === '') {
+            if (group.length) {
+                html.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+                group = [];
+            }
+        } else if (line.startsWith('  BillingRule')) {
+            group.push(`<div class="rule">${escapeHTML(line)}</div>`);
+        } else if (line.startsWith('    ')) {
+            group.push(`<div class="filters">${escapeHTML(line)}</div>`);
+        } else {
+            group.push(escapeHTML(line));
+        }
+    });
+    if (group.length) html.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+    return html.join('\n');
+}
+
+function escapeHTML(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
