@@ -1213,264 +1213,403 @@ function downloadOutput(elementId, fileType) {
                 document.getElementById('helpModal').style.display = 'none';
             }
 
-            //Import Price Book function
-            document.getElementById('importButton').addEventListener('click', function () {
-                const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
-                const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
-                const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
+          // Import Price Book function
+document.getElementById('importButton').addEventListener('click', function () {
+    const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
+    const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
+    const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
 
-                if (allFieldsEmpty && noRuleGroups) {
-                    // If all fields are empty and there are no rule groups, import without prompting
-                    document.getElementById('fileInput').click();
-                } else {
-                    // If there's data, prompt for confirmation
-                    if (confirm('Importing a price book will clear the existing data in the form. Do you want to continue?')) {
-                        document.getElementById('fileInput').click();
+    if (allFieldsEmpty && noRuleGroups) {
+        // If all fields are empty and there are no rule groups, import without prompting
+        document.getElementById('fileInput').click();
+    } else {
+        // If there's data, prompt for confirmation
+        if (confirm('Importing a price book will clear the existing data in the form. Do you want to continue?')) {
+            document.getElementById('fileInput').click();
+        }
+    }
+});
+
+document.getElementById('fileInput').addEventListener('change', function (event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const text = e.target.result || '';
+            // Reset all fields and clear all rule groups before import
+            performReset();  // Assuming performReset() is defined elsewhere; if not, use resetAllFields()
+
+            detectAndImport(text);
+        };
+        reader.readAsText(file);
+    }
+});
+
+// Content sniffing + dispatch
+function detectAndImport(text) {
+    let trimmed = (text || '').trim();
+
+    // Trim UTF-8 BOM if present
+    if (trimmed.charCodeAt(0) === 0xFEFF) {
+        trimmed = trimmed.slice(1);
+    }
+
+    if (!trimmed) {
+        alert('The file is empty.');
+        return;
+    }
+
+    // Quick sniff by first non-whitespace char
+    const firstChar = trimmed[0];
+
+    if (firstChar === '{' || firstChar === '[') {
+        // Likely JSON
+        const ok = tryImportAsJSON(trimmed);
+        if (!ok) {
+            // If strict JSON parse failed, try XML as a fallback
+            const okXML = tryImportAsXML(trimmed);
+            if (!okXML) alert('Unable to parse file as JSON or XML.');
+        }
+        return;
+    }
+
+    if (firstChar === '<') {
+        // Likely XML
+        const okXML = tryImportAsXML(trimmed);
+        if (!okXML) {
+            // Maybe it’s JSON with leading BOM/spaces? Try JSON as fallback
+            const okJSON = tryImportAsJSON(trimmed);
+            if (!okJSON) alert('Unable to parse file as XML or JSON.');
+        }
+        return;
+    }
+
+    // Heuristics when first char is ambiguous
+    if (looksLikeJSON(trimmed)) {
+        const ok = tryImportAsJSON(trimmed);
+        if (ok) return;
+    }
+    if (looksLikeXML(trimmed)) {
+        const ok = tryImportAsXML(trimmed);
+        if (ok) return;
+    }
+
+    // As a last attempt, try both with error-guard
+    if (!tryImportAsJSON(trimmed) && !tryImportAsXML(trimmed)) {
+        alert('Unsupported or invalid file content. Please upload a valid JSON or XML.');
+    }
+}
+
+function looksLikeJSON(s) {
+    // Quick heuristic: presence of quotes-colon pairs and curly braces
+    return /["']\s*:\s*/.test(s) && /[{[]/.test(s);
+}
+
+function looksLikeXML(s) {
+    // Quick heuristic: starts with < and has matching tag patterns
+    return /^<\?xml|^<\w+[\s>]/.test(s);
+}
+
+// Strict JSON import with your existing logic + fallback extraction
+function tryImportAsJSON(text) {
+    try {
+        const obj = JSON.parse(text);
+        // Your JSON format expects an embedded XML under "specification"
+        const xmlString = obj && obj.specification;
+        if (typeof xmlString === 'string' && xmlString.trim().startsWith('<')) {
+            handleJSONImportWithXML(obj, xmlString);
+            return true;
+        }
+        // If your JSON ever evolves to carry all fields directly, add that handler here
+        alert('JSON parsed but no "specification" XML found.');
+        return false;
+    } catch (e) {
+        // Attempt your manual extraction approach
+        const extracted = extractXMLFromMalformedJSON(text);
+        if (extracted) {
+            handleJSONImportWithXML({ book_name: extracted.bookName || 'Unknown' }, extracted.xml);
+            return true;
+        }
+        return false;
+    }
+}
+
+function handleJSONImportWithXML(jsonContent, xmlString) {
+    // Keep existing behavior: populate from XML, use JSON fields where applicable
+    populateFieldsFromXMLString(xmlString, jsonContent);
+}
+
+// Your existing manual extraction, made into a helper
+function extractXMLFromMalformedJSON(raw) {
+    try {
+        const bookNameMatch = raw.match(/"book_name"\s*:\s*"([^"]*)"/);
+        const specKeyMatch = raw.match(/"specification"\s*:\s*"/);
+        if (!specKeyMatch) return null;
+
+        const startIndex = specKeyMatch.index + specKeyMatch[0].length;
+        // Parse a JSON string value, honoring escapes
+        let i = startIndex;
+        let xml = '';
+        let escaped = false;
+        while (i < raw.length) {
+            const ch = raw[i];
+            if (!escaped && ch === '"') break; // end of string
+            if (!escaped && ch === '\\') {
+                escaped = true;
+            } else {
+                xml += ch;
+                escaped = false;
+            }
+            i++;
+        }
+        // Unescape common sequences
+        xml = xml
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t')
+            .replace(/\\\\/g, '\\');
+
+        return { xml, bookName: bookNameMatch ? bookNameMatch[1] : undefined };
+    } catch {
+        return null;
+    }
+}
+
+// XML import with robust parsererror detection
+function tryImportAsXML(text) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(text, 'application/xml');
+    const parseError = xmlDoc.getElementsByTagName('parsererror')[0];
+
+    if (parseError) {
+        return false;
+    }
+
+    handleXMLImport(text);
+    return true;
+}
+
+function resetAllFields() {
+    // Clear main fields
+    document.getElementById('bookName').value = '';
+    document.getElementById('createdBy').value = '';
+    document.getElementById('comment').value = '';
+    document.getElementById('cxAPIId').value = '';
+    document.getElementById('cxPayerId').value = '';
+
+    // Clear all rule groups
+    document.getElementById('groupsContainer').innerHTML = '';
+
+    // Clear all output areas
+    document.getElementById('xmlOutput').value = '';
+    document.getElementById('jsonOutput').value = '';
+    document.getElementById('assignCustomerJSON').value = '';
+    document.getElementById('assignCustomerAccountJSON').value = '';
+
+    // Remove any error styling
+    document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+    document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+}
+
+function handleXMLImport(result) {
+    populateFieldsFromXMLString(result);
+}
+
+function handleJSONImport(result) {
+    let jsonContent = null;
+    let xmlString = null;
+
+    try {
+        // First attempt normal JSON parsing
+        jsonContent = JSON.parse(result);
+        xmlString = jsonContent.specification;
+    } catch (err) {
+        console.warn('Standard JSON.parse failed. Attempting to extract XML manually...');
+
+        // Manual fallback: extract "book_name" and "specification" manually
+        const bookNameMatch = result.match(/"book_name"\s*:\s*"([^"]*)"/);
+        const specStart = result.indexOf('"specification"');
+        const specColon = result.indexOf(':', specStart);
+        const specQuoteStart = result.indexOf('"', specColon + 1);
+
+        if (specStart !== -1 && specColon !== -1 && specQuoteStart !== -1) {
+            let specContent = result.substring(specQuoteStart + 1);
+
+            // Find last closing quote safely (ignore any escaped quotes)
+            let specQuoteEnd = specContent.lastIndexOf('"');
+            while (specContent[specQuoteEnd - 1] === '\\') {
+                // If the quote is escaped, keep looking left
+                specQuoteEnd = specContent.lastIndexOf('"', specQuoteEnd - 2);
+            }
+
+            specContent = specContent.substring(0, specQuoteEnd);
+
+            // Unescape backslash-escaped characters
+            xmlString = specContent
+                .replace(/\\"/g, '"')
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '\t')
+                .replace(/\\\\/g, '\\');
+
+            jsonContent = {
+                book_name: bookNameMatch ? bookNameMatch[1] : 'Unknown'
+            };
+        } else {
+            alert('Failed to extract XML from malformed JSON.');
+            return;
+        }
+    }
+
+    if (xmlString) {
+        populateFieldsFromXMLString(xmlString, jsonContent);
+    } else {
+        alert('Could not find specification data.');
+    }
+}
+
+function populateFieldsFromXMLString(xmlString, jsonContent = null) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+
+    const bookNameValue = jsonContent ? jsonContent.book_name : '';
+    document.getElementById('bookName').value = bookNameValue;
+
+    const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
+    document.getElementById('createdBy').value = createdByValue || '';
+
+    const comment = xmlDoc.querySelector('Comment')?.textContent || '';
+    document.getElementById('comment').value = comment;
+
+    document.getElementById('groupsContainer').innerHTML = '';
+
+    const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
+    Array.from(ruleGroups).forEach(ruleGroup => {
+        addRuleGroup();
+        const currentGroup = document.querySelector('.rule-group:last-child');
+
+        currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
+        currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
+        currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
+        currentGroup.querySelector('[id^="enabled-"]').value = ruleGroup.getAttribute('enabled') || 'true';
+
+        const billingRules = ruleGroup.getElementsByTagName('BillingRule');
+        Array.from(billingRules).forEach(billingRule => {
+            const addRuleButton = currentGroup.querySelector('button');
+            addRule(addRuleButton);
+
+            const currentRule = currentGroup.querySelector('.rule:last-child');
+            currentRule.addedProperties = new Set();
+
+            currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name');
+            const basicBillingRule = billingRule.getElementsByTagName('BasicBillingRule')[0];
+            currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment');
+            currentRule.querySelector('.billingRuleType').value = basicBillingRule.getAttribute('billingRuleType');
+            currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer');
+            currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
+
+            const product = billingRule.getElementsByTagName('Product')[0];
+            if (product) {
+                currentRule.querySelector('.productName').value = product.getAttribute('productName');
+                currentRule.querySelector('.productIncludeDataTransfer').value = product.getAttribute('includeDataTransfer') || '';
+                currentRule.querySelector('.productIncludeRIPurchases').value = product.getAttribute('includeRIPurchases') || '';
+
+                initializePropertySelector(currentRule.querySelector('.propertySelect'));
+                importProperties(product, currentRule);
+            }
+        });
+    });
+
+    // After all DOM updates, collapse all properties
+    setTimeout(collapseAllProperties, 0);
+}
+
+function importProperties(product, currentRule) {
+    // Import all properties
+    importProperty(product, currentRule, 'Region', 'region');
+    importProperty(product, currentRule, 'UsageType', 'usageType');
+    importProperty(product, currentRule, 'Operation', 'operation');
+    importProperty(product, currentRule, 'RecordType', 'recordType');
+
+    // Import Instance Properties
+    const instanceProps = product.getElementsByTagName('InstanceProperties');
+    if (instanceProps.length > 0) {
+        addSelectedPropertyToRule(currentRule, 'instanceProperty');
+        Array.from(instanceProps).forEach(instanceProp => {
+            addValue('instanceProperty', currentRule);
+            const lastSet = currentRule.querySelector('#instancePropertyValues .instance-property-value:last-child');
+            if (lastSet) {
+                const inputs = lastSet.querySelectorAll('input');
+                inputs[0].value = instanceProp.getAttribute('instanceType') || '';
+                inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
+                lastSet.querySelector('select').value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
+            }
+        });
+    }
+
+    // Import Line Item Descriptions
+    const lineItems = product.getElementsByTagName('LineItemDescription');
+    if (lineItems.length > 0) {
+        addSelectedPropertyToRule(currentRule, 'lineItemDescription');
+        Array.from(lineItems).forEach(lineItem => {
+            addValue('lineItemDescription', currentRule);
+            const lastSet = currentRule.querySelector('#lineItemDescriptionValues .line-item-description-value:last-child');
+            if (lastSet) {
+                const select = lastSet.querySelector('select');
+                const input = lastSet.querySelector('input');
+                ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
+                    if (lineItem.hasAttribute(type)) {
+                        select.value = type;
+                        input.value = lineItem.getAttribute(type);
                     }
-                }
-            });
-
-            document.getElementById('fileInput').addEventListener('change', function (event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        const result = e.target.result;
-
-                        // Reset all fields and clear all rule groups before import
-                        performReset();
-
-                        if (file.type === 'application/json' || file.name.endsWith('.json')) {
-                            handleJSONImport(result);
-                        } else if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
-                            handleXMLImport(result);
-                        } else {
-                            alert('Unsupported file format. Please upload a JSON or XML file.');
-                        }
-                    };
-
-                    reader.readAsText(file);
-                }
-            });
-
-            function resetAllFields() {
-                // Clear main fields
-                document.getElementById('bookName').value = '';
-                document.getElementById('createdBy').value = '';
-                document.getElementById('comment').value = '';
-                document.getElementById('cxAPIId').value = '';
-                document.getElementById('cxPayerId').value = '';
-
-                // Clear all rule groups
-                document.getElementById('groupsContainer').innerHTML = '';
-
-                // Clear all output areas
-                document.getElementById('xmlOutput').value = '';
-                document.getElementById('jsonOutput').value = '';
-                document.getElementById('assignCustomerJSON').value = '';
-                document.getElementById('assignCustomerAccountJSON').value = '';
-
-                // Remove any error styling
-                document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
-                document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-            }
-            function handleXMLImport(result) {
-                populateFieldsFromXMLString(result);
-            }
-
-            function handleJSONImport(result) {
-                let jsonContent = null;
-                let xmlString = null;
-
-                try {
-                    // First attempt normal JSON parsing
-                    jsonContent = JSON.parse(result);
-                    xmlString = jsonContent.specification;
-                } catch (err) {
-                    console.warn('Standard JSON.parse failed. Attempting to extract XML manually...');
-
-                    // Manual fallback: extract "book_name" and "specification" manually
-                    const bookNameMatch = result.match(/"book_name"\s*:\s*"([^"]*)"/);
-                    const specStart = result.indexOf('"specification"');
-                    const specColon = result.indexOf(':', specStart);
-                    const specQuoteStart = result.indexOf('"', specColon + 1);
-
-                    if (specStart !== -1 && specColon !== -1 && specQuoteStart !== -1) {
-                        let specContent = result.substring(specQuoteStart + 1);
-
-                        // Find last closing quote safely (ignore any escaped quotes)
-                        let specQuoteEnd = specContent.lastIndexOf('"');
-                        while (specContent[specQuoteEnd - 1] === '\\') {
-                            // If the quote is escaped, keep looking left
-                            specQuoteEnd = specContent.lastIndexOf('"', specQuoteEnd - 2);
-                        }
-
-                        specContent = specContent.substring(0, specQuoteEnd);
-
-                        // Unescape backslash-escaped characters
-                        xmlString = specContent
-                            .replace(/\\"/g, '"')
-                            .replace(/\\n/g, '\n')
-                            .replace(/\\t/g, '\t')
-                            .replace(/\\\\/g, '\\');
-
-                        jsonContent = {
-                            book_name: bookNameMatch ? bookNameMatch[1] : 'Unknown'
-                        };
-                    } else {
-                        alert('Failed to extract XML from malformed JSON.');
-                        return;
-                    }
-                }
-
-                if (xmlString) {
-                    populateFieldsFromXMLString(xmlString, jsonContent);
-                } else {
-                    alert('Could not find specification data.');
-                }
-            }
-
-            function populateFieldsFromXMLString(xmlString, jsonContent = null) {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
-
-                const bookNameValue = jsonContent ? jsonContent.book_name : '';
-                document.getElementById('bookName').value = bookNameValue;
-
-                const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
-                document.getElementById('createdBy').value = createdByValue || '';
-
-                const comment = xmlDoc.querySelector('Comment')?.textContent || '';
-                document.getElementById('comment').value = comment;
-
-                document.getElementById('groupsContainer').innerHTML = '';
-
-                const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
-                Array.from(ruleGroups).forEach(ruleGroup => {
-                    addRuleGroup();
-                    const currentGroup = document.querySelector('.rule-group:last-child');
-
-                    currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
-                    currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
-                    currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
-                    currentGroup.querySelector('[id^="enabled-"]').value = ruleGroup.getAttribute('enabled') || 'true';
-
-                    const billingRules = ruleGroup.getElementsByTagName('BillingRule');
-                    Array.from(billingRules).forEach(billingRule => {
-                        const addRuleButton = currentGroup.querySelector('button');
-                        addRule(addRuleButton);
-
-                        const currentRule = currentGroup.querySelector('.rule:last-child');
-                        currentRule.addedProperties = new Set();
-
-                        currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name');
-                        const basicBillingRule = billingRule.getElementsByTagName('BasicBillingRule')[0];
-                        currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment');
-                        currentRule.querySelector('.billingRuleType').value = basicBillingRule.getAttribute('billingRuleType');
-                        currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer');
-                        currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
-
-                        const product = billingRule.getElementsByTagName('Product')[0];
-                        if (product) {
-                            currentRule.querySelector('.productName').value = product.getAttribute('productName');
-                            currentRule.querySelector('.productIncludeDataTransfer').value = product.getAttribute('includeDataTransfer') || '';
-                            currentRule.querySelector('.productIncludeRIPurchases').value = product.getAttribute('includeRIPurchases') || '';
-
-                            initializePropertySelector(currentRule.querySelector('.propertySelect'));
-                            importProperties(product, currentRule);
-                        }
-                    });
-                });
-
-                // After all DOM updates, collapse all properties
-                setTimeout(collapseAllProperties, 0);
-            }
-
-            function importProperties(product, currentRule) {
-                // Import all properties
-                importProperty(product, currentRule, 'Region', 'region');
-                importProperty(product, currentRule, 'UsageType', 'usageType');
-                importProperty(product, currentRule, 'Operation', 'operation');
-                importProperty(product, currentRule, 'RecordType', 'recordType');
-
-                // Import Instance Properties
-                const instanceProps = product.getElementsByTagName('InstanceProperties');
-                if (instanceProps.length > 0) {
-                    addSelectedPropertyToRule(currentRule, 'instanceProperty');
-                    Array.from(instanceProps).forEach(instanceProp => {
-                        addValue('instanceProperty', currentRule);
-                        const lastSet = currentRule.querySelector('#instancePropertyValues .instance-property-value:last-child');
-                        if (lastSet) {
-                            const inputs = lastSet.querySelectorAll('input');
-                            inputs[0].value = instanceProp.getAttribute('instanceType') || '';
-                            inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
-                            lastSet.querySelector('select').value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
-                        }
-                    });
-                }
-
-                // Import Line Item Descriptions
-                const lineItems = product.getElementsByTagName('LineItemDescription');
-                if (lineItems.length > 0) {
-                    addSelectedPropertyToRule(currentRule, 'lineItemDescription');
-                    Array.from(lineItems).forEach(lineItem => {
-                        addValue('lineItemDescription', currentRule);
-                        const lastSet = currentRule.querySelector('#lineItemDescriptionValues .line-item-description-value:last-child');
-                        if (lastSet) {
-                            const select = lastSet.querySelector('select');
-                            const input = lastSet.querySelector('input');
-                            ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
-                                if (lineItem.hasAttribute(type)) {
-                                    select.value = type;
-                                    input.value = lineItem.getAttribute(type);
-                                }
-                            });
-                        }
-                    });
-                }
-
-                importProperty(product, currentRule, 'SavingsPlanOfferingType', 'savingsPlanOfferingType');
-
-                // Update property statuses
-                Object.keys(propertyTypes).forEach(propertyType => {
-                    if (currentRule.addedProperties.has(propertyType)) {
-                        updatePropertyStatus(propertyType, currentRule);
-                    }
                 });
             }
-            function importProperty(product, currentRule, xmlTag, propertyType) {
-                const elements = product.getElementsByTagName(xmlTag);
-                if (elements.length > 0) {
-                    addSelectedPropertyToRule(currentRule, propertyType);
-                    Array.from(elements).forEach(element => {
-                        addValue(propertyType, currentRule);
-                        const lastInput = currentRule.querySelector(`#${propertyType}Values .property-value:last-child input`);
-                        if (lastInput) lastInput.value = element.getAttribute('name');
-                    });
-                }
-            }
+        });
+    }
 
-            function collapseAllProperties() {
-                const rules = document.querySelectorAll('.rule');
-                rules.forEach(rule => {
-                    collapseAllPropertiesInRule(rule);
-                });
-            }
+    importProperty(product, currentRule, 'SavingsPlanOfferingType', 'savingsPlanOfferingType');
 
-            function collapseAllPropertiesInRule(rule) {
-                const propertyContents = rule.querySelectorAll('.property-content');
-                propertyContents.forEach(content => {
-                    content.classList.remove('expanded');
-                });
+    // Update property statuses
+    Object.keys(propertyTypes).forEach(propertyType => {
+        if (currentRule.addedProperties.has(propertyType)) {
+            updatePropertyStatus(propertyType, currentRule);
+        }
+    });
+}
 
-                if (!rule.expandedSections) {
-                    rule.expandedSections = new Set();
-                }
-                rule.expandedSections.clear();
+function importProperty(product, currentRule, xmlTag, propertyType) {
+    const elements = product.getElementsByTagName(xmlTag);
+    if (elements.length > 0) {
+        addSelectedPropertyToRule(currentRule, propertyType);
+        Array.from(elements).forEach(element => {
+            addValue(propertyType, currentRule);
+            const lastInput = currentRule.querySelector(`#${propertyType}Values .property-value:last-child input`);
+            if (lastInput) lastInput.value = element.getAttribute('name');
+        });
+    }
+}
 
-                // Update the active tags to reflect the collapsed state
-                updateActiveTags(rule);
-            }
+function collapseAllProperties() {
+    const rules = document.querySelectorAll('.rule');
+    rules.forEach(rule => {
+        collapseAllPropertiesInRule(rule);
+    });
+}
+
+function collapseAllPropertiesInRule(rule) {
+    const propertyContents = rule.querySelectorAll('.property-content');
+    propertyContents.forEach(content => {
+        content.classList.remove('expanded');
+    });
+
+    if (!rule.expandedSections) {
+        rule.expandedSections = new Set();
+    }
+    rule.expandedSections.clear();
+
+    // Update the active tags to reflect the collapsed state
+    updateActiveTags(rule);
+}
 
             function addSelectedPropertyToRule(rule, propertyType) {
                 if (!rule.addedProperties) {
