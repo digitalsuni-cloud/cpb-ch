@@ -1990,20 +1990,50 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
-function generateAndThenSummarize(timeout = 4000) {
+function generateAndThenSummarize(timeout = 6000) {
   const xmlField = document.getElementById('xmlOutput');
-  if (!xmlField) {
-    console.warn("XML output textarea not found");
-    return;
+  const oldValue = xmlField ? xmlField.value : '';
+
+  // Inner helper to wait for XML update using MutationObserver and Promise
+  function waitForXMLUpdate(oldVal, waitTimeout) {
+    return new Promise((resolve, reject) => {
+      const xmlEl = document.getElementById('xmlOutput');
+      if (!xmlEl) {
+        reject(new Error("XML output textarea not found"));
+        return;
+      }
+
+      let timeoutId;
+
+      // Immediate resolve if different and valid XML already present
+      if (xmlEl.value.trim().startsWith('<') && xmlEl.value !== oldVal) {
+        resolve();
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        if (xmlEl.value && xmlEl.value.trim().startsWith('<') && xmlEl.value !== oldVal) {
+          clearTimeout(timeoutId);
+          observer.disconnect();
+          resolve();
+        }
+      });
+
+      observer.observe(xmlEl, { characterData: true, childList: true, subtree: true, attributes: true });
+
+      // Fallback timeout in case no update happens
+      timeoutId = setTimeout(() => {
+        observer.disconnect();
+        reject(new Error("Timeout waiting for XML update"));
+      }, waitTimeout);
+    });
   }
 
-  // Store current XML to detect changes
-  const oldValue = xmlField.value;
-
-  // Start generating new XML
+  // Trigger XML generation
   generateOutput('xml');
 
-  return waitForXMLUpdate(oldValue, timeout)
+  // Wait for XML change, then render summary
+  waitForXMLUpdate(oldValue, timeout)
     .then(() => {
       const nlSection = document.getElementById('nlOutputSection');
       if (nlSection) {
@@ -2014,51 +2044,7 @@ function generateAndThenSummarize(timeout = 4000) {
     })
     .catch((err) => {
       console.warn(err.message);
-      // Fallback: try rendering anyway without guaranteed fresh XML
+      // Render summary anyway as fallback
       renderNaturalLanguageSummary();
     });
 }
-
-/**
- * Wait for XML output area to update from oldValue or time-out after given milliseconds.
- * @param {string} oldValue - the XML value before regeneration started
- * @param {number} timeout - maximum time to wait in ms
- * @returns {Promise<void>}
- */
-function waitForXMLUpdate(oldValue, timeout = 4000) {
-  return new Promise((resolve, reject) => {
-    const xmlField = document.getElementById('xmlOutput');
-    if (!xmlField) {
-      reject(new Error("XML output textarea not found"));
-      return;
-    }
-
-    let timeoutId;
-
-    // If XML is already different & valid, resolve immediately
-    if (xmlField.value.trim().startsWith('<') && xmlField.value !== oldValue) {
-      resolve();
-      return;
-    }
-
-    const observer = new MutationObserver(() => {
-      if (xmlField.value && xmlField.value.trim().startsWith('<') && xmlField.value !== oldValue) {
-        clearTimeout(timeoutId);
-        observer.disconnect();
-        resolve();
-      }
-    });
-
-    observer.observe(xmlField, { characterData: true, childList: true, subtree: true, attributes: true });
-
-    // Fallback timeout in case update never happens
-    timeoutId = setTimeout(() => {
-      observer.disconnect();
-      reject(new Error("Timeout waiting for XML update"));
-    }, timeout);
-  });
-}
-
-
-
-
