@@ -1990,61 +1990,19 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
-function generateAndThenSummarize(timeout = 6000) {
-  const xmlField = document.getElementById('xmlOutput');
-  const oldValue = xmlField ? xmlField.value : '';
-
-  // Inner helper to wait for XML update using MutationObserver and Promise
-  function waitForXMLUpdate(oldVal, waitTimeout) {
-    return new Promise((resolve, reject) => {
-      const xmlEl = document.getElementById('xmlOutput');
-      if (!xmlEl) {
-        reject(new Error("XML output textarea not found"));
-        return;
-      }
-
-      let timeoutId;
-
-      // Immediate resolve if different and valid XML already present
-      if (xmlEl.value.trim().startsWith('<') && xmlEl.value !== oldVal) {
-        resolve();
-        return;
-      }
-
-      const observer = new MutationObserver(() => {
-        if (xmlEl.value && xmlEl.value.trim().startsWith('<') && xmlEl.value !== oldVal) {
-          clearTimeout(timeoutId);
-          observer.disconnect();
-          resolve();
-        }
-      });
-
-      observer.observe(xmlEl, { characterData: true, childList: true, subtree: true, attributes: true });
-
-      // Fallback timeout in case no update happens
-      timeoutId = setTimeout(() => {
-        observer.disconnect();
-        reject(new Error("Timeout waiting for XML update"));
-      }, waitTimeout);
-    });
-  }
-
-  // Trigger XML generation
-  generateOutput('xml');
-
-  // Wait for XML change, then render summary
-  waitForXMLUpdate(oldValue, timeout)
-    .then(() => {
-      const nlSection = document.getElementById('nlOutputSection');
-      if (nlSection) {
-        nlSection.style.display = 'block';
-        renderNaturalLanguageSummary();
-        nlSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    })
-    .catch((err) => {
-      console.warn(err.message);
-      // Render summary anyway as fallback
-      renderNaturalLanguageSummary();
-    });
+function generateAndThenSummarize() {
+  generateOutput('xml').then(() => {
+    const nlSection = document.getElementById('nlOutputSection');
+    if (nlSection) {
+      nlSection.style.display = 'block';
+    }
+    renderNaturalLanguageSummary();
+    if (nlSection) {
+      nlSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  }).catch(() => {
+    // fallback
+    renderNaturalLanguageSummary();
+  });
 }
+
