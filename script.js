@@ -9,21 +9,25 @@ async
 
     // === Assign to Read Out Pricebook button ===
   const readOutBtn = document.getElementById('readOutBtn');
+
   if (readOutBtn) {
     readOutBtn.addEventListener('click', generateAndThenSummarize);
   }
     // === Assign same to Refresh button ===
 
   const refreshBtn = document.getElementById('refreshNLBtn');
+
   if (refreshBtn) {
     refreshBtn.addEventListener('click', generateAndThenSummarize);
   }
 
     // === Collapse/Expand NL Summary ===
     const toggleNLBtn = document.getElementById('toggleNLBtn');
+
     if (toggleNLBtn) {
         toggleNLBtn.addEventListener('click', function () {
             const nlArea = document.getElementById('nlContentArea');
+
             if (!nlArea) return;
             if (nlArea.style.display === 'none') {
                 nlArea.style.display = '';
@@ -48,7 +52,9 @@ function validateForm() {
 
     requiredFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
+
         const errorElement = document.getElementById(`${fieldId}-error`);
+
 
         if (!field.value.trim()) {
             isValid = false;
@@ -133,6 +139,7 @@ function addRuleGroup(afterElement = null, insertAtTop = false) {
         `;
 
     const container = document.getElementById('groupsContainer');
+
 
     if (insertAtTop) {
         container.insertBefore(div, container.firstChild);
@@ -492,6 +499,7 @@ function updateNavigation() {
     ruleSearch.off('select2:select').on('select2:select', function (e) {
         const ruleId = e.params.data.id;
         const selectedRule = document.getElementById(ruleId);
+
         if (selectedRule) {
             expandAndScrollToRule(selectedRule);
         }
@@ -619,6 +627,7 @@ function initializeUI() {
 
 function addSelectedProperty(ruleId) {
     const rule = document.getElementById(ruleId);
+
     const select = rule.querySelector('.propertySelect');
     const propertyType = select.value;
     if (propertyType) {
@@ -890,6 +899,7 @@ function generateXML() {
     }
 
     const createdByInput = document.getElementById('createdBy');
+
     const createdBy = createdByInput.value;
     const comment = document.getElementById('comment').value || '';
     const groups = document.querySelectorAll('.rule-group');
@@ -1037,6 +1047,7 @@ function generateJSON() {
         return;
     }
     const bookNameInput = document.getElementById('bookName');
+
     const bookName = bookNameInput.value.trim();
 
     const xml = generateXML();
@@ -1047,6 +1058,7 @@ function generateJSON() {
 
     // Populate the XML text area
     const xmlOutput = document.getElementById('xmlOutput');
+
     if (xmlOutput) {
         xmlOutput.value = xml;
     }
@@ -1061,6 +1073,7 @@ function generateCURL() {
 
     // Populate the JSON text area
     const jsonOutput = document.getElementById('jsonOutput');
+
     if (jsonOutput) {
         jsonOutput.value = jsonPayload;
     }
@@ -1144,6 +1157,7 @@ function updateAssignCustomerAccountCurl(priceBookAssignmentId) {
 
 function copyOutput(elementId) {
     const outputElement = document.getElementById(elementId);
+
     outputElement.select();
     document.execCommand('copy');
 }
@@ -1151,6 +1165,7 @@ function copyOutput(elementId) {
 function downloadOutput(elementId, fileType) {
     const content = document.getElementById(elementId).value;
     const nameInput = document.getElementById('bookName');
+
     let base = nameInput ? nameInput.value.trim() : 'price_book';
     if (!base) base = 'price_book';
 
@@ -1179,7 +1194,9 @@ function hideLoadingIndicator() {
 
 document.getElementById('helpButton').addEventListener('click', () => {
     const modal = document.getElementById('helpModal');
+
     const content = document.getElementById('helpContent');
+
     content.innerHTML = `
                 <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
                 <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
@@ -1467,6 +1484,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
         addRuleGroup();
         const currentGroup = document.querySelector('.rule-group:last-child');
 
+
         currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
         currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
         currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
@@ -1696,10 +1714,12 @@ function performReset() {
     // Reset property selector and clear properties
     addedProperties.clear();
     const propertySections = document.getElementById('propertySections');
+
     if (propertySections) {
         propertySections.innerHTML = '';
     }
     const activeTags = document.getElementById('activeTags');
+
     if (activeTags) {
         activeTags.innerHTML = '';
     }
@@ -1714,6 +1734,7 @@ function performReset() {
 // Fetch current XML, either from textarea or generate fresh
 function getCurrentSpecificationXML() {
     const xmlEl = document.getElementById('xmlOutput');
+
     if (xmlEl && xmlEl.value && xmlEl.value.trim().startsWith('<')) {
         return xmlEl.value.trim();
     }
@@ -1827,6 +1848,7 @@ function wrapLinesAsHTML(lines) {
 // Main Natural Language summary
 function renderNaturalLanguageSummary() {
     const outputEl = document.getElementById('nlSummary');
+
     if (!outputEl) return;
 
     const xml = getCurrentSpecificationXML();
@@ -1921,6 +1943,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === Natural Language Tab Click Hook ===
     const nlTabHeader = document.querySelector('.tab-item[data-tab="nlTab"]');
+
     if (nlTabHeader) {
         nlTabHeader.addEventListener('click', () => {
             if (typeof renderNaturalLanguageSummary === 'function') {
@@ -1940,22 +1963,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === Assign to Read Out Pricebook button ===
-  const readOutBtn = document.getElementById('readOutBtn');
+  
   if (readOutBtn) {
     readOutBtn.addEventListener('click', generateAndThenSummarize);
   }
     // === Assign same to Refresh button ===
 
-  const refreshBtn = document.getElementById('refreshNLBtn');
+  
   if (refreshBtn) {
     refreshBtn.addEventListener('click', generateAndThenSummarize);
   }
 
     // === Collapse/Expand NL Summary ===
-    const toggleNLBtn = document.getElementById('toggleNLBtn');
+    
     if (toggleNLBtn) {
         toggleNLBtn.addEventListener('click', function () {
-            const nlArea = document.getElementById('nlContentArea');
+            
             if (!nlArea) return;
             if (nlArea.style.display === 'none') {
                 nlArea.style.display = '';
@@ -1979,8 +2002,8 @@ function validateForm() {
     const requiredFields = ['bookName', 'createdBy'];
 
     requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        const errorElement = document.getElementById(`${fieldId}-error`);
+        
+        
 
         if (!field.value.trim()) {
             isValid = false;
@@ -2064,7 +2087,7 @@ function addRuleGroup(afterElement = null, insertAtTop = false) {
             </div>
         `;
 
-    const container = document.getElementById('groupsContainer');
+    
 
     if (insertAtTop) {
         container.insertBefore(div, container.firstChild);
@@ -2423,7 +2446,7 @@ function updateNavigation() {
     // Handle selection
     ruleSearch.off('select2:select').on('select2:select', function (e) {
         const ruleId = e.params.data.id;
-        const selectedRule = document.getElementById(ruleId);
+        
         if (selectedRule) {
             expandAndScrollToRule(selectedRule);
         }
@@ -2550,7 +2573,7 @@ function initializeUI() {
 }
 
 function addSelectedProperty(ruleId) {
-    const rule = document.getElementById(ruleId);
+    
     const select = rule.querySelector('.propertySelect');
     const propertyType = select.value;
     if (propertyType) {
@@ -2821,7 +2844,7 @@ function generateXML() {
         return;
     }
 
-    const createdByInput = document.getElementById('createdBy');
+    
     const createdBy = createdByInput.value;
     const comment = document.getElementById('comment').value || '';
     const groups = document.querySelectorAll('.rule-group');
@@ -2968,7 +2991,7 @@ function generateJSON() {
         alert("Please fill in all required fields.");
         return;
     }
-    const bookNameInput = document.getElementById('bookName');
+    
     const bookName = bookNameInput.value.trim();
 
     const xml = generateXML();
@@ -2978,7 +3001,7 @@ function generateJSON() {
     }
 
     // Populate the XML text area
-    const xmlOutput = document.getElementById('xmlOutput');
+    
     if (xmlOutput) {
         xmlOutput.value = xml;
     }
@@ -2992,7 +3015,7 @@ function generateCURL() {
     if (!jsonPayload) return;
 
     // Populate the JSON text area
-    const jsonOutput = document.getElementById('jsonOutput');
+    
     if (jsonOutput) {
         jsonOutput.value = jsonPayload;
     }
@@ -3075,14 +3098,14 @@ function updateAssignCustomerAccountCurl(priceBookAssignmentId) {
 }
 
 function copyOutput(elementId) {
-    const outputElement = document.getElementById(elementId);
+    
     outputElement.select();
     document.execCommand('copy');
 }
 
 function downloadOutput(elementId, fileType) {
     const content = document.getElementById(elementId).value;
-    const nameInput = document.getElementById('bookName');
+    
     let base = nameInput ? nameInput.value.trim() : 'price_book';
     if (!base) base = 'price_book';
 
@@ -3110,8 +3133,8 @@ function hideLoadingIndicator() {
 }
 
 document.getElementById('helpButton').addEventListener('click', () => {
-    const modal = document.getElementById('helpModal');
-    const content = document.getElementById('helpContent');
+    
+    
     content.innerHTML = `
                 <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
                 <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
@@ -3397,7 +3420,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
     Array.from(ruleGroups).forEach(ruleGroup => {
         addRuleGroup();
-        const currentGroup = document.querySelector('.rule-group:last-child');
+        
 
         currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
         currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
@@ -3627,11 +3650,11 @@ function performReset() {
 
     // Reset property selector and clear properties
     addedProperties.clear();
-    const propertySections = document.getElementById('propertySections');
+    
     if (propertySections) {
         propertySections.innerHTML = '';
     }
-    const activeTags = document.getElementById('activeTags');
+    
     if (activeTags) {
         activeTags.innerHTML = '';
     }
@@ -3645,7 +3668,7 @@ function performReset() {
 
 // Fetch current XML, either from textarea or generate fresh
 function getCurrentSpecificationXML() {
-    const xmlEl = document.getElementById('xmlOutput');
+    
     if (xmlEl && xmlEl.value && xmlEl.value.trim().startsWith('<')) {
         return xmlEl.value.trim();
     }
@@ -3758,7 +3781,7 @@ function wrapLinesAsHTML(lines) {
 
 // Main Natural Language summary
 function renderNaturalLanguageSummary() {
-    const outputEl = document.getElementById('nlSummary');
+    
     if (!outputEl) return;
 
     const xml = getCurrentSpecificationXML();
@@ -3838,6 +3861,7 @@ async function generateAndThenSummarize() {
     const output = await generateOutput('xml');
     if (output && output.trim().startsWith('<')) {
       const nlSection = document.getElementById('nlOutputSection');
+
       if (nlSection) {
         nlSection.style.display = 'block';
         renderNaturalLanguageSummary();
@@ -3852,3 +3876,4 @@ async function generateAndThenSummarize() {
     renderNaturalLanguageSummary(); // fallback on error
   }
 }
+
