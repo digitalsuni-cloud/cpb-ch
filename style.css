@@ -1109,39 +1109,31 @@ transition: all 0.3s ease;
   margin: 24px 0 8px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 6px;
-  background: var(--surface); /* Match surface background */
-  user-select: none;
 }
 
 /* Individual tab items */
 .tab-item {
   cursor: pointer;
-  padding: 8px 14px;
-  border-radius: 6px 6px 0 0; /* Rounded top corners */
-  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
   color: var(--text);
-  transition: background-color 0.3s ease, color 0.3s ease;
-  border: 1px solid transparent;
-  border-bottom: none; /* To blend with tabs-bar bottom border */
-  background-color: transparent;
+  transition: all 0.3s ease;
+
 }
 
 .tab-item:hover {
-  background: rgba(52, 152, 219, 0.1); /* Primary color with opacity for hover */
+  background: rgba(52, 152, 219, 0.1); /* Using primary color with opacity for hover */
 }
 
 .tab-item.active {
   background: var(--primary);
   color: white;
-  border-color: var(--primary);
-  border-bottom: 1px solid var(--surface); /* Blend with panel background */
-  font-weight: 700;
 }
 
 /* Tab content panels */
 .tab-content {
   display: none;
-  padding: 16px 0 0 0;
 }
 
 .tab-content.active {
@@ -1156,75 +1148,49 @@ transition: all 0.3s ease;
 /* Natural Language summary styling */
 .nl-summary {
   white-space: pre-wrap;
-  line-height: 1.6;
+  line-height: 1.5;
   font-size: 14px;
   font-family: 'Inter', sans-serif; /* Matching body font */
   color: var(--text);
-  background: var(--surface);
-  padding: 12px 16px;
-  border-radius: 6px;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
 .nl-summary .rulegroup {
-  margin: 16px 0;
-  padding: 12px 16px;
+  margin: 12px 0;
+  padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .nl-summary .rule {
-  margin: 10px 0;
-  padding: 10px 12px;
-  border-left: 4px solid var(--primary);
-  background: rgba(0, 0, 0, 0.03); /* Subtle background for dark/light compatibility */
-  border-radius: 3px;
+  margin: 8px 0;
+  padding: 8px;
+  border-left: 3px solid var(--primary);
+  background: rgba(0, 0, 0, 0.02); /* Subtle background for dark/light compatibility */
 }
 
 .nl-summary .filters {
   margin-top: 6px;
-  padding-left: 16px;
+  padding-left: 12px;
   color: var(--text-light);
-  font-style: italic;
 }
-
-/* Refresh button styling */
 #refreshNLBtn.icon-button {
-  font-size: 28px;           /* Larger icon size */
-  color: #28a745;            /* Green color */
+  font-size: 28px;       /* Larger icon */
+  color: #28a745;        /* Green color */
   padding: 8px;
-  border-radius: 50%;        /* Circular shape */
+  border-radius: 50%;    /* Circular button */
   border: none;
   background: transparent;
   cursor: pointer;
-  transition: color 0.3s ease, transform 0.2s ease;
-  box-shadow: none;          /* Removed shadow for cleaner look */
-  position: relative;        /* Positioning context if you want to move it */
-  /* Optionally, you can add positioning, e.g.:
-  top: -3cm;
-  right: -3cm;
-  position: absolute;
-  */
+  transition: color 0.3s ease;
 }
 
-#refreshNLBtn.icon-button:hover,
-#refreshNLBtn.icon-button:focus {
-  color: #1e7e34;            /* Darker green on hover/focus */
-  transform: scale(1.1);     /* Slightly enlarge for feedback */
-  outline: none;
-}
-#nlContentArea .icon-actions {
-  position: relative;
+#refreshNLBtn.icon-button:hover {
+  color: #1e7e34;        /* Darker green on hover */
 }
 
-#refreshNLBtn {
-  position: absolute;
-  top: -3cm;
-  right: -3cm;
-  z-index: 10;
-}
+
+
 
 
 
