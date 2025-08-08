@@ -1,80 +1,93 @@
- document.addEventListener('DOMContentLoaded', function () {
-                // Check if system is in dark mode
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+document.addEventListener('DOMContentLoaded', function () {
+    // Check if system is in dark mode
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-                // Set initial theme based on system preference
-                if (prefersDark) {
-                    document.body.setAttribute('data-theme', 'dark');
-                }
+    // Set initial theme based on system preference
+    if (prefersDark) {
+        document.body.setAttribute('data-theme', 'dark');
+    }
 
-                // Listen for system theme changes
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-                    if (e.matches) {
-                        document.body.setAttribute('data-theme', 'dark');
-                    } else {
-                        document.body.removeAttribute('data-theme');
-                    }
-                });
-            });
-            function toggleTheme() {
-                const body = document.body;
-                const currentTheme = body.getAttribute('data-theme');
-                if (currentTheme === 'dark') {
-                    body.removeAttribute('data-theme');
-                } else {
-                    body.setAttribute('data-theme', 'dark');
-                }
-            }
-            function validateForm() {
-                let isValid = true;
-                let firstInvalidField = null;
-                const requiredFields = ['bookName', 'createdBy'];
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (e.matches) {
+            document.body.setAttribute('data-theme', 'dark');
+        } else {
+            document.body.removeAttribute('data-theme');
+        }
+    });
 
-                requiredFields.forEach(fieldId => {
-                    const field = document.getElementById(fieldId);
-                    const errorElement = document.getElementById(`${fieldId}-error`);
+    // Natural Language tab hooks
+    const refreshBtn = document.getElementById('refreshNLBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', renderNaturalLanguageSummary);
+    }
 
-                    if (!field.value.trim()) {
-                        isValid = false;
-                        field.setAttribute('aria-invalid', 'true');
-                        errorElement.textContent = 'This field is required.';
-                        errorElement.style.display = 'block';
-                        field.style.border = '2px solid red';
-                        if (!firstInvalidField) firstInvalidField = field;
-                    } else {
-                        field.removeAttribute('aria-invalid');
-                        errorElement.textContent = '';
-                        errorElement.style.display = 'none';
-                        field.style.border = '';
-                    }
-                });
+    const nlTabHeader = document.querySelector('.tab-item[data-tab="nlTab"]');
+    if (nlTabHeader) {
+        nlTabHeader.addEventListener('click', () => {
+            setTimeout(renderNaturalLanguageSummary, 50);
+        });
+    }
+});
+function toggleTheme() {
+    const body = document.body;
+    const currentTheme = body.getAttribute('data-theme');
+    if (currentTheme === 'dark') {
+        body.removeAttribute('data-theme');
+    } else {
+        body.setAttribute('data-theme', 'dark');
+    }
+}
+function validateForm() {
+    let isValid = true;
+    let firstInvalidField = null;
+    const requiredFields = ['bookName', 'createdBy'];
 
-                if (firstInvalidField) {
-                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    firstInvalidField.focus();
-                }
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const errorElement = document.getElementById(`${fieldId}-error`);
 
-                return isValid;
-            }
+        if (!field.value.trim()) {
+            isValid = false;
+            field.setAttribute('aria-invalid', 'true');
+            errorElement.textContent = 'This field is required.';
+            errorElement.style.display = 'block';
+            field.style.border = '2px solid red';
+            if (!firstInvalidField) firstInvalidField = field;
+        } else {
+            field.removeAttribute('aria-invalid');
+            errorElement.textContent = '';
+            errorElement.style.display = 'none';
+            field.style.border = '';
+        }
+    });
 
-            function initializePropertySelector(select) {
-                if (!select) return;
-                select.innerHTML = '<option value="">Select a property to add</option>';
-                for (const [key, value] of Object.entries(propertyTypes)) {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = value.name;
-                    select.appendChild(option);
-                }
-            }
+    if (firstInvalidField) {
+        firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalidField.focus();
+    }
 
-        //Add Rule Group
-        function addRuleGroup(afterElement = null, insertAtTop = false) {
-            const div = document.createElement('div');
-            div.className = 'rule-group';
-            const groupId = 'group-' + Date.now();
-            div.id = groupId;
-            div.innerHTML = `
+    return isValid;
+}
+
+function initializePropertySelector(select) {
+    if (!select) return;
+    select.innerHTML = '<option value="">Select a property to add</option>';
+    for (const [key, value] of Object.entries(propertyTypes)) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = value.name;
+        select.appendChild(option);
+    }
+}
+
+//Add Rule Group
+function addRuleGroup(afterElement = null, insertAtTop = false) {
+    const div = document.createElement('div');
+    div.className = 'rule-group';
+    const groupId = 'group-' + Date.now();
+    div.id = groupId;
+    div.innerHTML = `
             <div class="rule-group-header">
                 <h3>Rule Group</h3>
                 <div class="input-row always-visible">
@@ -116,36 +129,36 @@
             </div>
         `;
 
-            const container = document.getElementById('groupsContainer');
+    const container = document.getElementById('groupsContainer');
 
-            if (insertAtTop) {
-                container.insertBefore(div, container.firstChild);
-            } else if (afterElement) {
-                container.insertBefore(div, afterElement.nextSibling);
-            } else {
-                container.appendChild(div);
-            }
+    if (insertAtTop) {
+        container.insertBefore(div, container.firstChild);
+    } else if (afterElement) {
+        container.insertBefore(div, afterElement.nextSibling);
+    } else {
+        container.appendChild(div);
+    }
 
-            // Update navigation after adding the group
-            setTimeout(updateNavigation, 0);
-        }
+    // Update navigation after adding the group
+    setTimeout(updateNavigation, 0);
+}
 
-        function removeRuleGroup(button) {
-            const ruleGroup = button.closest('.rule-group');
-            if (ruleGroup) {
-                ruleGroup.remove();
-                setTimeout(updateNavigation, 0);
-            }
-        }
+function removeRuleGroup(button) {
+    const ruleGroup = button.closest('.rule-group');
+    if (ruleGroup) {
+        ruleGroup.remove();
+        setTimeout(updateNavigation, 0);
+    }
+}
 
-            //Add Billing Rule
-        function addRule(button) {
-            const rulesContainer = button.closest('.rule-group').querySelector('.rules');
-            const div = document.createElement('div');
-            div.className = 'rule';
-            const ruleId = 'rule-' + Date.now();
-            div.id = ruleId;
-            div.innerHTML = `
+//Add Billing Rule
+function addRule(button) {
+    const rulesContainer = button.closest('.rule-group').querySelector('.rules');
+    const div = document.createElement('div');
+    div.className = 'rule';
+    const ruleId = 'rule-' + Date.now();
+    div.id = ruleId;
+    div.innerHTML = `
                 <div class="rule-header">
                     <h4>Billing Rule</h4>
                     <div class="input-group always-visible">
@@ -396,30 +409,30 @@
                     <span class="button-icon">×</span>Remove Billing Rule
                 </button>
             `;
-            rulesContainer.appendChild(div);
-            initializePropertySelector(div.querySelector('.propertySelect'));
+    rulesContainer.appendChild(div);
+    initializePropertySelector(div.querySelector('.propertySelect'));
 
-            // Update navigation after adding the rule
-            setTimeout(updateNavigation, 0);
+    // Update navigation after adding the rule
+    setTimeout(updateNavigation, 0);
 
-            // Add event listener for rule name changes
-            const ruleNameInput = div.querySelector('.ruleName');
-            ruleNameInput.addEventListener('input', updateNavigation);
-        }
+    // Add event listener for rule name changes
+    const ruleNameInput = div.querySelector('.ruleName');
+    ruleNameInput.addEventListener('input', updateNavigation);
+}
 
-        // Initialize navigation on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(updateNavigation, 0);
-        });
-        function removeRule(button) {
-            const rule = button.closest('.rule');
-            if (rule) {
-                rule.remove();
-                setTimeout(updateNavigation, 0);
-            }
-        }
+// Initialize navigation on page load
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(updateNavigation, 0);
+});
+function removeRule(button) {
+    const rule = button.closest('.rule');
+    if (rule) {
+        rule.remove();
+        setTimeout(updateNavigation, 0);
+    }
+}
 
-       // Rules Navigation Bar function
+// Rules Navigation Bar function
 
 function updateNavigation() {
     const ruleSearch = $('#ruleSearch');
@@ -427,53 +440,53 @@ function updateNavigation() {
 
     // Clear existing options
     ruleSearch.empty();
-    
+
     // Add a default placeholder option
     ruleSearch.append(new Option('Select or search for a Billing rule...', '', true, true));
 
     document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
         const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
         const endDate = ruleGroup.querySelector('input[type="date"][id^="endDate-"]').value || '(noEndDate)';
-        
+
         ruleGroup.querySelectorAll('.rule').forEach((rule, ruleIndex) => {
             const fullRuleName = rule.querySelector('.ruleName').value || `Rule ${groupIndex + 1}.${ruleIndex + 1}`;
             let ruleName = fullRuleName;
-            
+
             // Truncate rule name if it's too long
             const maxLength = 80;
             if (ruleName.length > maxLength) {
                 ruleName = ruleName.substring(0, maxLength) + '...';
             }
-            
+
             const ruleIdentifier = `${groupIndex + 1}.${ruleIndex + 1}`;
             const optionText = `${ruleIdentifier} - ${ruleName} -> ${startDate} to ${endDate}`;
-            
+
             // Add option to Select2
             const option = new Option(optionText, rule.id, false, false);
-            
+
             // Add title attribute for hover tooltip showing full name
             option.title = `${fullRuleName} -> ${startDate} to ${endDate}`;
-            
+
             ruleSearch.append(option);
         });
     });
 
     // Initialize or update Select2
-ruleSearch.select2({
-    placeholder: 'Select or search for a Billing rule...',
-    width: '100%',
-    allowClear: false,
-    theme: 'classic',
-    dropdownParent: document.querySelector('.rule-nav'),
-    containerCssClass: 'select2-container--full-width',
-    dropdownCssClass: 'select2-dropdown--full-width',
-    templateResult: formatRuleOption,
-    templateSelection: formatRuleOption,
-    minimumResultsForSearch: 6
-});
+    ruleSearch.select2({
+        placeholder: 'Select or search for a Billing rule...',
+        width: '100%',
+        allowClear: false,
+        theme: 'classic',
+        dropdownParent: document.querySelector('.rule-nav'),
+        containerCssClass: 'select2-container--full-width',
+        dropdownCssClass: 'select2-dropdown--full-width',
+        templateResult: formatRuleOption,
+        templateSelection: formatRuleOption,
+        minimumResultsForSearch: 6
+    });
 
     // Handle selection
-    ruleSearch.off('select2:select').on('select2:select', function(e) {
+    ruleSearch.off('select2:select').on('select2:select', function (e) {
         const ruleId = e.params.data.id;
         const selectedRule = document.getElementById(ruleId);
         if (selectedRule) {
@@ -482,12 +495,12 @@ ruleSearch.select2({
     });
 
     // Add placeholder to search field when dropdown is opened
-    ruleSearch.off('select2:open').on('select2:open', function(e) {
+    ruleSearch.off('select2:open').on('select2:open', function (e) {
         $('.select2-search__field').attr('placeholder', 'Type to search...');
     });
 
     // Handle dropdown closing
-    ruleSearch.off('select2:close').on('select2:close', function(e) {
+    ruleSearch.off('select2:close').on('select2:close', function (e) {
         if (!ruleSearch.val()) {
             ruleSearch.val(null).trigger('change');
         }
@@ -515,7 +528,7 @@ function expandAndScrollToRule(rule) {
     const ruleGroup = rule.closest('.rule-group');
     const ruleGroupContent = ruleGroup.querySelector('.rule-group-content');
     const ruleGroupButton = ruleGroup.querySelector('.rule-group-header .collapse-button');
-    
+
     if (ruleGroupContent.classList.contains('collapsed')) {
         ruleGroupContent.classList.remove('collapsed');
         ruleGroupButton.classList.remove('collapsed');
@@ -525,7 +538,7 @@ function expandAndScrollToRule(rule) {
     // Expand the rule if collapsed
     const ruleContent = rule.querySelector('.rule-content');
     const ruleButton = rule.querySelector('.rule-header .collapse-button');
-    
+
     if (ruleContent.classList.contains('collapsed')) {
         ruleContent.classList.remove('collapsed');
         ruleButton.classList.remove('collapsed');
@@ -536,201 +549,201 @@ function expandAndScrollToRule(rule) {
     rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-        function expandAndScrollToRule(rule) {
-            // First, expand the parent rule group if it's collapsed
-            const ruleGroup = rule.closest('.rule-group');
-            const ruleGroupContent = ruleGroup.querySelector('.rule-group-content');
-            const ruleGroupButton = ruleGroup.querySelector('.rule-group-header .collapse-button');
+function expandAndScrollToRule(rule) {
+    // First, expand the parent rule group if it's collapsed
+    const ruleGroup = rule.closest('.rule-group');
+    const ruleGroupContent = ruleGroup.querySelector('.rule-group-content');
+    const ruleGroupButton = ruleGroup.querySelector('.rule-group-header .collapse-button');
 
-            if (ruleGroupContent.classList.contains('collapsed')) {
-                ruleGroupContent.classList.remove('collapsed');
-                ruleGroupButton.classList.remove('collapsed');
-                ruleGroupButton.textContent = '▼';
-            }
+    if (ruleGroupContent.classList.contains('collapsed')) {
+        ruleGroupContent.classList.remove('collapsed');
+        ruleGroupButton.classList.remove('collapsed');
+        ruleGroupButton.textContent = '▼';
+    }
 
-            // Then, expand the billing rule if it's collapsed
-            const ruleContent = rule.querySelector('.rule-content');
-            const ruleButton = rule.querySelector('.rule-header .collapse-button');
+    // Then, expand the billing rule if it's collapsed
+    const ruleContent = rule.querySelector('.rule-content');
+    const ruleButton = rule.querySelector('.rule-header .collapse-button');
 
-            if (ruleContent.classList.contains('collapsed')) {
-                ruleContent.classList.remove('collapsed');
-                ruleButton.classList.remove('collapsed');
-                ruleButton.textContent = '▼';
-            }
+    if (ruleContent.classList.contains('collapsed')) {
+        ruleContent.classList.remove('collapsed');
+        ruleButton.classList.remove('collapsed');
+        ruleButton.textContent = '▼';
+    }
 
-            // Finally, scroll to the rule
-            rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    // Finally, scroll to the rule
+    rule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-        function scrollToBottom() {
-            window.scrollTo({
-                top: document.documentElement.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
+function scrollToBottom() {
+    window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+    });
+}
 
-        // Initialize navigation on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(updateNavigation, 0);
+// Initialize navigation on page load
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(updateNavigation, 0);
+});
+
+// Property types configuration
+const propertyTypes = {
+    region: { name: 'Region', type: 'standard' },
+    usageType: { name: 'Usage Type', type: 'standard' },
+    operation: { name: 'Operation', type: 'standard' },
+    recordType: { name: 'Record Type', type: 'standard' },
+    instanceProperty: { name: 'Instance Property', type: 'instance' },
+    lineItemDescription: { name: 'Line Item Description', type: 'lineItem' },
+    savingsPlanOfferingType: { name: 'Savings Plan Offering Type', type: 'standard' }
+};
+
+// Track added properties
+let addedProperties = new Set();
+
+// Track expanded state
+let expandedSections = new Set();
+
+// Initialize UI
+function initializeUI() {
+    addRuleGroup(null, true); // Add an initial rule group
+    initializePropertySelector();
+}
+
+function addSelectedProperty(ruleId) {
+    const rule = document.getElementById(ruleId);
+    const select = rule.querySelector('.propertySelect');
+    const propertyType = select.value;
+    if (propertyType) {
+        // Collapse all expanded sections in this rule
+        rule.querySelectorAll('.property-content.expanded').forEach(content => {
+            content.classList.remove('expanded');
         });
 
-            // Property types configuration
-            const propertyTypes = {
-                region: { name: 'Region', type: 'standard' },
-                usageType: { name: 'Usage Type', type: 'standard' },
-                operation: { name: 'Operation', type: 'standard' },
-                recordType: { name: 'Record Type', type: 'standard' },
-                instanceProperty: { name: 'Instance Property', type: 'instance' },
-                lineItemDescription: { name: 'Line Item Description', type: 'lineItem' },
-                savingsPlanOfferingType: { name: 'Savings Plan Offering Type', type: 'standard' }
-            };
+        removeUnusedProperties(rule);
+        if (!rule.addedProperties) {
+            rule.addedProperties = new Set();
+        }
+        if (!rule.addedProperties.has(propertyType)) {
+            addPropertySection(propertyType, rule);
+            rule.addedProperties.add(propertyType);
+            addValue(propertyType, rule);
 
-            // Track added properties
-            let addedProperties = new Set();
-
-            // Track expanded state
-            let expandedSections = new Set();
-
-            // Initialize UI
-            function initializeUI() {
-                addRuleGroup(null, true); // Add an initial rule group
-                initializePropertySelector();
+            // Expand the newly added property section
+            const newContent = rule.querySelector(`#${propertyType}Content`);
+            if (newContent) {
+                newContent.classList.add('expanded');
             }
+        }
+        updatePropertySelect(select);
+    }
+}
 
-            function addSelectedProperty(ruleId) {
-                const rule = document.getElementById(ruleId);
-                const select = rule.querySelector('.propertySelect');
-                const propertyType = select.value;
-                if (propertyType) {
-                    // Collapse all expanded sections in this rule
-                    rule.querySelectorAll('.property-content.expanded').forEach(content => {
-                        content.classList.remove('expanded');
-                    });
-
-                    removeUnusedProperties(rule);
-                    if (!rule.addedProperties) {
-                        rule.addedProperties = new Set();
-                    }
-                    if (!rule.addedProperties.has(propertyType)) {
-                        addPropertySection(propertyType, rule);
-                        rule.addedProperties.add(propertyType);
-                        addValue(propertyType, rule);
-
-                        // Expand the newly added property section
-                        const newContent = rule.querySelector(`#${propertyType}Content`);
-                        if (newContent) {
-                            newContent.classList.add('expanded');
-                        }
-                    }
-                    updatePropertySelect(select);
-                }
+function removeUnusedProperties(rule) {
+    if (!rule.addedProperties) return;
+    rule.addedProperties.forEach(propertyType => {
+        const status = rule.querySelector(`#${propertyType}Status`);
+        if (status && status.textContent === 'Not in use') {
+            const section = rule.querySelector(`#${propertyType}Section`);
+            if (section) {
+                section.remove();
+                rule.addedProperties.delete(propertyType);
             }
+        }
+    });
+    updatePropertySelect(rule.querySelector('.propertySelect'));
+}
 
-            function removeUnusedProperties(rule) {
-                if (!rule.addedProperties) return;
-                rule.addedProperties.forEach(propertyType => {
-                    const status = rule.querySelector(`#${propertyType}Status`);
-                    if (status && status.textContent === 'Not in use') {
-                        const section = rule.querySelector(`#${propertyType}Section`);
-                        if (section) {
-                            section.remove();
-                            rule.addedProperties.delete(propertyType);
-                        }
-                    }
-                });
-                updatePropertySelect(rule.querySelector('.propertySelect'));
-            }
+function addPropertySection(propertyType, rule) {
+    const container = rule.querySelector('.propertySections');
+    const section = document.createElement('div');
+    section.className = 'property-section';
+    section.id = `${propertyType}Section`;
 
-          function addPropertySection(propertyType, rule) {
-                const container = rule.querySelector('.propertySections');
-                const section = document.createElement('div');
-                section.className = 'property-section';
-                section.id = `${propertyType}Section`;
-
-                const header = document.createElement('div');
-                header.className = 'property-header';
-                header.style.cursor = 'pointer';
-                header.onclick = () => toggleSection(propertyType, rule);
-                header.innerHTML = `
+    const header = document.createElement('div');
+    header.className = 'property-header';
+    header.style.cursor = 'pointer';
+    header.onclick = () => toggleSection(propertyType, rule);
+    header.innerHTML = `
                     <div class="header-content">
                         <h5>${propertyTypes[propertyType].name}</h5>
                         <span class="status" id="${propertyType}Status">Not in use</span>
                     </div>
                 `;
 
-                const content = document.createElement('div');
-                content.className = 'property-content';
-                content.id = `${propertyType}Content`;
+    const content = document.createElement('div');
+    content.className = 'property-content';
+    content.id = `${propertyType}Content`;
 
-                const valuesContainer = document.createElement('div');
-                valuesContainer.id = `${propertyType}Values`;
+    const valuesContainer = document.createElement('div');
+    valuesContainer.id = `${propertyType}Values`;
 
-                const addButton = document.createElement('button');
-                addButton.className = 'add-value';
-                addButton.textContent = `Add ${propertyTypes[propertyType].name}`;
-                addButton.onclick = (e) => {
-                    e.stopPropagation();
-                    addValue(propertyType, rule);
-                };
+    const addButton = document.createElement('button');
+    addButton.className = 'add-value';
+    addButton.textContent = `Add ${propertyTypes[propertyType].name}`;
+    addButton.onclick = (e) => {
+        e.stopPropagation();
+        addValue(propertyType, rule);
+    };
 
-                content.appendChild(valuesContainer);
-                content.appendChild(addButton);
+    content.appendChild(valuesContainer);
+    content.appendChild(addButton);
 
-                section.appendChild(header);
-                section.appendChild(content);
-                container.appendChild(section);
+    section.appendChild(header);
+    section.appendChild(content);
+    container.appendChild(section);
 
-                toggleSection(propertyType, rule);
-            }
+    toggleSection(propertyType, rule);
+}
 
-            // Update toggleSection function to work with both scenarios
-            function toggleSection(propertyType, rule) {
-                // If rule is provided, use it to find the content, otherwise use document.getElementById
-                const content = rule ?
-                    rule.querySelector(`#${propertyType}Content`) :
-                    document.getElementById(`${propertyType}Content`);
+// Update toggleSection function to work with both scenarios
+function toggleSection(propertyType, rule) {
+    // If rule is provided, use it to find the content, otherwise use document.getElementById
+    const content = rule ?
+        rule.querySelector(`#${propertyType}Content`) :
+        document.getElementById(`${propertyType}Content`);
 
-                if (!content) return;
+    if (!content) return;
 
-                if (content.classList.contains('expanded')) {
-                    content.classList.remove('expanded');
-                    if (rule && !rule.expandedSections) {
-                        rule.expandedSections = new Set();
-                    }
-                    if (rule) {
-                        rule.expandedSections.delete(propertyType);
-                    }
-                } else {
-                    content.classList.add('expanded');
-                    if (rule && !rule.expandedSections) {
-                        rule.expandedSections = new Set();
-                    }
-                    if (rule) {
-                        rule.expandedSections.add(propertyType);
-                    }
-                }
-            }
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        if (rule && !rule.expandedSections) {
+            rule.expandedSections = new Set();
+        }
+        if (rule) {
+            rule.expandedSections.delete(propertyType);
+        }
+    } else {
+        content.classList.add('expanded');
+        if (rule && !rule.expandedSections) {
+            rule.expandedSections = new Set();
+        }
+        if (rule) {
+            rule.expandedSections.add(propertyType);
+        }
+    }
+}
 
-            function addValue(propertyType, rule) {
-                const container = rule.querySelector(`#${propertyType}Values`);
-                const div = document.createElement('div');
+function addValue(propertyType, rule) {
+    const container = rule.querySelector(`#${propertyType}Values`);
+    const div = document.createElement('div');
 
-                switch (propertyTypes[propertyType].type) {
-                    case 'standard':
-                        div.className = 'property-value';
-                        div.innerHTML = `
+    switch (propertyTypes[propertyType].type) {
+        case 'standard':
+            div.className = 'property-value';
+            div.innerHTML = `
                 <input type="text" placeholder="Enter ${propertyTypes[propertyType].name}" 
                        onchange="updatePropertyStatus('${propertyType}', this)">
                 <button onclick="removeValue(this, '${propertyType}')">×</button>
             `;
-                        break;
-                    case 'instance':
-                        div.className = 'instance-property-value';
-                        div.innerHTML = `
+            break;
+        case 'instance':
+            div.className = 'instance-property-value';
+            div.innerHTML = `
                 <input type="text" placeholder="Instance Type" onchange="updatePropertyStatus('${propertyType}', this)">
                 <input type="text" placeholder="Instance Size" onchange="updatePropertyStatus('${propertyType}', this)">
                 <select onchange="updatePropertyStatus('${propertyType}', this)">
@@ -739,10 +752,10 @@ function expandAndScrollToRule(rule) {
                 </select>
                 <button onclick="removeValue(this, '${propertyType}')">×</button>
             `;
-                        break;
-                    case 'lineItem':
-                        div.className = 'line-item-description-value';
-                        div.innerHTML = `
+            break;
+        case 'lineItem':
+            div.className = 'line-item-description-value';
+            div.innerHTML = `
                 <select onchange="updatePropertyStatus('${propertyType}', this)">
                     <option value="contains">Contains</option>
                     <option value="startsWith">Starts With</option>
@@ -751,159 +764,159 @@ function expandAndScrollToRule(rule) {
                 <input type="text" placeholder="Enter description" onchange="updatePropertyStatus('${propertyType}', this)">
                 <button onclick="removeValue(this, '${propertyType}')">×</button>
             `;
-                        break;
-                }
+            break;
+    }
 
-                container.appendChild(div);
-                updatePropertyStatus(propertyType, rule);
+    container.appendChild(div);
+    updatePropertyStatus(propertyType, rule);
+}
+
+function removeValue(button, propertyType) {
+    const element = button.closest('.property-value, .instance-property-value, .line-item-description-value');
+    const rule = button.closest('.rule');
+    if (element) {
+        element.remove();
+        updatePropertyStatus(propertyType, rule.querySelector(`#${propertyType}Values`));
+    }
+}
+
+function updatePropertyStatus(propertyType, element) {
+    const rule = element.closest('.rule');
+    const container = rule.querySelector(`#${propertyType}Values`);
+    let hasValues = false;
+    let valueCount = 0;
+
+    if (propertyTypes[propertyType].type === 'instance') {
+        const instanceSets = container.querySelectorAll('.instance-property-value');
+        instanceSets.forEach(set => {
+            const inputs = set.querySelectorAll('input');
+            if (Array.from(inputs).some(input => input.value.trim() !== '')) {
+                hasValues = true;
+                valueCount++;
             }
-
-            function removeValue(button, propertyType) {
-                const element = button.closest('.property-value, .instance-property-value, .line-item-description-value');
-                const rule = button.closest('.rule');
-                if (element) {
-                    element.remove();
-                    updatePropertyStatus(propertyType, rule.querySelector(`#${propertyType}Values`));
-                }
+        });
+    } else {
+        const inputs = container.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.value.trim() !== '') {
+                hasValues = true;
+                valueCount++;
             }
+        });
+    }
 
-            function updatePropertyStatus(propertyType, element) {
-                const rule = element.closest('.rule');
-                const container = rule.querySelector(`#${propertyType}Values`);
-                let hasValues = false;
-                let valueCount = 0;
+    const status = rule.querySelector(`#${propertyType}Status`);
+    status.textContent = hasValues ? 'In use' : 'Not in use';
+    status.className = `status ${hasValues ? 'active' : ''}`;
 
-                if (propertyTypes[propertyType].type === 'instance') {
-                    const instanceSets = container.querySelectorAll('.instance-property-value');
-                    instanceSets.forEach(set => {
-                        const inputs = set.querySelectorAll('input');
-                        if (Array.from(inputs).some(input => input.value.trim() !== '')) {
-                            hasValues = true;
-                            valueCount++;
-                        }
-                    });
-                } else {
-                    const inputs = container.querySelectorAll('input');
-                    inputs.forEach(input => {
-                        if (input.value.trim() !== '') {
-                            hasValues = true;
-                            valueCount++;
-                        }
-                    });
+    updateActiveTags(rule);
+}
+
+
+function updateActiveTags(rule) {
+    const container = rule.querySelector('.property-tags');
+    container.innerHTML = '';
+
+    if (!rule.addedProperties) return;
+
+    rule.addedProperties.forEach(propertyType => {
+        const valueContainer = rule.querySelector(`#${propertyType}Values`);
+        let activeCount = 0;
+
+        if (propertyTypes[propertyType].type === 'instance') {
+            const instanceSets = valueContainer.querySelectorAll('.instance-property-value');
+            instanceSets.forEach(set => {
+                const inputs = set.querySelectorAll('input');
+                if (Array.from(inputs).some(input => input.value.trim() !== '')) {
+                    activeCount++;
                 }
+            });
+        } else {
+            const inputs = valueContainer.querySelectorAll('input');
+            activeCount = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+        }
 
-                const status = rule.querySelector(`#${propertyType}Status`);
-                status.textContent = hasValues ? 'In use' : 'Not in use';
-                status.className = `status ${hasValues ? 'active' : ''}`;
-
-                updateActiveTags(rule);
-            }
-
-
-            function updateActiveTags(rule) {
-                const container = rule.querySelector('.property-tags');
-                container.innerHTML = '';
-
-                if (!rule.addedProperties) return;
-
-                rule.addedProperties.forEach(propertyType => {
-                    const valueContainer = rule.querySelector(`#${propertyType}Values`);
-                    let activeCount = 0;
-
-                    if (propertyTypes[propertyType].type === 'instance') {
-                        const instanceSets = valueContainer.querySelectorAll('.instance-property-value');
-                        instanceSets.forEach(set => {
-                            const inputs = set.querySelectorAll('input');
-                            if (Array.from(inputs).some(input => input.value.trim() !== '')) {
-                                activeCount++;
-                            }
-                        });
-                    } else {
-                        const inputs = valueContainer.querySelectorAll('input');
-                        activeCount = Array.from(inputs).filter(input => input.value.trim() !== '').length;
-                    }
-
-                    if (activeCount > 0) {
-                        const tag = document.createElement('div');
-                        tag.className = 'property-tag';
-                        tag.onclick = () => {
-                            const content = rule.querySelector(`#${propertyType}Content`);
-                            if (content) {
-                                content.classList.toggle('expanded');
-                            }
-                        };
-                        tag.innerHTML = `
+        if (activeCount > 0) {
+            const tag = document.createElement('div');
+            tag.className = 'property-tag';
+            tag.onclick = () => {
+                const content = rule.querySelector(`#${propertyType}Content`);
+                if (content) {
+                    content.classList.toggle('expanded');
+                }
+            };
+            tag.innerHTML = `
                 ${propertyTypes[propertyType].name}
                 <span class="count">${activeCount}</span>
             `;
-                        container.appendChild(tag);
-                    }
-                });
-            }
+            container.appendChild(tag);
+        }
+    });
+}
 
-            function updatePropertySelect(select) {
-                if (!select) return;
-                const rule = select.closest('.rule');
-                Array.from(select.options).forEach(option => {
-                    option.disabled = rule.addedProperties && rule.addedProperties.has(option.value);
-                });
-                select.value = '';
-            }
-            document.addEventListener('DOMContentLoaded', initializeUI);
+function updatePropertySelect(select) {
+    if (!select) return;
+    const rule = select.closest('.rule');
+    Array.from(select.options).forEach(option => {
+        option.disabled = rule.addedProperties && rule.addedProperties.has(option.value);
+    });
+    select.value = '';
+}
+document.addEventListener('DOMContentLoaded', initializeUI);
 
-            function addSavingsPlanOfferingType(button) {
-                const container = button.closest('.sub-group').querySelector('.savingsPlanOfferingTypes');
-                const div = document.createElement('div');
-                div.className = 'sub-entry';
-                div.innerHTML = `
+function addSavingsPlanOfferingType(button) {
+    const container = button.closest('.sub-group').querySelector('.savingsPlanOfferingTypes');
+    const div = document.createElement('div');
+    div.className = 'sub-entry';
+    div.innerHTML = `
         <button type="button" class="small-button" onclick="this.parentElement.remove()">×</button>
         <input type="text" class="savingsPlanOfferingTypeName" placeholder="Enter Savings Plan Offering Type..." />
     `;
-                container.appendChild(div);
-            }
+    container.appendChild(div);
+}
 
 
-            function generateOutput(type) {
-                if (!validateForm()) {
-                    return;
+function generateOutput(type) {
+    if (!validateForm()) {
+        return;
+    }
+
+    showLoadingIndicator();
+
+    setTimeout(() => {
+        let output = '';
+        switch (type) {
+            case 'xml':
+                output = generateXML();
+                if (output) {
+                    document.getElementById('xmlOutput').value = output;
                 }
+                break;
+            case 'json':
+                output = generateJSON();
+                if (output) {
+                    document.getElementById('jsonOutput').value = output;
+                    // Add calls to update the assignment JSONs
+                    updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
+                    updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
+                }
+                break;
+            case 'curl':
+                output = generateCURL();
+                if (output) {
+                    document.getElementById('jsonOutput').value = output;
+                    // Add calls to update the assignment CURLs
+                    updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
+                    updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
+                }
+                break;
+        }
 
-                showLoadingIndicator();
+        hideLoadingIndicator();
+    }, 500);
+}
 
-                setTimeout(() => {
-                    let output = '';
-                    switch (type) {
-                        case 'xml':
-                            output = generateXML();
-                            if (output) {
-                                document.getElementById('xmlOutput').value = output;
-                            }
-                            break;
-                        case 'json':
-                            output = generateJSON();
-                            if (output) {
-                                document.getElementById('jsonOutput').value = output;
-                                // Add calls to update the assignment JSONs
-                                updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-                                updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-                            }
-                            break;
-                        case 'curl':
-                            output = generateCURL();
-                            if (output) {
-                                document.getElementById('jsonOutput').value = output;
-                                // Add calls to update the assignment CURLs
-                                updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-                                updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-                            }
-                            break;
-                    }
-
-                    hideLoadingIndicator();
-                }, 500);
-            }
-
- // XML Generator
+// XML Generator
 function generateXML() {
     if (!validateForm()) {
         alert("Please fill in all required fields.");
@@ -1051,67 +1064,67 @@ function generateXML() {
     return xml;
 }
 
-            //JSON Generator
-            function generateJSON() {
-                if (!validateForm()) {
-                    alert("Please fill in all required fields.");
-                    return;
-                }
-                const bookNameInput = document.getElementById('bookName');
-                const bookName = bookNameInput.value.trim();
+//JSON Generator
+function generateJSON() {
+    if (!validateForm()) {
+        alert("Please fill in all required fields.");
+        return;
+    }
+    const bookNameInput = document.getElementById('bookName');
+    const bookName = bookNameInput.value.trim();
 
-                const xml = generateXML();
-                if (!xml) {
-                    alert("Failed to generate XML.");
-                    return;
-                }
+    const xml = generateXML();
+    if (!xml) {
+        alert("Failed to generate XML.");
+        return;
+    }
 
-                // Populate the XML text area
-                const xmlOutput = document.getElementById('xmlOutput');
-                if (xmlOutput) {
-                    xmlOutput.value = xml;
-                }
+    // Populate the XML text area
+    const xmlOutput = document.getElementById('xmlOutput');
+    if (xmlOutput) {
+        xmlOutput.value = xml;
+    }
 
-                const escapedXML = xml.replace(/"/g, '\\"');
-                return `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
-            }
+    const escapedXML = xml.replace(/"/g, '\\"');
+    return `{"book_name":"${bookName}","specification":"${escapedXML}"}`;
+}
 
-            function generateCURL() {
-                const jsonPayload = generateJSON();
-                if (!jsonPayload) return;
+function generateCURL() {
+    const jsonPayload = generateJSON();
+    if (!jsonPayload) return;
 
-                // Populate the JSON text area
-                const jsonOutput = document.getElementById('jsonOutput');
-                if (jsonOutput) {
-                    jsonOutput.value = jsonPayload;
-                }
+    // Populate the JSON text area
+    const jsonOutput = document.getElementById('jsonOutput');
+    if (jsonOutput) {
+        jsonOutput.value = jsonPayload;
+    }
 
-                // Generate the cURL command
-                const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
-                    `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
-                    `  -H "Content-Type: application/json" \\\n` +
-                    `  -d '${jsonPayload}'`;
+    // Generate the cURL command
+    const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\\n` +
+        `  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n` +
+        `  -H "Content-Type: application/json" \\\n` +
+        `  -d '${jsonPayload}'`;
 
-                return curlCommand;
-            }
+    return curlCommand;
+}
 
-            function updateAssignCustomerJSON(priceBookId) {
-                const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
-                const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
+function updateAssignCustomerJSON(priceBookId) {
+    const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
+    const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
 
-                const payload = {
-                    price_book_id: priceBookId,
-                    target_client_api_id: clientAPIId
-                };
+    const payload = {
+        price_book_id: priceBookId,
+        target_client_api_id: clientAPIId
+    };
 
-                document.getElementById('assignCustomerJSON').value = JSON.stringify(payload, null, 2);
-            }
+    document.getElementById('assignCustomerJSON').value = JSON.stringify(payload, null, 2);
+}
 
-            function updateAssignCustomerCurl(priceBookId) {
-                const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
-                const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
+function updateAssignCustomerCurl(priceBookId) {
+    const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
+    const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
 
-                const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_assignments \\
+    const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_assignments \\
   -H "Authorization: Bearer <YOUR_API_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -1119,39 +1132,39 @@ function generateXML() {
     "target_client_api_id": "${clientAPIId}"
   }'`;
 
-                document.getElementById('assignCustomerJSON').value = curlCommand;
-            }
+    document.getElementById('assignCustomerJSON').value = curlCommand;
+}
 
-            function updateAssignCustomerAccountJSON(priceBookAssignmentId) {
-                const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
-                const cxPayerIdInput = document.getElementById('cxPayerId').value.trim();
-                const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
+function updateAssignCustomerAccountJSON(priceBookAssignmentId) {
+    const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
+    const cxPayerIdInput = document.getElementById('cxPayerId').value.trim();
+    const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
 
-                let billingAccountOwnerIdArray = cxPayerIdInput === ''
-                    ? ["ALL"]
-                    : cxPayerIdInput.split(',').map(id => id.trim()).filter(id => id !== '');
+    let billingAccountOwnerIdArray = cxPayerIdInput === ''
+        ? ["ALL"]
+        : cxPayerIdInput.split(',').map(id => id.trim()).filter(id => id !== '');
 
-                const jsonContent = {
-                    price_book_assignment_id: priceBookAssignmentId,
-                    billing_account_owner_id: billingAccountOwnerIdArray,
-                    target_client_api_id: clientAPIId
-                };
+    const jsonContent = {
+        price_book_assignment_id: priceBookAssignmentId,
+        billing_account_owner_id: billingAccountOwnerIdArray,
+        target_client_api_id: clientAPIId
+    };
 
-                document.getElementById('assignCustomerAccountJSON').value = JSON.stringify(jsonContent, null, 2);
-            }
+    document.getElementById('assignCustomerAccountJSON').value = JSON.stringify(jsonContent, null, 2);
+}
 
-            function updateAssignCustomerAccountCurl(priceBookAssignmentId) {
-                const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
-                const cxPayerIdInput = document.getElementById('cxPayerId').value.trim();
-                const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
+function updateAssignCustomerAccountCurl(priceBookAssignmentId) {
+    const cxAPIIdInput = document.getElementById('cxAPIId').value.trim();
+    const cxPayerIdInput = document.getElementById('cxPayerId').value.trim();
+    const clientAPIId = cxAPIIdInput !== '' ? cxAPIIdInput : '<Enter ClientAPI ID>';
 
-                let billingAccountOwnerIdArray = cxPayerIdInput === ''
-                    ? ["ALL"]
-                    : cxPayerIdInput.split(',').map(id => id.trim()).filter(id => id !== '');
+    let billingAccountOwnerIdArray = cxPayerIdInput === ''
+        ? ["ALL"]
+        : cxPayerIdInput.split(',').map(id => id.trim()).filter(id => id !== '');
 
-                const billingAccountOwnerIdJSON = JSON.stringify(billingAccountOwnerIdArray);
+    const billingAccountOwnerIdJSON = JSON.stringify(billingAccountOwnerIdArray);
 
-                const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_account_assignments \\
+    const curlCommand = `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_account_assignments \\
   -H "Authorization: Bearer <YOUR_API_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -1160,14 +1173,14 @@ function generateXML() {
     "target_client_api_id": "${clientAPIId}"
   }'`;
 
-                document.getElementById('assignCustomerAccountJSON').value = curlCommand;
-            }
+    document.getElementById('assignCustomerAccountJSON').value = curlCommand;
+}
 
-            function copyOutput(elementId) {
-                const outputElement = document.getElementById(elementId);
-                outputElement.select();
-                document.execCommand('copy');
-            }
+function copyOutput(elementId) {
+    const outputElement = document.getElementById(elementId);
+    outputElement.select();
+    document.execCommand('copy');
+}
 
 function downloadOutput(elementId, fileType) {
     const content = document.getElementById(elementId).value;
@@ -1190,30 +1203,30 @@ function downloadOutput(elementId, fileType) {
     link.click();
 }
 
-            function showLoadingIndicator() {
-                document.querySelector('.loading-indicator').classList.add('active');
-            }
+function showLoadingIndicator() {
+    document.querySelector('.loading-indicator').classList.add('active');
+}
 
-            function hideLoadingIndicator() {
-                document.querySelector('.loading-indicator').classList.remove('active');
-            }
+function hideLoadingIndicator() {
+    document.querySelector('.loading-indicator').classList.remove('active');
+}
 
-            document.getElementById('helpButton').addEventListener('click', () => {
-                const modal = document.getElementById('helpModal');
-                const content = document.getElementById('helpContent');
-                content.innerHTML = `
+document.getElementById('helpButton').addEventListener('click', () => {
+    const modal = document.getElementById('helpModal');
+    const content = document.getElementById('helpContent');
+    content.innerHTML = `
                 <p><strong>Rule Order:</strong> Custom price book XML specifications process rules in top-down order. The first applicable rule that satisfies all specified constraints for a line item is used, and then no subsequent rules are used for that line item. If no applicable and matching rule is found, the line item will have a 0% calculated price adjustment.</p>
                 <p><strong>Rule Applicability:</strong> Rule applicability is determined by the startDate and endDate attributes in enabled RuleGroup elements. startDates and endDates are inclusive. Whether or not an applicable rule is actually used depends on its order relative to other rules and the constraints it specifies for matching line items.</p>
                 <p><strong>For more details:</strong> <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" style="color: #4ca1af;">API Documentation</a></p>
             `;
-                modal.style.display = 'block';
-            });
+    modal.style.display = 'block';
+});
 
-            function closeModal() {
-                document.getElementById('helpModal').style.display = 'none';
-            }
+function closeModal() {
+    document.getElementById('helpModal').style.display = 'none';
+}
 
-          // Import Price Book function
+// Import Price Book function
 document.getElementById('importButton').addEventListener('click', function () {
     const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
     const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
@@ -1611,48 +1624,48 @@ function collapseAllPropertiesInRule(rule) {
     updateActiveTags(rule);
 }
 
-            function addSelectedPropertyToRule(rule, propertyType) {
-                if (!rule.addedProperties) {
-                    rule.addedProperties = new Set();
-                }
-                if (!rule.addedProperties.has(propertyType)) {
-                    addPropertySection(propertyType, rule);
-                    rule.addedProperties.add(propertyType);
+function addSelectedPropertyToRule(rule, propertyType) {
+    if (!rule.addedProperties) {
+        rule.addedProperties = new Set();
+    }
+    if (!rule.addedProperties.has(propertyType)) {
+        addPropertySection(propertyType, rule);
+        rule.addedProperties.add(propertyType);
 
-                    // Ensure the newly added section starts collapsed
-                    const content = rule.querySelector(`#${propertyType}Content`);
-                    if (content) {
-                        content.classList.remove('expanded');
-                    }
-                }
-            }
+        // Ensure the newly added section starts collapsed
+        const content = rule.querySelector(`#${propertyType}Content`);
+        if (content) {
+            content.classList.remove('expanded');
+        }
+    }
+}
 
-            if (!rule.addedProperties) {
-                rule.addedProperties = new Set();
-            }
-            if (!rule.addedProperties.has(propertyType)) {
-                addPropertySection(propertyType, rule);
-                rule.addedProperties.add(propertyType);
+if (!rule.addedProperties) {
+    rule.addedProperties = new Set();
+}
+if (!rule.addedProperties.has(propertyType)) {
+    addPropertySection(propertyType, rule);
+    rule.addedProperties.add(propertyType);
 
-                // Ensure the newly added section starts collapsed
-                const content = rule.querySelector(`#${propertyType}Content`);
-                if (content) {
-                    content.classList.remove('expanded');
-                }
-            }
+    // Ensure the newly added section starts collapsed
+    const content = rule.querySelector(`#${propertyType}Content`);
+    if (content) {
+        content.classList.remove('expanded');
+    }
+}
 
 
-            function toggleCollapse(button, contentSelector) {
-                const content = button.closest('.rule-group, .rule').querySelector(contentSelector);
-                button.classList.toggle('collapsed');
-                content.classList.toggle('collapsed');
+function toggleCollapse(button, contentSelector) {
+    const content = button.closest('.rule-group, .rule').querySelector(contentSelector);
+    button.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
 
-                if (button.classList.contains('collapsed')) {
-                    button.textContent = '▶';
-                } else {
-                    button.textContent = '▼';
-                }
-            }
+    if (button.classList.contains('collapsed')) {
+        button.textContent = '▶';
+    } else {
+        button.textContent = '▼';
+    }
+}
 function toggleRuleGroupCollapse(button) {
     const ruleGroup = button.closest('.rule-group');
     const content = ruleGroup.querySelector('.rule-group-content');
@@ -1678,54 +1691,54 @@ function toggleBillingRuleCollapse(button) {
         button.textContent = '▼';
     }
 }
-            //Rest all fields.
-            function resetAllFields() {
-                // Check if all main fields are empty
-                const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
-                const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
-                const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
+//Rest all fields.
+function resetAllFields() {
+    // Check if all main fields are empty
+    const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
+    const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
+    const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
 
-                if (allFieldsEmpty && noRuleGroups) {
-                    // If all fields are empty and there are no rule groups, reset without prompting
-                    performReset();
-                } else {
-                    // If there's data, prompt for confirmation
-                    if (confirm('Are you sure you want to reset all fields? This action cannot be undone.')) {
-                        performReset();
-                    }
-                }
-            }
+    if (allFieldsEmpty && noRuleGroups) {
+        // If all fields are empty and there are no rule groups, reset without prompting
+        performReset();
+    } else {
+        // If there's data, prompt for confirmation
+        if (confirm('Are you sure you want to reset all fields? This action cannot be undone.')) {
+            performReset();
+        }
+    }
+}
 
-            function performReset() {
-                // Clear main fields
-                ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'].forEach(fieldId => {
-                    document.getElementById(fieldId).value = '';
-                });
+function performReset() {
+    // Clear main fields
+    ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'].forEach(fieldId => {
+        document.getElementById(fieldId).value = '';
+    });
 
-                // Clear all rule groups
-                document.getElementById('groupsContainer').innerHTML = '';
+    // Clear all rule groups
+    document.getElementById('groupsContainer').innerHTML = '';
 
-                // Clear all output areas
-                ['xmlOutput', 'jsonOutput', 'assignCustomerJSON', 'assignCustomerAccountJSON'].forEach(fieldId => {
-                    document.getElementById(fieldId).value = '';
-                });
+    // Clear all output areas
+    ['xmlOutput', 'jsonOutput', 'assignCustomerJSON', 'assignCustomerAccountJSON'].forEach(fieldId => {
+        document.getElementById(fieldId).value = '';
+    });
 
-                // Remove any error styling
-                document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
-                document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+    // Remove any error styling
+    document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+    document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
 
-                // Reset property selector and clear properties
-                addedProperties.clear();
-                const propertySections = document.getElementById('propertySections');
-                if (propertySections) {
-                    propertySections.innerHTML = '';
-                }
-                const activeTags = document.getElementById('activeTags');
-                if (activeTags) {
-                    activeTags.innerHTML = '';
-                }
-                updatePropertySelect();
+    // Reset property selector and clear properties
+    addedProperties.clear();
+    const propertySections = document.getElementById('propertySections');
+    if (propertySections) {
+        propertySections.innerHTML = '';
+    }
+    const activeTags = document.getElementById('activeTags');
+    if (activeTags) {
+        activeTags.innerHTML = '';
+    }
+    updatePropertySelect();
 
-                // Add initial rule group
-                addRuleGroup(null, true);
-            }
+    // Add initial rule group
+    addRuleGroup(null, true);
+}
