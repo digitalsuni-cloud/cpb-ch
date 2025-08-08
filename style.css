@@ -1174,6 +1174,22 @@ transition: all 0.3s ease;
   padding-left: 12px;
   color: var(--text-light);
 }
+#refreshNLBtn {
+  background-color: #28a745; /* Bright green */
+  color: white;
+  padding: 10px 18px;        /* Increase padding for size */
+  font-size: 1.1rem;         /* Slightly larger font */
+  border-radius: 8px;        /* Optional: rounded corners */
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4); /* subtle green shadow */
+}
+
+#refreshNLBtn:hover {
+  background-color: #218838; /* Darker green on hover */
+}
+
 
 
 
