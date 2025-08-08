@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Check if system is in dark mode
+    // === Theme Detection ===
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     // Set initial theme based on system preference
@@ -16,19 +16,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Natural Language tab hooks
-    const refreshBtn = document.getElementById('refreshNLBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', renderNaturalLanguageSummary);
-    }
-
+    // === Natural Language Tab Click Hook ===
     const nlTabHeader = document.querySelector('.tab-item[data-tab="nlTab"]');
     if (nlTabHeader) {
         nlTabHeader.addEventListener('click', () => {
             setTimeout(renderNaturalLanguageSummary, 50);
         });
     }
+
+    // === Hook for new "Read Out Pricebook" AI Button ===
+    const readOutBtn = document.getElementById('readOutBtn');
+    if (readOutBtn) {
+        readOutBtn.addEventListener('click', function () {
+            // Step 1: Generate XML output to ensure latest form data
+            generateOutput('xml');
+
+            // Step 2: Wait a moment for generation to finish, then read
+            setTimeout(() => {
+                if (typeof renderNaturalLanguageSummary === 'function') {
+                    renderNaturalLanguageSummary();
+
+                    // Step 3: Switch to the Natural Language tab automatically
+                    if (nlTabHeader) nlTabHeader.click();
+                }
+            }, 200); // small delay so XML textarea is populated
+        });
+    }
 });
+
 function toggleTheme() {
     const body = document.body;
     const currentTheme = body.getAttribute('data-theme');
