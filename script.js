@@ -26,36 +26,45 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === Hook for new "Read Out Pricebook" AI Button ===
+    // === Helper: Generate XML then render summary ===
+    function generateAndThenSummarize() {
+        // Step 1: Generate XML Output
+        generateOutput('xml');
+
+        // Step 2: Wait until xmlOutput has content (max ~2 seconds)
+        const xmlField = document.getElementById('xmlOutput');
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        const checkAndRun = setInterval(() => {
+            attempts++;
+            if (xmlField && xmlField.value.trim().startsWith('<')) {
+                clearInterval(checkAndRun);
+                if (typeof renderNaturalLanguageSummary === 'function') {
+                    const nlSection = document.getElementById('nlOutputSection');
+                    if (nlSection) {
+                        nlSection.style.display = 'block';
+                        renderNaturalLanguageSummary();
+                        nlSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkAndRun);
+                console.warn("Timed out waiting for XML to generate.");
+            }
+        }, 100);
+    }
+
+    // === Assign to Read Out Pricebook button ===
     const readOutBtn = document.getElementById('readOutBtn');
     if (readOutBtn) {
-        readOutBtn.addEventListener('click', function () {
-            // Step 1: Generate XML Output
-            generateOutput('xml');
+        readOutBtn.addEventListener('click', generateAndThenSummarize);
+    }
 
-            // Step 2: Wait until xmlOutput has content
-            const xmlField = document.getElementById('xmlOutput');
-            let attempts = 0;
-            const maxAttempts = 20; // max wait ~2s
-
-            const checkAndRun = setInterval(() => {
-                attempts++;
-                if (xmlField && xmlField.value.trim().startsWith('<')) {
-                    clearInterval(checkAndRun);
-                    if (typeof renderNaturalLanguageSummary === 'function') {
-                        const nlSection = document.getElementById('nlOutputSection');
-                        if (nlSection) {
-                            nlSection.style.display = 'block';
-                            renderNaturalLanguageSummary();
-                            nlSection.scrollIntoView({ behavior: 'smooth' });
-                        }
-                    }
-                } else if (attempts >= maxAttempts) {
-                    clearInterval(checkAndRun);
-                    console.warn("Timed out waiting for XML to generate.");
-                }
-            }, 100);
-        });
+    // === Assign same to Refresh button ===
+    const refreshBtn = document.getElementById('refreshNLBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', generateAndThenSummarize);
     }
 
     // === Collapse/Expand NL Summary ===
@@ -1855,12 +1864,19 @@ function collectProductFilters(productEl) {
 }
 
 // Helper to extract names of given tag and join them for description
+function joinWithCommasAndAnd(arr) {
+  if (arr.length === 0) return '';
+  if (arr.length === 1) return arr[0];
+  if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+  return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
+}
+
 function addNameList(parent, tag, label, outputArr) {
-    const nodes = Array.from(parent.getElementsByTagName(tag));
-    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean).map(s => s.trim());
-    if (names.length > 0) {
-        outputArr.push(`${label}: ${names.join(', ')}`);
-    }
+  const nodes = Array.from(parent.getElementsByTagName(tag));
+  const names = nodes.map(n => n.getAttribute('name')).filter(Boolean).map(s => s.trim());
+  if (names.length > 0) {
+    outputArr.push(`${label}: ${joinWithCommasAndAnd(names)}`);
+  }
 }
 
 // Escape HTML for safe display
@@ -1965,10 +1981,8 @@ function renderNaturalLanguageSummary() {
                 const filters = collectProductFilters(product);
                 if (filters.length) {
                     lines.push('Filters:');
-                    filters.forEach(f => {
-                        // Replace comma lists with "and"
-                        lines.push(`- ${f.replace(/, /g, ' and ')}`);
-                    });
+                    filters.forEach(f => lines.push(`- ${f}`));
+
                 }
             }
         });
@@ -1976,4 +1990,24 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
+function generateAndThenSummarize() {
+    // Step 1: Generate fresh XML from the form
+    generateOutput('xml');
+
+    const xmlField = document.getElementById('xmlOutput');
+    let attempts = 0;
+    const maxAttempts = 20; // ~2 seconds max
+
+    const checkAndRun = setInterval(() => {
+        attempts++;
+        if (xmlField && xmlField.value.trim().startsWith('<')) {
+            clearInterval(checkAndRun);
+            renderNaturalLanguageSummary();
+        } else if (attempts >= maxAttempts) {
+            clearInterval(checkAndRun);
+            console.warn('Timed out waiting for XML to update.');
+        }
+    }, 100);
+}
+
 
