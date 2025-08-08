@@ -1920,8 +1920,6 @@ function wrapLinesAsHTML(lines) {
 // Main Natural Language summary
 function renderNaturalLanguageSummary() {
     const outputEl = document.getElementById('nlSummary');
-  const xml = document.getElementById('xmlOutput').value;
-  console.log('Rendering summary with XML:', xml.substr(0, 100)); 
     if (!outputEl) return;
 
     const xml = getCurrentSpecificationXML();
