@@ -1956,7 +1956,7 @@ function renderNaturalLanguageSummary() {
 
             lines.push(`• Billing Rule Name = "${ruleName}"`);
             lines.push(`→ Applies ${adjPhrase}`);
-            lines.push(`→ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ${includeRI ? 'Includes' : 'Excludes'} RI purchases line items as well.`);
+            lines.push(`→ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ${includeRI ? 'Includes' : 'Excludes'} RI purchases line items.`);
 
             const product = rule.querySelector('Product');
             if (product) {
