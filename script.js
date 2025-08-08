@@ -56,16 +56,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === Assign to Read Out Pricebook button ===
-    const readOutBtn = document.getElementById('readOutBtn');
-    if (readOutBtn) {
-        readOutBtn.addEventListener('click', generateAndThenSummarize);
-    }
-
+  const readOutBtn = document.getElementById('readOutBtn');
+  if (readOutBtn) {
+    readOutBtn.addEventListener('click', generateAndThenSummarize);
+  }
     // === Assign same to Refresh button ===
-    const refreshBtn = document.getElementById('refreshNLBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', generateAndThenSummarize);
-    }
+
+  const refreshBtn = document.getElementById('refreshNLBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', generateAndThenSummarize);
+  }
 
     // === Collapse/Expand NL Summary ===
     const toggleNLBtn = document.getElementById('toggleNLBtn');
@@ -1991,23 +1991,54 @@ function renderNaturalLanguageSummary() {
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
 function generateAndThenSummarize() {
-    // Step 1: Generate fresh XML from the form
-    generateOutput('xml');
+  generateOutput('xml');
 
-    const xmlField = document.getElementById('xmlOutput');
-    let attempts = 0;
-    const maxAttempts = 20; // ~2 seconds max
-
-    const checkAndRun = setInterval(() => {
-        attempts++;
-        if (xmlField && xmlField.value.trim().startsWith('<')) {
-            clearInterval(checkAndRun);
-            renderNaturalLanguageSummary();
-        } else if (attempts >= maxAttempts) {
-            clearInterval(checkAndRun);
-            console.warn('Timed out waiting for XML to update.');
-        }
-    }, 100);
+  waitForXMLUpdate()
+    .then(() => {
+      const nlSection = document.getElementById('nlOutputSection');
+      if (nlSection) {
+        nlSection.style.display = 'block';
+        renderNaturalLanguageSummary();
+        nlSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    })
+    .catch((err) => {
+      console.warn(err.message);
+      // Fallback: try rendering anyway without guaranteed fresh XML
+      renderNaturalLanguageSummary();
+    });
 }
+
+function waitForXMLUpdate(timeout = 2000) {
+  return new Promise((resolve, reject) => {
+    const xmlField = document.getElementById('xmlOutput');
+    if (!xmlField) {
+      reject(new Error("XML output textarea not found"));
+      return;
+    }
+
+    // If XML already exists and valid, resolve immediately
+    if (xmlField.value.trim().startsWith('<')) {
+      resolve();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (xmlField.value.trim().startsWith('<')) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+
+    observer.observe(xmlField, { characterData: true, childList: true, subtree: true, attributes: true });
+
+    // Fallback timeout in case update never happens
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error("Timeout waiting for XML update"));
+    }, timeout);
+  });
+}
+
 
 
