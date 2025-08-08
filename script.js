@@ -1749,164 +1749,109 @@ function renderNaturalLanguageSummary() {
 
     const xml = getCurrentSpecificationXML();
     if (!xml) {
-        outputEl.textContent = 'No price book loaded. Import a JSON or XML price book to see the summary.';
+        outputEl.textContent = 'No price book loaded. Import a JSON or XML price book to read it out.';
         return;
     }
 
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xml, 'application/xml');
     if (xmlDoc.getElementsByTagName('parsererror').length) {
-        outputEl.textContent = 'The current XML could not be parsed. Please review the specification.';
+        outputEl.textContent = 'The XML could not be parsed — check the pricebook format.';
         return;
     }
 
-    const lines = [];
-    const root = xmlDoc.documentElement;
-    const createdBy = root.getAttribute('createdBy') || 'Unknown';
+    let summary = "";
+
+    // Header information
     const bookName = (document.getElementById('bookName')?.value || '').trim() || 'Unnamed Price Book';
+    const createdBy = xmlDoc.documentElement.getAttribute('createdBy') || 'Unknown';
     const comment = xmlDoc.querySelector('Comment')?.textContent?.trim();
-    lines.push(`Price Book: "${bookName}" (createdBy: ${createdBy})`);
-    if (comment) lines.push(`Comment: ${comment}`);
-    lines.push('Evaluation: Rules are processed top-down; the first matching rule applies and no later rules are used for that line item.');
+
+    summary += `📖 Price Book Name is **"${bookName}"** and Created By **"${createdBy}"**\n\n`;
+    if (comment) {
+        summary += `💡 **Comment (Purpose of this Pricebook)**: ${comment}\n\n`;
+    }
+
+    summary += `🛠 **How Rules are Evaluated?**  
+Rules are processed top‑down — the first matching rule applies, and no later rules are used for that line item.\n\n`;
 
     const ruleGroups = Array.from(xmlDoc.getElementsByTagName('RuleGroup'));
+
     if (!ruleGroups.length) {
-        lines.push('No RuleGroups found in the specification.');
-        outputEl.innerHTML = wrapLinesAsHTML(lines);
+        summary += "No RuleGroups found in this Pricebook.";
+        outputEl.innerHTML = formatMarkdown(summary);
         return;
     }
 
     ruleGroups.forEach((rg, idx) => {
-        const startDate = rg.getAttribute('startDate') || 'unspecified';
-        const endDate = rg.getAttribute('endDate') || 'unspecified';
-        const enabled = (rg.getAttribute('enabled') ?? 'true').toString();
-        const payer = rg.getAttribute('payerAccounts') || 'all';
-        lines.push('');
-        lines.push(`RuleGroup #${idx + 1}: enabled=${enabled}, effective=${startDate} to ${endDate}, payerAccounts=${payer}`);
+        const enabled = rg.getAttribute('enabled') === "true" ? "Enabled" : "Disabled";
+        const startDate = rg.getAttribute('startDate') || "unspecified";
+        const endDate = rg.getAttribute('endDate') || "unspecified";
+        const payerAccounts = rg.getAttribute('payerAccounts');
 
-        const billingRules = Array.from(rg.getElementsByTagName('BillingRule'));
-        if (!billingRules.length) {
-            lines.push('  (No BillingRules in this group)');
-            return;
+        summary += `### Rule Group #${idx + 1}:
+(${enabled}) — Effective from **${startDate}** to **${endDate}**`;
+
+        if (payerAccounts) {
+            summary += ` — applies only to Payer Account(s): ${payerAccounts}`;
         }
 
-        billingRules.forEach((br, j) => {
-            const name = br.getAttribute('name') || `Rule ${j + 1}`;
-            const includeDT = br.getAttribute('includeDataTransfer');
-            const includeRI = br.getAttribute('includeRIPurchases') || 'false';
+        summary += `\n`;
+
+        const billingRules = Array.from(rg.getElementsByTagName('BillingRule'));
+
+        billingRules.forEach((br) => {
+            const name = br.getAttribute('name') || '(Unnamed Rule)';
+            const includeDT = br.getAttribute('includeDataTransfer') === "true";
+            const includeRI = br.getAttribute('includeRIPurchases') === "true";
 
             const basic = br.getElementsByTagName('BasicBillingRule')[0];
-            const billingRuleType = basic?.getAttribute('billingRuleType') || 'unspecified';
-            const billingAdjustment = basic?.getAttribute('billingAdjustment');
+            const type = basic?.getAttribute('billingRuleType') || '';
+            const adj = basic?.getAttribute('billingAdjustment') || '';
 
-            const action = toReadableAdjustment(billingRuleType, billingAdjustment);
+            const adjDisplay = adj.startsWith('-') ? `**${adj}** (negative)` : adj;
 
-            lines.push(`  BillingRule: "${name}" → ${action} (includeDataTransfer=${includeDT ?? 'default'}, includeRIPurchases=${includeRI})`);
+            summary += `\n🔹 **BillingRule Name** = "${name}"  
+This rule applies **${readableAdjustment(type, adjDisplay)}**.  
+It ${includeDT ? "includes" : "excludes"} Data Transfer line items and ${includeRI ? "includes" : "excludes"} RI Purchases line items.\n`;
 
             const product = br.getElementsByTagName('Product')[0];
-            if (!product) {
-                lines.push('    Applies to: all products (no Product filter specified)');
-            } else {
-                const productName = product.getAttribute('productName') || 'Any Product';
-                const pIncludeDT = product.getAttribute('includeDataTransfer');
-                const pIncludeRI = product.getAttribute('includeRIPurchases');
-                lines.push(`    Product: ${productName} ${pIncludeDT ? `(includeDataTransfer=${pIncludeDT})` : ''} ${pIncludeRI ? `(includeRIPurchases=${pIncludeRI})` : ''}`);
-                const filterLines = collectProductFilters(product);
-                if (filterLines.length) {
-                    lines.push('    Filters:');
-                    filterLines.forEach(fl => lines.push(`      - ${fl}`));
+            if (product) {
+                const pname = product.getAttribute('productName') || 'ANY';
+                summary += `\n**Product Name**: ${pname === 'ANY' ? "All the Products" : pname}\n`;
+
+                const filters = collectProductFilters(product);
+                if (filters.length) {
+                    summary += `**Line Item Filters**:\n`;
+                    filters.forEach(f => {
+                        summary += `- ${f}\n`;
+                    });
                 } else {
-                    lines.push('    Filters: (none)');
+                    summary += `(No additional filters)\n`;
                 }
             }
         });
+
+        summary += `\n`;
     });
 
-    outputEl.innerHTML = wrapLinesAsHTML(lines);
+    outputEl.innerHTML = formatMarkdown(summary);
 }
 
-// Utility functions used by renderNaturalLanguageSummary
-
-function getCurrentSpecificationXML() {
-    // Prefer XML in textarea if available and valid
-    const xmlOut = document.getElementById('xmlOutput');
-    if (xmlOut && xmlOut.value && xmlOut.value.trim().startsWith('<')) {
-        return xmlOut.value.trim();
-    }
-    // No XML available
-    return null;
-}
-
-function toReadableAdjustment(type, adjustment) {
-    if (!type) return 'no adjustment specified';
-    const adj = adjustment != null ? adjustment : 'unspecified';
+// Helper to transform BillingRuleType into readable words
+function readableAdjustment(type, adj) {
     const t = type.toLowerCase();
-    if (t.includes('discount')) return `apply ${adj}% discount`;
-    if (t.includes('increase')) return `apply ${adj}% markup`;
-    if (t.includes('fixed') || t.includes('rate')) return `apply fixed rate ${adj}`;
-    return `apply ${type} = ${adj}`;
+    if (t.includes('discount')) return `a ${adj}% discount`;
+    if (t.includes('increase')) return `a ${adj}% markup`;
+    if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of ${adj}`;
+    return `${type} = ${adj}`;
 }
 
-function collectProductFilters(productEl) {
-    const filters = [];
-    addNameList(productEl, 'Region', 'Region', filters);
-    addNameList(productEl, 'UsageType', 'Usage Type', filters);
-    addNameList(productEl, 'Operation', 'Operation', filters);
-    addNameList(productEl, 'RecordType', 'Record Type', filters);
-
-    const insts = Array.from(productEl.getElementsByTagName('InstanceProperties'));
-    insts.forEach(ip => {
-        const it = ip.getAttribute('instanceType') || 'any';
-        const is = ip.getAttribute('instanceSize') || 'any';
-        const reserved = ip.getAttribute('reserved');
-        const parts = [`instanceType=${it}`, `instanceSize=${is}`];
-        if (reserved != null) parts.push(`reserved=${reserved}`);
-        filters.push(`Instance: ${parts.join(', ')}`);
-    });
-
-    const lids = Array.from(productEl.getElementsByTagName('LineItemDescription'));
-    lids.forEach(li => {
-        ['contains', 'startsWith', 'matchesRegex'].forEach(k => {
-            if (li.hasAttribute(k)) {
-                filters.push(`LineItemDescription ${k} "${li.getAttribute(k)}"`);
-            }
-        });
-    });
-
-    addNameList(productEl, 'SavingsPlanOfferingType', 'Savings Plan Offering Type', filters);
-
-    return filters;
-}
-
-function addNameList(parent, tag, label, outArr) {
-    const nodes = Array.from(parent.getElementsByTagName(tag));
-    if (!nodes.length) return;
-    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean);
-    if (names.length) outArr.push(`${label}: ${names.join(', ')}`);
-}
-
-function wrapLinesAsHTML(lines) {
-    const html = [];
-    let group = [];
-    lines.forEach(line => {
-        if (line.trim() === '') {
-            if (group.length) {
-                html.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
-                group = [];
-            }
-        } else if (line.startsWith('  BillingRule')) {
-            group.push(`<div class="rule">${escapeHTML(line)}</div>`);
-        } else if (line.startsWith('    ')) {
-            group.push(`<div class="filters">${escapeHTML(line)}</div>`);
-        } else {
-            group.push(escapeHTML(line));
-        }
-    });
-    if (group.length) html.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
-    return html.join('\n');
-}
-
-function escapeHTML(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Simple Markdown-ish formatter (bold & headings)
+function formatMarkdown(text) {
+    return text
+        .replace(/^### (.*$)/gim, '<h4>$1</h4>')
+        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
 }
 
