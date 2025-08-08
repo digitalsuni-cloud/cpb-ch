@@ -75,10 +75,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!nlArea) return;
             if (nlArea.style.display === 'none') {
                 nlArea.style.display = '';
-                toggleNLBtn.textContent = 'ðŸ”½';
+                toggleNLBtn.textContent = '🔽';
             } else {
                 nlArea.style.display = 'none';
-                toggleNLBtn.textContent = 'â–¶';
+                toggleNLBtn.textContent = '▶';
             }
         });
     }
@@ -166,20 +166,20 @@ function addRuleGroup(afterElement = null, insertAtTop = false) {
                             <option value="false">No</option>
                         </select>
                     </div>
-                    <button class="collapse-button" onclick="toggleRuleGroupCollapse(this)">â–¼</button>
+                    <button class="collapse-button" onclick="toggleRuleGroupCollapse(this)">▼</button>
                 </div>
             </div>
             <div class="rule-group-content">
                 <div class="rules"></div>
                 <div class="button-group">
                     <button onclick="addRule(this)" class="button">
-                        <span class="button-icon">âž•</span>Add Billing Rule
+                        <span class="button-icon">➕</span>Add Billing Rule
                     </button>
                     <button onclick="addRuleGroup(this.closest('.rule-group'))" class="button">
-                        <span class="button-icon">âž•</span>Add Rule Group
+                        <span class="button-icon">➕</span>Add Rule Group
                     </button>
                     <button class="button button-red" onclick="removeRuleGroup(this)">
-                        <span class="button-icon">Ã—</span>Remove Rule Group
+                        <span class="button-icon">×</span>Remove Rule Group
                     </button>
                 </div>
             </div>
@@ -221,7 +221,7 @@ function addRule(button) {
                         <label>Billing Rule Name</label>
                         <div class="input-with-button">
                             <input type="text" class="ruleName" placeholder="Enter Billing Rule name" />
-                            <button class="collapse-button" onclick="toggleBillingRuleCollapse(this)">â–¼</button>
+                            <button class="collapse-button" onclick="toggleBillingRuleCollapse(this)">▼</button>
                         </div>
                     </div>
                 </div>
@@ -462,7 +462,7 @@ function addRule(button) {
             <!-- Property sections will be dynamically added here -->
         </div>
                 <button class="button button-red" onclick="removeRule(this)">
-                    <span class="button-icon">Ã—</span>Remove Billing Rule
+                    <span class="button-icon">×</span>Remove Billing Rule
                 </button>
             `;
     rulesContainer.appendChild(div);
@@ -588,7 +588,7 @@ function expandAndScrollToRule(rule) {
     if (ruleGroupContent.classList.contains('collapsed')) {
         ruleGroupContent.classList.remove('collapsed');
         ruleGroupButton.classList.remove('collapsed');
-        ruleGroupButton.textContent = 'â–¼';
+        ruleGroupButton.textContent = '▼';
     }
 
     // Expand the rule if collapsed
@@ -598,7 +598,7 @@ function expandAndScrollToRule(rule) {
     if (ruleContent.classList.contains('collapsed')) {
         ruleContent.classList.remove('collapsed');
         ruleButton.classList.remove('collapsed');
-        ruleButton.textContent = 'â–¼';
+        ruleButton.textContent = '▼';
     }
 
     // Scroll to the rule
@@ -614,7 +614,7 @@ function expandAndScrollToRule(rule) {
     if (ruleGroupContent.classList.contains('collapsed')) {
         ruleGroupContent.classList.remove('collapsed');
         ruleGroupButton.classList.remove('collapsed');
-        ruleGroupButton.textContent = 'â–¼';
+        ruleGroupButton.textContent = '▼';
     }
 
     // Then, expand the billing rule if it's collapsed
@@ -624,7 +624,7 @@ function expandAndScrollToRule(rule) {
     if (ruleContent.classList.contains('collapsed')) {
         ruleContent.classList.remove('collapsed');
         ruleButton.classList.remove('collapsed');
-        ruleButton.textContent = 'â–¼';
+        ruleButton.textContent = '▼';
     }
 
     // Finally, scroll to the rule
@@ -794,7 +794,7 @@ function addValue(propertyType, rule) {
             div.innerHTML = `
                 <input type="text" placeholder="Enter ${propertyTypes[propertyType].name}" 
                        onchange="updatePropertyStatus('${propertyType}', this)">
-                <button onclick="removeValue(this, '${propertyType}')">Ã—</button>
+                <button onclick="removeValue(this, '${propertyType}')">×</button>
             `;
             break;
         case 'instance':
@@ -806,7 +806,7 @@ function addValue(propertyType, rule) {
                     <option value="false">Not Reserved</option>
                     <option value="true">Reserved</option>
                 </select>
-                <button onclick="removeValue(this, '${propertyType}')">Ã—</button>
+                <button onclick="removeValue(this, '${propertyType}')">×</button>
             `;
             break;
         case 'lineItem':
@@ -818,7 +818,7 @@ function addValue(propertyType, rule) {
                     <option value="matchesRegex">Matches Regex</option>
                 </select>
                 <input type="text" placeholder="Enter description" onchange="updatePropertyStatus('${propertyType}', this)">
-                <button onclick="removeValue(this, '${propertyType}')">Ã—</button>
+                <button onclick="removeValue(this, '${propertyType}')">×</button>
             `;
             break;
     }
@@ -925,54 +925,51 @@ function addSavingsPlanOfferingType(button) {
     const div = document.createElement('div');
     div.className = 'sub-entry';
     div.innerHTML = `
-        <button type="button" class="small-button" onclick="this.parentElement.remove()">Ã—</button>
+        <button type="button" class="small-button" onclick="this.parentElement.remove()">×</button>
         <input type="text" class="savingsPlanOfferingTypeName" placeholder="Enter Savings Plan Offering Type..." />
     `;
     container.appendChild(div);
 }
 
 
-// Updated generateOutput to return a Promise that resolves after the async timeout
 function generateOutput(type) {
-  if (!validateForm()) {
-    return Promise.reject('Form validation failed');
-  }
+    if (!validateForm()) {
+        return;
+    }
 
-  showLoadingIndicator();
+    showLoadingIndicator();
 
-  return new Promise((resolve) => {
     setTimeout(() => {
-      let output = '';
-      switch (type) {
-        case 'xml':
-          output = generateXML();
-          if (output) {
-            document.getElementById('xmlOutput').value = output;
-          }
-          break;
-        case 'json':
-          output = generateJSON();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment JSONs
-            updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-        case 'curl':
-          output = generateCURL();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment CURLs
-            updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-      }
-      hideLoadingIndicator();
-      resolve(output);  // Resolve with the generated output
+        let output = '';
+        switch (type) {
+            case 'xml':
+                output = generateXML();
+                if (output) {
+                    document.getElementById('xmlOutput').value = output;
+                }
+                break;
+            case 'json':
+                output = generateJSON();
+                if (output) {
+                    document.getElementById('jsonOutput').value = output;
+                    // Add calls to update the assignment JSONs
+                    updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
+                    updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
+                }
+                break;
+            case 'curl':
+                output = generateCURL();
+                if (output) {
+                    document.getElementById('jsonOutput').value = output;
+                    // Add calls to update the assignment CURLs
+                    updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
+                    updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
+                }
+                break;
+        }
+
+        hideLoadingIndicator();
     }, 500);
-  });
 }
 
 // XML Generator
@@ -1349,7 +1346,7 @@ function detectAndImport(text) {
         // Likely XML
         const okXML = tryImportAsXML(trimmed);
         if (!okXML) {
-            // Maybe itâ€™s JSON with leading BOM/spaces? Try JSON as fallback
+            // Maybe it’s JSON with leading BOM/spaces? Try JSON as fallback
             const okJSON = tryImportAsJSON(trimmed);
             if (!okJSON) alert('Unable to parse file as XML or JSON.');
         }
@@ -1720,9 +1717,9 @@ function toggleCollapse(button, contentSelector) {
     content.classList.toggle('collapsed');
 
     if (button.classList.contains('collapsed')) {
-        button.textContent = 'â–¶';
+        button.textContent = '▶';
     } else {
-        button.textContent = 'â–¼';
+        button.textContent = '▼';
     }
 }
 function toggleRuleGroupCollapse(button) {
@@ -1732,9 +1729,9 @@ function toggleRuleGroupCollapse(button) {
     content.classList.toggle('collapsed');
 
     if (button.classList.contains('collapsed')) {
-        button.textContent = 'â–¶';
+        button.textContent = '▶';
     } else {
-        button.textContent = 'â–¼';
+        button.textContent = '▼';
     }
 }
 
@@ -1745,9 +1742,9 @@ function toggleBillingRuleCollapse(button) {
     content.classList.toggle('collapsed');
 
     if (button.classList.contains('collapsed')) {
-        button.textContent = 'â–¶';
+        button.textContent = '▶';
     } else {
-        button.textContent = 'â–¼';
+        button.textContent = '▼';
     }
 }
 //Rest all fields.
@@ -1941,10 +1938,10 @@ function renderNaturalLanguageSummary() {
     const createdBy = root.getAttribute('createdBy') || 'Unknown';
     const comment = doc.querySelector('Comment')?.textContent?.trim();
 
-    lines.push(`ðŸ“– Price Book Name is "${bookName}" and Created By "${createdBy}".`);
-    if (comment) lines.push(`ðŸ’¡ Purpose: ${comment}`);
+    lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
+    if (comment) lines.push(`💡 Purpose: ${comment}`);
     lines.push('');
-    lines.push("ðŸ›  Rules are processed top-down â€” first match applies.");
+    lines.push("🛠 Rules are processed top-down — first match applies.");
 
     const groups = Array.from(doc.getElementsByTagName('RuleGroup'));
     groups.forEach((group, gi) => {
@@ -1953,7 +1950,7 @@ function renderNaturalLanguageSummary() {
         const end = (group.getAttribute('endDate') || '').trim();
         const payer = group.getAttribute('payerAccounts');
 
-        let header = `RuleGroup #${gi + 1}: (${enabled}) â€” Effective from ${start}`;
+        let header = `RuleGroup #${gi + 1}: (${enabled}) — Effective from ${start}`;
         if (end && end.toLowerCase() !== 'unspecified') header += ` to ${end}.`; else header += `.`;
         if (payer && payer.trim()) header += ` Applies only to Payer Account(s): ${payer}`;
         lines.push('');
@@ -1973,9 +1970,9 @@ function renderNaturalLanguageSummary() {
             const includeDT = rule.getAttribute('includeDataTransfer') === 'true';
             const includeRI = rule.getAttribute('includeRIPurchases') === 'true';
 
-            lines.push(`â€¢ Billing Rule Name = "${ruleName}"`);
-            lines.push(`â†’ Applies ${adjPhrase}`);
-            lines.push(`â†’ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ${includeRI ? 'Includes' : 'Excludes'} RI purchases line items.`);
+            lines.push(`• Billing Rule Name = "${ruleName}"`);
+            lines.push(`→ Applies ${adjPhrase}`);
+            lines.push(`→ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ${includeRI ? 'Includes' : 'Excludes'} RI purchases line items.`);
 
             const product = rule.querySelector('Product');
             if (product) {
@@ -1993,10 +1990,10 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
-
-// Updated generateAndThenSummarize to wait on the Promise from generateOutput
 function generateAndThenSummarize() {
-  generateOutput('xml')
+  generateOutput('xml');
+
+  waitForXMLUpdate()
     .then(() => {
       const nlSection = document.getElementById('nlOutputSection');
       if (nlSection) {
@@ -2006,8 +2003,39 @@ function generateAndThenSummarize() {
       }
     })
     .catch((err) => {
-      console.warn(err);  // Log any errors (e.g., validation failed)
-      // Optional fallback: render with whatever is already in xmlOutput
+      console.warn(err.message);
+      // Fallback: try rendering anyway without guaranteed fresh XML
       renderNaturalLanguageSummary();
     });
+}
+
+function waitForXMLUpdate(timeout = 2000) {
+  return new Promise((resolve, reject) => {
+    const xmlField = document.getElementById('xmlOutput');
+    if (!xmlField) {
+      reject(new Error("XML output textarea not found"));
+      return;
+    }
+
+    // If XML already exists and valid, resolve immediately
+    if (xmlField.value.trim().startsWith('<')) {
+      resolve();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (xmlField.value.trim().startsWith('<')) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+
+    observer.observe(xmlField, { characterData: true, childList: true, subtree: true, attributes: true });
+
+    // Fallback timeout in case update never happens
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error("Timeout waiting for XML update"));
+    }, timeout);
+  });
 }
