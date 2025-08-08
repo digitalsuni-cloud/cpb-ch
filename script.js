@@ -1919,8 +1919,6 @@ function wrapLinesAsHTML(lines) {
 
 // Main Natural Language summary
 function renderNaturalLanguageSummary() {
-    const xml = document.getElementById('xmlOutput').value;
-    console.log('Rendering summary with XML:', xml.substr(0, 100)); // log first 100 characters
     const outputEl = document.getElementById('nlSummary');
     if (!outputEl) return;
 
@@ -1996,7 +1994,6 @@ function renderNaturalLanguageSummary() {
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
 
-// Updated generateAndThenSummarize to wait on the Promise from generateOutput
 function generateAndThenSummarize() {
   generateOutput('xml')
     .then(() => {
@@ -2008,13 +2005,12 @@ function generateAndThenSummarize() {
           renderNaturalLanguageSummary();
           nlSection.scrollIntoView({ behavior: 'smooth' });
         }
-      }, 50); // 10 ms delay, can be 0 or 20 if needed
+      }, 30); // 10 ms delay, can be 0 or 20 if needed
     })
     .catch((err) => {
       console.warn(err);
       renderNaturalLanguageSummary(); // fallback render without delay
     });
 }
-
 
 
