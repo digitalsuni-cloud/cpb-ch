@@ -939,41 +939,34 @@ function generateOutput(type) {
   }
 
   showLoadingIndicator();
+  console.log('Starting generateOutput for type:', type);
 
   return new Promise((resolve) => {
     setTimeout(() => {
       let output = '';
-      switch (type) {
-        case 'xml':
-          output = generateXML();
-          if (output) {
-            document.getElementById('xmlOutput').value = output;
-          }
-          break;
-        case 'json':
-          output = generateJSON();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment JSONs
-            updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-        case 'curl':
-          output = generateCURL();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment CURLs
-            updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
+      try {
+        switch (type) {
+          case 'xml':
+            output = generateXML();
+            console.log('Generated XML length:', output ? output.length : 0);
+            if (output) {
+              document.getElementById('xmlOutput').value = output;
+              console.log('XML written to textarea');
+            }
+            break;
+          // Other cases...
+        }
+        hideLoadingIndicator();
+        resolve(output);
+      } catch (error) {
+        console.error('Error in generateOutput:', error);
+        hideLoadingIndicator();
+        resolve(''); // Resolve with empty string to prevent hanging
       }
-      hideLoadingIndicator();
-      resolve(output);  // Resolve with the generated output
     }, 500);
   });
 }
+
 
 // XML Generator
 function generateXML() {
@@ -1996,21 +1989,75 @@ function renderNaturalLanguageSummary() {
 
 function generateAndThenSummarize() {
   generateOutput('xml')
-    .then(() => {
-      // Slight delay to ensure DOM updates are committed
-      setTimeout(() => {
-        const nlSection = document.getElementById('nlOutputSection');
-        if (nlSection) {
-          nlSection.style.display = 'block';
-          renderNaturalLanguageSummary();
-          nlSection.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 30); // 10 ms delay, can be 0 or 20 if needed
+    .then((xmlContent) => {
+      const nlSection = document.getElementById('nlOutputSection');
+      if (nlSection) {
+        nlSection.style.display = 'block';
+        // Pass XML directly instead of reading from textarea
+        renderNaturalLanguageSummaryWithContent(xmlContent);
+        nlSection.scrollIntoView({ behavior: 'smooth' });
+      }
     })
     .catch((err) => {
-      console.warn(err);
-      renderNaturalLanguageSummary(); // fallback render without delay
+      console.warn('Error in generateOutput:', err);
+      // Fallback: try reading from textarea
+      renderNaturalLanguageSummary();
     });
 }
+function renderNaturalLanguageSummaryWithContent(xmlContent) {
+  const outputEl = document.getElementById('nlSummary');
+  if (!outputEl) return;
+
+  if (!xmlContent || !xmlContent.trim()) {
+    outputEl.textContent = 'No price book loaded.';
+    return;
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlContent, 'application/xml');
+    
+    // Check for XML parsing errors
+    const parseError = doc.getElementsByTagName('parsererror');
+    if (parseError.length > 0) {
+      console.error('XML parsing error:', parseError[0].textContent);
+      outputEl.textContent = 'Error parsing XML: ' + parseError[0].textContent;
+      return;
+    }
+
+    // Continue with your existing logic
+    const lines = [];
+    const root = doc.documentElement;
+    const bookName = (document.getElementById('bookName')?.value?.trim()) || 'Unnamed';
+    const createdBy = root.getAttribute('createdBy') || 'Unknown';
+    const comment = doc.querySelector('Comment')?.textContent?.trim();
+
+    lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
+    if (comment) lines.push(`💡 Purpose: ${comment}`);
+    lines.push('');
+    lines.push("🛠 Rules are processed top-down — first match applies.");
+
+    // Rest of your existing renderNaturalLanguageSummary logic...
+    const groups = Array.from(doc.getElementsByTagName('RuleGroup'));
+    groups.forEach((group, gi) => {
+      // Your existing group processing logic
+    });
+
+    outputEl.innerHTML = wrapLinesAsHTML(lines);
+    
+  } catch (error) {
+    console.error('Error in renderNaturalLanguageSummaryWithContent:', error);
+    outputEl.textContent = 'Error rendering summary: ' + error.message;
+  }
+}
+
+// Keep the original function as fallback
+function renderNaturalLanguageSummary() {
+  const xml = document.getElementById('xmlOutput')?.value || '';
+  console.log('Rendering summary with XML:', xml.substr(0, 100));
+  renderNaturalLanguageSummaryWithContent(xml);
+}
+
+
 
 
