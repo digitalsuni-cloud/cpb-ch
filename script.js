@@ -20,7 +20,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const nlTabHeader = document.querySelector('.tab-item[data-tab="nlTab"]');
     if (nlTabHeader) {
         nlTabHeader.addEventListener('click', () => {
-            setTimeout(renderNaturalLanguageSummary, 50);
+            if (typeof renderNaturalLanguageSummary === 'function') {
+                setTimeout(renderNaturalLanguageSummary, 50);
+            }
         });
     }
 
@@ -28,21 +30,51 @@ document.addEventListener('DOMContentLoaded', function () {
     const readOutBtn = document.getElementById('readOutBtn');
     if (readOutBtn) {
         readOutBtn.addEventListener('click', function () {
-            // Step 1: Generate XML output to ensure latest form data
+            // Step 1: Generate XML Output
             generateOutput('xml');
 
-            // Step 2: Wait a moment for generation to finish, then read
-            setTimeout(() => {
-                if (typeof renderNaturalLanguageSummary === 'function') {
-                    renderNaturalLanguageSummary();
+            // Step 2: Wait until xmlOutput has content
+            const xmlField = document.getElementById('xmlOutput');
+            let attempts = 0;
+            const maxAttempts = 20; // max wait ~2s
 
-                    // Step 3: Switch to the Natural Language tab automatically
-                    if (nlTabHeader) nlTabHeader.click();
+            const checkAndRun = setInterval(() => {
+                attempts++;
+                if (xmlField && xmlField.value.trim().startsWith('<')) {
+                    clearInterval(checkAndRun);
+                    if (typeof renderNaturalLanguageSummary === 'function') {
+                        const nlSection = document.getElementById('nlOutputSection');
+                        if (nlSection) {
+                            nlSection.style.display = 'block';
+                            renderNaturalLanguageSummary();
+                            nlSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkAndRun);
+                    console.warn("Timed out waiting for XML to generate.");
                 }
-            }, 200); // small delay so XML textarea is populated
+            }, 100);
+        });
+    }
+
+    // === Collapse/Expand NL Summary ===
+    const toggleNLBtn = document.getElementById('toggleNLBtn');
+    if (toggleNLBtn) {
+        toggleNLBtn.addEventListener('click', function () {
+            const nlArea = document.getElementById('nlContentArea');
+            if (!nlArea) return;
+            if (nlArea.style.display === 'none') {
+                nlArea.style.display = '';
+                toggleNLBtn.textContent = '🔽';
+            } else {
+                nlArea.style.display = 'none';
+                toggleNLBtn.textContent = '▶';
+            }
         });
     }
 });
+
 
 function toggleTheme() {
     const body = document.body;
@@ -1758,13 +1790,15 @@ function performReset() {
     addRuleGroup(null, true);
 }
 
+// BELOW CODE FOR READOUT PRICEBOOK FUNCTION
+
 // Fetch current XML, either from textarea or generate fresh
 function getCurrentSpecificationXML() {
     const xmlEl = document.getElementById('xmlOutput');
-    if (xmlEl && xmlEl.value.trim().startsWith('<')) {
+    if (xmlEl && xmlEl.value && xmlEl.value.trim().startsWith('<')) {
         return xmlEl.value.trim();
     }
-    // Optionally, generate XML here if you have a function
+    // Optionally regenerate XML here if needed
     // return generateXML();
     return null;
 }
@@ -1772,7 +1806,7 @@ function getCurrentSpecificationXML() {
 // Convert billing adjustment info to human readable
 function toReadableAdjustment(type, adjustment) {
     if (!type) return 'No adjustment specified';
-    let adj = adjustment ?? 'unspecified';
+    const adj = adjustment != null ? adjustment : 'unspecified';
     const t = type.toLowerCase();
     if (t.includes('discount')) return `a ${adj} % discount`;
     if (t.includes('increase') || t.includes('markup')) return `a ${adj} % markup`;
@@ -1793,10 +1827,10 @@ function collectProductFilters(productEl) {
     // InstanceProperties may be multiple sets
     const instProps = Array.from(productEl.getElementsByTagName('InstanceProperties'));
     instProps.forEach(ip => {
-        const t = ip.getAttribute('instanceType') ?? 'any';
-        const s = ip.getAttribute('instanceSize') ?? 'any';
+        const t = (ip.getAttribute('instanceType') || 'any').trim();
+        const s = (ip.getAttribute('instanceSize') || 'any').trim();
         const r = ip.getAttribute('reserved');
-        let parts = [`instanceType=${t}`, `instanceSize=${s}`];
+        const parts = [`instanceType=${t}`, `instanceSize=${s}`];
         if (r !== null && r !== undefined) parts.push(`reserved=${r}`);
         filters.push(`Instance with ${parts.join(', ')}`);
     });
@@ -1823,7 +1857,7 @@ function collectProductFilters(productEl) {
 // Helper to extract names of given tag and join them for description
 function addNameList(parent, tag, label, outputArr) {
     const nodes = Array.from(parent.getElementsByTagName(tag));
-    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean);
+    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean).map(s => s.trim());
     if (names.length > 0) {
         outputArr.push(`${label}: ${names.join(', ')}`);
     }
@@ -1864,90 +1898,78 @@ function wrapLinesAsHTML(lines) {
     return htmlBlocks.join('\n');
 }
 
-// === Main Natural Language summary ===
+// Main Natural Language summary
 function renderNaturalLanguageSummary() {
     const outputEl = document.getElementById('nlSummary');
     if (!outputEl) return;
 
     const xml = getCurrentSpecificationXML();
     if (!xml) {
-        outputEl.textContent = 'No price book loaded. Please load or generate a valid XML.';
+        outputEl.textContent = 'No price book loaded.';
         return;
     }
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, 'application/xml');
     if (doc.getElementsByTagName('parsererror').length > 0) {
-        outputEl.textContent = 'Error parsing XML. Please check the input.';
+        outputEl.textContent = 'Error parsing XML.';
         return;
     }
 
     const lines = [];
     const root = doc.documentElement;
-    const bookName = (document.getElementById('bookName')?.value?.trim()) ?? 'Unnamed';
-    const createdBy = root.getAttribute('createdBy') ?? 'Unknown';
-    const commentNode = doc.querySelector('Comment');
-    const comment = commentNode ? commentNode.textContent.trim() : '';
+    const bookName = (document.getElementById('bookName')?.value?.trim()) || 'Unnamed';
+    const createdBy = root.getAttribute('createdBy') || 'Unknown';
+    const comment = doc.querySelector('Comment')?.textContent?.trim();
 
     lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
     if (comment) lines.push(`💡 Purpose: ${comment}`);
     lines.push('');
-    lines.push("🛠 Rules are processed top-down — first matching rule applies, later rules are ignored for that line item.");
+    lines.push("🛠 Rules are processed top-down — first match applies.");
 
     const groups = Array.from(doc.getElementsByTagName('RuleGroup'));
-    if (groups.length === 0) {
-        lines.push("No RuleGroups found in the price book.");
-        outputEl.innerHTML = wrapLinesAsHTML(lines);
-        return;
-    }
-
     groups.forEach((group, gi) => {
         const enabled = group.getAttribute('enabled') === 'false' ? 'Disabled' : 'Enabled';
-        const start = group.getAttribute('startDate') ?? 'unspecified';
-        const end = group.getAttribute('endDate') ?? 'unspecified';
+        const start = (group.getAttribute('startDate') || 'unspecified').trim();
+        const end = (group.getAttribute('endDate') || '').trim();
         const payer = group.getAttribute('payerAccounts');
-        let payerText = '';
-        if (payer && payer.trim() !== '') {
-            payerText = ` Applies to Payer Account(s): ${payer}.`;
-        }
 
+        let header = `RuleGroup #${gi + 1}: (${enabled}) — Effective from ${start}`;
+        if (end && end.toLowerCase() !== 'unspecified') header += ` to ${end}.`; else header += `.`;
+        if (payer && payer.trim()) header += ` Applies only to Payer Account(s): ${payer}`;
         lines.push('');
-        lines.push(`RuleGroup #${gi + 1}: (${enabled}) — Effective from ${start} to ${end}.${payerText}`);
+        lines.push(header);
 
         const billingRules = Array.from(group.getElementsByTagName('BillingRule'));
-        if (billingRules.length === 0) {
-            lines.push("  (No BillingRules in this group)");
-        }
-
         billingRules.forEach(rule => {
-            const ruleName = rule.getAttribute('name') ?? '(Unnamed Rule)';
+            const ruleName = rule.getAttribute('name') || '(Unnamed Rule)';
             const basic = rule.querySelector('BasicBillingRule');
-            const type = basic ? basic.getAttribute('billingRuleType') : 'unspecified';
-            const adj = basic ? basic.getAttribute('billingAdjustment') : 'unspecified';
+            const type = basic?.getAttribute('billingRuleType') || '';
+            const adj = basic?.getAttribute('billingAdjustment') || '';
+            let adjPhrase = toReadableAdjustment(type, adj);
+            if (adj && adj.trim().startsWith('-')) {
+                adjPhrase += ' (Negative rate)';
+            }
 
-            const includeDT = rule.getAttribute('includeDataTransfer');
-            const includeRI = rule.getAttribute('includeRIPurchases');
-            const dtText = includeDT === 'true' ? 'Includes Data Transfer' : 'Excludes Data Transfer';
-            const riText = includeRI === 'true' ? 'Includes RI purchases' : 'Excludes RI purchases';
+            const includeDT = rule.getAttribute('includeDataTransfer') === 'true';
+            const includeRI = rule.getAttribute('includeRIPurchases') === 'true';
 
-            lines.push(`  • Billing Rule: "${ruleName}"`);
-            lines.push(`    → Applies ${toReadableAdjustment(type, adj)}`);
-            lines.push(`    → ${dtText}, ${riText}`);
+            lines.push(`• Billing Rule Name = "${ruleName}"`);
+            lines.push(`→ Applies ${adjPhrase}`);
+            lines.push(`→ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ${includeRI ? 'Includes' : 'Excludes'} RI purchases line items as well.`);
 
             const product = rule.querySelector('Product');
             if (product) {
-                const pname = product.getAttribute('productName') ?? 'Any';
-                lines.push(`    Product Name: ${pname === 'Any' ? 'All products' : pname}`);
-
+                const pname = product.getAttribute('productName') || 'ANY';
+                lines.push(`Product Name = ${pname === 'ANY' ? 'All the Products' : pname}`);
                 const filters = collectProductFilters(product);
-                if (filters.length > 0) {
-                    lines.push('    Filters:');
-                    filters.forEach(f => lines.push(`      - ${f}`));
-                } else {
-                    lines.push('    No additional filters.');
+                if (filters.length) {
+                    lines.push('Filters:');
+                    filters.forEach(f => {
+                        // Replace comma lists with "and"
+                        lines.push(`- ${f.replace(/, /g, ' and ')}`);
+                    });
                 }
-            } else {
-                lines.push('    Applies to all products.');
             }
         });
     });
