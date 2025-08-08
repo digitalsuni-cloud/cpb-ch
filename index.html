@@ -107,16 +107,19 @@
     </div>
 
     <!-- Natural Language Summary Output -->
-    <div class="output-section" id="nlOutputSection" style="display:none;">
-      <h3>Pricebook Read Out (AI Generated Summary):</h3>
-      <div class="output-area">
-        <!-- Mini refresh like XML/JSON -->
-        <div class="icon-actions">
-          <button class="icon-button" id="refreshNLBtn" title="Refresh Summary">♻</button>
-        </div>
-        <div id="nlSummary" class="nl-summary" style="padding-top:4px;"></div>
-      </div>
+<div class="output-section" id="nlOutputSection" style="display:none;">
+  <h3>
+    Your Custom Pricebook Summary
+    <button id="toggleNLBtn" class="icon-button" title="Collapse/Expand">🔽</button>
+  </h3>
+  <div class="output-area" id="nlContentArea">
+    <div class="icon-actions">
+      <button class="icon-button" id="refreshNLBtn" title="Refresh Summary">♻</button>
     </div>
+    <div id="nlSummary" class="nl-summary" style="padding-top:4px;"></div>
+  </div>
+</div>
+
 
     <!-- XML Output -->
     <div class="output-section">
