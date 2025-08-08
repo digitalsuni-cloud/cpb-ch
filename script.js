@@ -1,52 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
-    // === Theme Detection ===
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // Set initial theme based on system preference
-    if (prefersDark) {
-        document.body.setAttribute('data-theme', 'dark');
-    }
-
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        if (e.matches) {
-            document.body.setAttribute('data-theme', 'dark');
-        } else {
-            document.body.removeAttribute('data-theme');
-        }
-    });
-
-    // === Natural Language Tab Click Hook ===
-    const nlTabHeader = document.querySelector('.tab-item[data-tab="nlTab"]');
-    if (nlTabHeader) {
-        nlTabHeader.addEventListener('click', () => {
-            if (typeof renderNaturalLanguageSummary === 'function') {
-                setTimeout(renderNaturalLanguageSummary, 50);
-            }
-        });
-    }
-
-    // === Helper: Generate XML then render summary ===
-    function generateAndThenSummarize() {
-        // Step 1: Generate XML Output
-        generateOutput('xml');
-
-        // Step 2: Wait until xmlOutput has content (max ~2 seconds)
-        const xmlField = document.getElementById('xmlOutput');
-        let attempts = 0;
-        const maxAttempts = 20;
-
-        const checkAndRun = setInterval(() => {
-            attempts++;
-            if (xmlField && xmlField.value.trim().startsWith('<')) {
-                clearInterval(checkAndRun);
-                if (typeof renderNaturalLanguageSummary === 'function') {
-                    const nlSection = document.getElementById('nlOutputSection');
-                    if (nlSection) {
-                        nlSection.style.display = 'block';
-                        renderNaturalLanguageSummary();
-                        nlSection.scrollIntoView({ behavior: 'smooth' });
-                    }
+async 
                 }
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkAndRun);
@@ -85,12 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-function toggleTheme() {
-    const body = document.body;
-    const currentTheme = body.getAttribute('data-theme');
-    if (currentTheme === 'dark') {
-        body.removeAttribute('data-theme');
-    } else {
+ else {
         body.setAttribute('data-theme', 'dark');
     }
 }
@@ -933,47 +880,7 @@ function addSavingsPlanOfferingType(button) {
 
 
 // Updated generateOutput to return a Promise that resolves after the async timeout
-function generateOutput(type) {
-  if (!validateForm()) {
-    return Promise.reject('Form validation failed');
-  }
 
-  showLoadingIndicator();
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let output = '';
-      switch (type) {
-        case 'xml':
-          output = generateXML();
-          if (output) {
-            document.getElementById('xmlOutput').value = output;
-          }
-          break;
-        case 'json':
-          output = generateJSON();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment JSONs
-            updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-        case 'curl':
-          output = generateCURL();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment CURLs
-            updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-      }
-      hideLoadingIndicator();
-      resolve(output);  // Resolve with the generated output
-    }, 500);
-  });
-}
 
 // XML Generator
 function generateXML() {
@@ -2023,26 +1930,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === Helper: Generate XML then render summary ===
-    function generateAndThenSummarize() {
-        // Step 1: Generate XML Output
-        generateOutput('xml');
-
-        // Step 2: Wait until xmlOutput has content (max ~2 seconds)
-        const xmlField = document.getElementById('xmlOutput');
-        let attempts = 0;
-        const maxAttempts = 20;
-
-        const checkAndRun = setInterval(() => {
-            attempts++;
-            if (xmlField && xmlField.value.trim().startsWith('<')) {
-                clearInterval(checkAndRun);
-                if (typeof renderNaturalLanguageSummary === 'function') {
-                    const nlSection = document.getElementById('nlOutputSection');
-                    if (nlSection) {
-                        nlSection.style.display = 'block';
-                        renderNaturalLanguageSummary();
-                        nlSection.scrollIntoView({ behavior: 'smooth' });
-                    }
+    
                 }
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkAndRun);
@@ -2081,12 +1969,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-function toggleTheme() {
-    const body = document.body;
-    const currentTheme = body.getAttribute('data-theme');
-    if (currentTheme === 'dark') {
-        body.removeAttribute('data-theme');
-    } else {
+ else {
         body.setAttribute('data-theme', 'dark');
     }
 }
@@ -2929,47 +2812,7 @@ function addSavingsPlanOfferingType(button) {
 
 
 // Updated generateOutput to return a Promise that resolves after the async timeout
-function generateOutput(type) {
-  if (!validateForm()) {
-    return Promise.reject('Form validation failed');
-  }
 
-  showLoadingIndicator();
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let output = '';
-      switch (type) {
-        case 'xml':
-          output = generateXML();
-          if (output) {
-            document.getElementById('xmlOutput').value = output;
-          }
-          break;
-        case 'json':
-          output = generateJSON();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment JSONs
-            updateAssignCustomerJSON('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountJSON('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-        case 'curl':
-          output = generateCURL();
-          if (output) {
-            document.getElementById('jsonOutput').value = output;
-            // Add calls to update the assignment CURLs
-            updateAssignCustomerCurl('<PriceBookID_From_Previous_Command_Output>');
-            updateAssignCustomerAccountCurl('<PriceBookAssignmentID_From_Previous_Command_Output>');
-          }
-          break;
-      }
-      hideLoadingIndicator();
-      resolve(output);  // Resolve with the generated output
-    }, 500);
-  });
-}
 
 // XML Generator
 function generateXML() {
@@ -4009,5 +3852,3 @@ async function generateAndThenSummarize() {
     renderNaturalLanguageSummary(); // fallback on error
   }
 }
-
-
