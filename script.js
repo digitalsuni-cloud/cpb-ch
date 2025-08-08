@@ -1919,6 +1919,8 @@ function wrapLinesAsHTML(lines) {
 
 // Main Natural Language summary
 function renderNaturalLanguageSummary() {
+    const xml = document.getElementById('xmlOutput').value;
+    console.log('Rendering summary with XML:', xml.substr(0, 100)); // log first 100 characters
     const outputEl = document.getElementById('nlSummary');
     if (!outputEl) return;
 
@@ -1998,18 +2000,21 @@ function renderNaturalLanguageSummary() {
 function generateAndThenSummarize() {
   generateOutput('xml')
     .then(() => {
-      const nlSection = document.getElementById('nlOutputSection');
-      if (nlSection) {
-        nlSection.style.display = 'block';
-        renderNaturalLanguageSummary();
-        nlSection.scrollIntoView({ behavior: 'smooth' });
-      }
+      // Slight delay to ensure DOM updates are committed
+      setTimeout(() => {
+        const nlSection = document.getElementById('nlOutputSection');
+        if (nlSection) {
+          nlSection.style.display = 'block';
+          renderNaturalLanguageSummary();
+          nlSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 50); // 10 ms delay, can be 0 or 20 if needed
     })
     .catch((err) => {
-      console.warn(err);  // Log any errors (e.g., validation failed)
-      // Optional fallback: render with whatever is already in xmlOutput
-      renderNaturalLanguageSummary();
+      console.warn(err);
+      renderNaturalLanguageSummary(); // fallback render without delay
     });
 }
+
 
 
