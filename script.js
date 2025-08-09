@@ -1836,7 +1836,7 @@ function toReadableAdjustment(type, adjustment) {
     const t = type.toLowerCase();
     if (t.includes('discount')) return `a ${adj} % discount`;
     if (t.includes('increase') || t.includes('markup')) return `a ${adj} % markup`;
-    if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of ${adj}`;
+    if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of $${adj}`;
     return `${type} set to ${adj}`;
 }
 
