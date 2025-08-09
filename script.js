@@ -2008,19 +2008,26 @@ function renderNaturalLanguageSummary() {
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
 }
-// Add this function to handle the auto-retry clicks
+// handleButtonWithRetry function to doublelcik the NL Summary refresh button
 function handleButtonWithRetry(button, handler) {
-    let clickCount = 0;
+    let isAutoRetry = false;
+    
     button.addEventListener('click', function(event) {
-        clickCount++;
+        if (isAutoRetry) {
+            // This is the automatic second click - just execute and reset
+            isAutoRetry = false;
+            handler.call(this, event);
+            return;
+        }
+        
+        // This is a manual first click
         handler.call(this, event);
         
-        if (clickCount === 1) {
-            // Schedule second click
-            setTimeout(() => {
-                clickCount = 0; // Reset for future clicks
-                this.click();
-            }, 600);
-        }
+        // Schedule the automatic second click
+        setTimeout(() => {
+            isAutoRetry = true;
+            this.click();
+        }, 600);
     });
 }
+
