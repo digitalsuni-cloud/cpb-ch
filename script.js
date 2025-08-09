@@ -499,7 +499,7 @@ function updateNavigation() {
     ruleSearch.empty();
 
     // Add a default placeholder option
-    ruleSearch.append(new Option('Select or search for a Billing rule...', '', true, true));
+    ruleSearch.append(new Option('Select or search for a Billing Rule...', '', true, true));
 
     document.querySelectorAll('.rule-group').forEach((ruleGroup, groupIndex) => {
         const startDate = ruleGroup.querySelector('input[type="date"][id^="startDate-"]').value || '(noStartDate)';
@@ -530,7 +530,7 @@ function updateNavigation() {
 
     // Initialize or update Select2
     ruleSearch.select2({
-        placeholder: 'Select or search for a Billing rule...',
+        placeholder: 'Select or search for a Billing Rule...',
         width: '100%',
         allowClear: false,
         theme: 'classic',
