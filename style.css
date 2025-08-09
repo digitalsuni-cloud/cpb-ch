@@ -1174,20 +1174,26 @@ transition: all 0.3s ease;
   padding-left: 12px;
   color: var(--text-light);
 }
+
+
+
 /*NL Refresh Button*/
-.green-refresh-btn {
-    background-color: #28a745 !important;
+#refreshNLBtn {
+    position: relative;
+    top: -3cm;
+    right: -3cm;
+    background-color: #28a745 !important; /* Green background */
     color: white !important;
     border: 2px solid #28a745 !important;
-    border-radius: 4px;
-    padding: 8px 12px;
 }
 
-.green-refresh-btn:hover {
-    background-color: #218838 !important;
+#refreshNLBtn:hover {
+    background-color: #218838 !important; /* Darker green on hover */
     border-color: #1e7e34 !important;
-    transform: scale(1.05);
 }
+
+
+
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
