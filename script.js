@@ -56,16 +56,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === Assign to Read Out Pricebook button ===
-  const readOutBtn = document.getElementById('readOutBtn');
-  if (readOutBtn) {
-    readOutBtn.addEventListener('click', generateAndThenSummarize);
-  }
+    const readOutBtn = document.getElementById('readOutBtn');
+    if (readOutBtn) {
+        handleButtonWithRetry(readOutBtn, generateAndThenSummarize);
+    }
+
     // === Assign same to Refresh button ===
 
-  const refreshBtn = document.getElementById('refreshNLBtn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', generateAndThenSummarize);
-  }
+   const refreshBtn = document.getElementById('refreshNLBtn');
+    if (refreshBtn) {
+        handleButtonWithRetry(refreshBtn, generateAndThenSummarize);
+    }
 
     // === Collapse/Expand NL Summary ===
     const toggleNLBtn = document.getElementById('toggleNLBtn');
@@ -2006,4 +2007,20 @@ function renderNaturalLanguageSummary() {
     });
 
     outputEl.innerHTML = wrapLinesAsHTML(lines);
+}
+// Add this function to handle the auto-retry clicks
+function handleButtonWithRetry(button, handler) {
+    let clickCount = 0;
+    button.addEventListener('click', function(event) {
+        clickCount++;
+        handler.call(this, event);
+        
+        if (clickCount === 1) {
+            // Schedule second click
+            setTimeout(() => {
+                clickCount = 0; // Reset for future clicks
+                this.click();
+            }, 600);
+        }
+    });
 }
