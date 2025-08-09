@@ -1174,23 +1174,6 @@ transition: all 0.3s ease;
   padding-left: 12px;
   color: var(--text-light);
 }
-#refreshNLBtn.icon-button {
-  font-size: 28px;       /* Larger icon */
-  color: #28a745;        /* Green color */
-  padding: 8px;
-  border-radius: 50%;    /* Circular button */
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-#refreshNLBtn.icon-button:hover {
-  color: #1e7e34;        /* Darker green on hover */
-}
-
-
-
 
 
 
