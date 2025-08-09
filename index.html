@@ -6,6 +6,7 @@
     <meta name="description"
         content="CloudHealth Custom Price Book Generator - Create and manage price book XML/JSON configurations">
     <title>CloudHealth CPB Generator</title>
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
@@ -17,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <!-- custom styles -->
-     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -27,26 +28,29 @@
 
     <div class="container">
         <div style="text-align: center;">
-        <h1>CloudHealth Custom Price Book XML/JSON/cURL Generator</h1>
-        <p>
-            For API related details and more on Custom Price Books, visit
-            <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank"
-                style="color: #4ca1af;">
-                CloudHealth API Docs
-            </a>.
-        </p>
+            <h1>CloudHealth Custom Price Book XML/JSON/cURL Generator</h1>
+            <p>
+                For API related details and more on Custom Price Books, visit
+                <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank"
+                    style="color: #4ca1af;">
+                    CloudHealth API Docs
+                </a>.
+            </p>
         </div>
+        
         <br>
         <div class="loading-indicator" role="status" aria-live="polite">
             <div class="spinner"></div>
             <span>Processing...</span>
         </div>
+        
         <div class="rule-nav" id="ruleNav">
             <label for="ruleSearch">Go to Billing Rule:</label>
             <select id="ruleSearch" class="rule-select">
-                <option value="">Select or search for a Billing Uule...</option>
+                <option value="">Select or search for a Billing Rule...</option>
             </select>
         </div>
+        
         <div class="import-section">
             <button class="button" id="importButton"
                 title="Import an existing Price Book specification in JSON/XML to modify"
@@ -103,6 +107,7 @@
                 aria-label="Show help information">
                 ℹ️
             </button>
+            
             <button class="button button-red" onclick="resetAllFields()" aria-label="Reset all fields">
                 <span class="button-icon">🔄</span>Reset All
             </button>
@@ -110,6 +115,7 @@
 
         <div id="groupsContainer" role="region" aria-label="Rule groups"></div>
 
+        <!-- Generate Buttons -->
         <div class="button-group">
             <button class="button" onclick="generateOutput('xml')" aria-label="Generate XML output">
                 Generate XML
@@ -124,8 +130,29 @@
                 aria-label="Generate cURL command">
                 Generate cURL
             </button>
+            <button class="button button-ai" id="readOutBtn" 
+                title="Generate a natural language summary of your price book configuration"
+                aria-label="Generate AI summary of price book">
+                🤖 Read Out Pricebook
+            </button>
         </div>
 
+        <!-- Natural Language Summary Output -->
+        <div class="output-section" id="nlOutputSection" style="display:none;">
+            <h3>
+                Your Custom Pricebook Summary
+                <button id="toggleNLBtn" class="icon-button" title="Collapse/Expand" aria-label="Toggle summary visibility">🔽</button>
+            </h3>
+            
+            <div class="output-area" id="nlContentArea">
+                <div class="icon-actions">
+                    <!-- Icons for future use -->
+                </div>
+                <div id="nlSummary" class="nl-summary" style="padding-top:4px;"></div>
+            </div>
+        </div>
+
+        <!-- XML Output -->
         <div class="output-section">
             <h3>XML Output for the Custom Price Book:</h3>
             <div class="output-area">
@@ -141,6 +168,7 @@
                 </div>
             </div>
             <br>
+            
             <h3>JSON payloads or cURL commands for creating and assigning Custom Price Book are generated below.</h3>
             <h4>1: Create Custom Price Book:</h4>
             <div class="output-area">
@@ -155,6 +183,7 @@
                     </button>
                 </div>
             </div>
+            
             <br>
             <h4>2: Assign Price Book to Customer:</h4>
             <div class="output-area">
@@ -170,6 +199,7 @@
                     </button>
                 </div>
             </div>
+            
             <br>
             <h4>3: Assign Price Book to Customer Designated Payer Account/s:</h4>
             <div class="output-area">
@@ -187,23 +217,27 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="helpModal" class="modal" role="dialog" aria-labelledby="helpTitle" aria-modal="true">
-            <div class="modal-content">
-                <h2 id="helpTitle">Help Information</h2>
-                <button class="modal-close" aria-label="Close help dialog" onclick="closeModal()">×</button>
-                <div id="helpContent"></div>
-            </div>
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal" role="dialog" aria-labelledby="helpTitle" aria-modal="true" style="display: none;">
+        <div class="modal-content">
+            <h2 id="helpTitle">Help Information</h2>
+            <button class="modal-close" aria-label="Close help dialog" onclick="closeModal()">×</button>
+            <div id="helpContent"></div>
         </div>
-            <div class="nav-buttons">
-        <button class="nav-button" onclick="scrollToTop()" title="Go to top">↑</button>
-        <button class="nav-button" onclick="scrollToBottom()" title="Go to bottom">↓</button>
+    </div>
+
+    <!-- Scroll buttons -->
+    <div class="nav-buttons">
+        <button class="nav-button" onclick="scrollToTop()" title="Go to top" aria-label="Scroll to top">↑</button>
+        <button class="nav-button" onclick="scrollToBottom()" title="Go to bottom" aria-label="Scroll to bottom">↓</button>
     </div>
 
     <footer>
-        Created by Sunil Kumar - CloudHealth
+        Created by Sunil DT - CloudHealth
     </footer>
 
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
