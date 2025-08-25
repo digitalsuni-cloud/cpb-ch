@@ -1559,15 +1559,26 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
 
-    const bookNameValue = jsonContent ? jsonContent.book_name : '';
-    document.getElementById('bookName').value = bookNameValue;
+    // Defensive: check for parser errors
+    if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+        console.error("XML parse error:", xmlDoc.getElementsByTagName('parsererror')[0].textContent);
+        alert("Invalid XML file format.");
+        return;
+    }
 
-    const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
-    document.getElementById('createdBy').value = createdByValue || '';
+    // Book name from JSON if available
+    document.getElementById('bookName').value = jsonContent?.book_name || '';
 
-    const comment = xmlDoc.querySelector('Comment')?.textContent || '';
+    // Root attribute createdBy
+    document.getElementById('createdBy').value =
+        xmlDoc.documentElement.getAttribute('createdBy') || '';
+
+    // Normalize comment (trim + collapse whitespace)
+    const commentNode = xmlDoc.querySelector('Comment');
+    const comment = commentNode ? commentNode.textContent.replace(/\s+/g, ' ').trim() : '';
     document.getElementById('comment').value = comment;
 
+    // Clear groups container
     document.getElementById('groupsContainer').innerHTML = '';
 
     const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
@@ -1575,39 +1586,50 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
         addRuleGroup();
         const currentGroup = document.querySelector('.rule-group:last-child');
 
-        currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate');
-        currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate');
-        currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
-        currentGroup.querySelector('[id^="enabled-"]').value = ruleGroup.getAttribute('enabled') || 'true';
+        // Attr safety
+        const startEl = currentGroup.querySelector('[id^="startDate-"]');
+        if (startEl) startEl.value = ruleGroup.getAttribute('startDate') || '';
+        
+        const endEl = currentGroup.querySelector('[id^="endDate-"]');
+        if (endEl) endEl.value = ruleGroup.getAttribute('endDate') || '';
+        
+        const payerEl = currentGroup.querySelector('[id^="payerAccounts-"]');
+        if (payerEl) payerEl.value = ruleGroup.getAttribute('payerAccounts') || '';
+        
+        const enabledEl = currentGroup.querySelector('[id^="enabled-"]');
+        if (enabledEl) enabledEl.value = ruleGroup.getAttribute('enabled') || 'true';
 
+        // Handle BillingRules & Products with guards
         const billingRules = ruleGroup.getElementsByTagName('BillingRule');
         Array.from(billingRules).forEach(billingRule => {
             const addRuleButton = currentGroup.querySelector('button');
             addRule(addRuleButton);
-
             const currentRule = currentGroup.querySelector('.rule:last-child');
             currentRule.addedProperties = new Set();
 
-            currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name');
+            currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name') || '';
+
             const basicBillingRule = billingRule.getElementsByTagName('BasicBillingRule')[0];
-            currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment');
-            currentRule.querySelector('.billingRuleType').value = basicBillingRule.getAttribute('billingRuleType');
-            currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer');
-            currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
+            if (basicBillingRule) {
+                const adj = basicBillingRule.getAttribute('billingAdjustment');
+                const type = basicBillingRule.getAttribute('billingRuleType');
+                currentRule.querySelector('.billingAdjustment').value = adj || '';
+                currentRule.querySelector('.billingRuleType').value = type || '';
+            }
+
+            currentRule.querySelector('.includeDataTransfer').value =
+                billingRule.getAttribute('includeDataTransfer') || 'false';
+            currentRule.querySelector('.includeRIPurchases').value =
+                billingRule.getAttribute('includeRIPurchases') || 'false';
 
             const product = billingRule.getElementsByTagName('Product')[0];
             if (product) {
-                currentRule.querySelector('.productName').value = product.getAttribute('productName');
-                currentRule.querySelector('.productIncludeDataTransfer').value = product.getAttribute('includeDataTransfer') || '';
-                currentRule.querySelector('.productIncludeRIPurchases').value = product.getAttribute('includeRIPurchases') || '';
-
-                initializePropertySelector(currentRule.querySelector('.propertySelect'));
+                currentRule.querySelector('.productName').value = product.getAttribute('productName') || '';
                 importProperties(product, currentRule);
             }
         });
     });
 
-    // After all DOM updates, collapse all properties
     setTimeout(collapseAllProperties, 0);
 }
 
