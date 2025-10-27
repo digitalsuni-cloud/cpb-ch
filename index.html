@@ -3,109 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudHealth Policy JSON Transformer</title>
+    <meta name="description"
+        content="CloudHealth Custom Price Book Generator - Create and manage price book XML/JSON configurations">
+    <title>CloudHealth CPB Generator</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- jQuery (required for Select2) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Select2 CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- custom styles -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-        🌙
+    <button class="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <span aria-hidden="true">🌓</span>
     </button>
 
     <div class="container">
-        <header>
-            <h1>CloudHealth Policy JSON Transformer</h1>
-            <p class="subtitle">Remove IDs and clean up policy JSON for import</p>
-        </header>
-
-        <div class="main-content">
-            <div class="upload-section">
-                <div class="file-input-wrapper">
-                    <label for="fileInput" class="file-label">
-                        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <span id="fileNameDisplay">Choose JSON file or drag & drop</span>
-                    </label>
-                    <input type="file" id="fileInput" accept=".json" />
-                </div>
-            </div>
-
-            <div class="textarea-section">
-                <div class="input-panel">
-                    <h2>Original JSON</h2>
-                    <div class="output-area">
-                        <textarea id="inputJson" placeholder="Or paste your CloudHealth policy JSON here..."></textarea>
-                        <div class="icon-actions">
-                            <button class="icon-button" onclick="prettifyJson('inputJson')" title="Prettify JSON" aria-label="Prettify original JSON">
-                                ✨
-                            </button>
-                            <button class="icon-button" onclick="copyOutput('inputJson')" title="Copy to clipboard" aria-label="Copy original JSON to clipboard">
-                                📋
-                            </button>
-                            <button class="icon-button" onclick="clearTextarea('inputJson')" title="Clear content" aria-label="Clear original JSON">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="output-panel">
-                    <h2>Transformed JSON</h2>
-                    <div class="output-area">
-                        <textarea id="outputJson" readonly placeholder="Transformed JSON will appear here..."></textarea>
-                        <div class="icon-actions">
-                            <button class="icon-button" onclick="copyOutput('outputJson')" title="Copy to clipboard" aria-label="Copy transformed JSON to clipboard">
-                                📋
-                            </button>
-                            <button class="icon-button" onclick="downloadOutput('outputJson', 'json')" title="Download JSON file" aria-label="Download transformed JSON file">
-                                💾
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="button-section">
-                <button id="transformBtn" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 23 10 17 10"></polyline>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                    </svg>
-                    Transform
-                </button>
-                <button id="downloadBtn" class="btn btn-success" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Download JSON
-                </button>
-                <button id="clearBtn" class="btn btn-secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Clear
-                </button>
-            </div>
-
-            <div id="statusMessage" class="status-message"></div>
+        <div style="text-align: center;">
+            <h1>CloudHealth Custom Price Book XML/JSON/cURL Generator</h1>
+            <p>
+                For API related details and more on Custom Price Books, visit
+                <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank"
+                    style="color: #4ca1af;">
+                    CloudHealth API Docs
+                </a>.
+            </p>
+        </div>
+        
+        <br>
+        <div class="loading-indicator" role="status" aria-live="polite">
+            <div class="spinner"></div>
+            <span>Processing...</span>
+        </div>
+        
+        <div class="rule-nav" id="ruleNav">
+            <label for="ruleSearch">Go to Billing Rule:</label>
+            <select id="ruleSearch" class="rule-select">
+                <option value="">Select or search for a Billing Rule...</option>
+            </select>
+        </div>
+        
+        <div class="import-section">
+            <button class="button" id="importButton"
+                title="Import an existing Price Book specification in JSON/XML to modify"
+                aria-label="Import existing price book">
+                <span class="button-icon">📂</span>Import Price Book
+            </button>
+            <input type="file" id="fileInput" accept=".json,.xml" class="sr-only">
         </div>
 
-        <footer>
-            <p>Created for CloudHealth Policy Management</p>
-        </footer>
+        <div class="input-row">
+            <div class="input-group">
+                <label for="bookName">Price Book Name *</label>
+                <input type="text" id="bookName" name="bookName" aria-required="true" aria-describedby="bookName-error"
+                    title="Please enter the name of the custom price book here." placeholder="Enter CPB Name">
+                <div id="bookName-error" class="error-message"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="createdBy">Created By *</label>
+                <input type="text" id="createdBy" name="createdBy" aria-required="true"
+                    title="Enter your name or email here." aria-describedby="createdBy-error"
+                    placeholder="Enter Name or Email">
+                <div id="createdBy-error" class="error-message"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="comment">Description</label>
+                <input type="text" id="comment" name="comment" placeholder="Enter Pricebook Description">
+            </div>
+        </div>
+
+        <div class="customer-ids">
+            <div class="input-group">
+                <label for="cxAPIId">Customer API ID</label>
+                <input type="text" id="cxAPIId" name="cxAPIId"
+                    title="Enter the Customer API ID from the Partner->Customers->List section."
+                    placeholder="Enter Customer API ID">
+            </div>
+
+            <div class="input-group">
+                <label for="cxPayerId">Customer Payer ID(s)</label>
+                <input type="text" id="cxPayerId" name="cxPayerId"
+                    title="Enter the Customer designated Payer ID(s) in the PGB Configuration, separated by commas, or leave the field blank for ALL."
+                    placeholder="Enter Customer Payer ID(s), separated by commas, or leave empty for ALL">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="button" onclick="addRuleGroup(null, true)" aria-label="Add new rule group">
+                <span class="button-icon">➕</span>Add Rule Group
+            </button>
+
+            <button class="help-button" id="helpButton" title="Click for more info on Rule Groups"
+                aria-label="Show help information">
+                ℹ️
+            </button>
+            
+            <button class="button button-red" onclick="resetAllFields()" aria-label="Reset all fields">
+                <span class="button-icon">🔄</span>Reset All
+            </button>
+        </div>
+
+        <div id="groupsContainer" role="region" aria-label="Rule groups"></div>
+
+        <!-- Generate Buttons -->
+        <div class="button-group">
+            <button class="button" onclick="generateOutput('xml')" aria-label="Generate XML output">
+                Generate XML
+            </button>
+            <button class="button" onclick="generateOutput('json')"
+                title="Generate a JSON payload for REST API requests using Postman or Insomnia."
+                aria-label="Generate JSON output">
+                Generate JSON
+            </button>
+            <button class="button" onclick="generateOutput('curl')"
+                title="Generate terminal commands to create and assign a price book, replace <YOUR_API_TOKEN> with the actual API key."
+                aria-label="Generate cURL command">
+                Generate cURL
+            </button>
+            <button class="button button-ai" id="readOutBtn" 
+                title="Generate a natural language summary of your price book configuration"
+                aria-label="Generate AI summary of price book">
+                🤖 Read Out Pricebook
+            </button>
+        </div>
+
+        <!-- Natural Language Summary Output -->
+        <div class="output-section" id="nlOutputSection" style="display:none;">
+            <h3>
+                Your Custom Pricebook Summary
+                <button id="toggleNLBtn" class="icon-button" title="Collapse/Expand" aria-label="Toggle summary visibility">🔽</button>
+            </h3>
+            
+            <div class="output-area" id="nlContentArea">
+                <div class="icon-actions">
+                    <!-- Icons for future use -->
+                </div>
+                <div id="nlSummary" class="nl-summary" style="padding-top:4px;"></div>
+            </div>
+        </div>
+
+        <!-- XML Output -->
+        <div class="output-section">
+            <h3>XML Output for the Custom Price Book:</h3>
+            <div class="output-area">
+                <textarea id="xmlOutput" rows="10" aria-label="XML output"></textarea>
+                <div class="icon-actions">
+                    <button class="icon-button" onclick="copyOutput('xmlOutput')" aria-label="Copy XML to clipboard">
+                        📋
+                    </button>
+                    <button class="icon-button" onclick="downloadOutput('xmlOutput', 'xml')"
+                        aria-label="Download XML file">
+                        💾
+                    </button>
+                </div>
+            </div>
+            <br>
+            
+            <h3>JSON payloads or cURL commands for creating and assigning Custom Price Book are generated below.</h3>
+            <h4>1: Create/Update Custom Price Book:</h4>
+            <div class="output-area">
+                <textarea id="jsonOutput" rows="10" aria-label="JSON output"></textarea>
+                <div class="icon-actions">
+                    <button class="icon-button" onclick="copyOutput('jsonOutput')" aria-label="Copy JSON to clipboard">
+                        📋
+                    </button>
+                    <button class="icon-button" onclick="downloadOutput('jsonOutput', 'json')"
+                        aria-label="Download JSON file">
+                        💾
+                    </button>
+                </div>
+            </div>
+            
+            <br>
+            <h4>2: Assign Price Book to Customer:</h4>
+            <div class="output-area">
+                <textarea id="assignCustomerJSON" rows="10" aria-label="Assign to customer JSON"></textarea>
+                <div class="icon-actions">
+                    <button class="icon-button" onclick="copyOutput('assignCustomerJSON')"
+                        aria-label="Copy assign customer JSON to clipboard">
+                        📋
+                    </button>
+                    <button class="icon-button" onclick="downloadOutput('assignCustomerJSON', 'json')"
+                        aria-label="Download assign customer JSON file">
+                        💾
+                    </button>
+                </div>
+            </div>
+            
+            <br>
+            <h4>3: Assign Price Book to Customer Designated Payer Account/s:</h4>
+            <div class="output-area">
+                <textarea id="assignCustomerAccountJSON" rows="10"
+                    aria-label="Assign to customer account JSON"></textarea>
+                <div class="icon-actions">
+                    <button class="icon-button" onclick="copyOutput('assignCustomerAccountJSON')"
+                        aria-label="Copy assign customer account JSON to clipboard">
+                        📋
+                    </button>
+                    <button class="icon-button" onclick="downloadOutput('assignCustomerAccountJSON', 'json')"
+                        aria-label="Download assign customer account JSON file">
+                        💾
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Loading Indicator -->
-    <div class="loading-indicator" id="loadingIndicator">
-        <div class="spinner"></div>
-        <span>Processing...</span>
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal" role="dialog" aria-labelledby="helpTitle" aria-modal="true" style="display: none;">
+        <div class="modal-content">
+            <h2 id="helpTitle">Help Information</h2>
+            <button class="modal-close" aria-label="Close help dialog" onclick="closeModal()">×</button>
+            <div id="helpContent"></div>
+        </div>
     </div>
+
+    <!-- Scroll buttons -->
+    <div class="nav-buttons">
+        <button class="nav-button" onclick="scrollToTop()" title="Go to top" aria-label="Scroll to top">↑</button>
+        <button class="nav-button" onclick="scrollToBottom()" title="Go to bottom" aria-label="Scroll to bottom">↓</button>
+    </div>
+
+    <footer>
+        Created by Sunil DT - CloudHealth
+    </footer>
 
     <script src="script.js"></script>
 </body>
