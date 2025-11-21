@@ -2066,6 +2066,7 @@ function attachDragToRuleGroup(groupEl) {
     groupEl.setAttribute('data-draggable-init', '1');
     const header = groupEl.querySelector('.rule-group-header h3');
     if (!header) return;
+    
     if (!header.querySelector('.drag-handle')) {
         const handle = document.createElement('span');
         handle.className = 'drag-handle';
@@ -2076,11 +2077,30 @@ function attachDragToRuleGroup(groupEl) {
         handle.setAttribute('tabindex', '0');
         handle.style.marginRight = '10px';
         handle.style.cursor = 'grab';
-        handle.addEventListener('mousedown', e => e.stopPropagation());
+        
+        // ✅ Enable dragging ONLY when handle is grabbed
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            groupEl.setAttribute('draggable', 'true');
+        });
+        
+        handle.addEventListener('mouseup', function() {
+            groupEl.setAttribute('draggable', 'false');
+        });
+        
         header.insertBefore(handle, header.firstChild);
     }
-    groupEl.setAttribute('draggable', 'true');
+    
+    // ✅ Start with draggable=false
+    groupEl.setAttribute('draggable', 'false');
+    
     groupEl.addEventListener('dragstart', function (e) {
+        // ✅ Only allow drag if draggable is true
+        if (this.getAttribute('draggable') !== 'true') {
+            e.preventDefault();
+            return;
+        }
+        
         draggedElement = this;
         draggedType = 'group';
         draggedSourceContainer = document.getElementById('groupsContainer');
@@ -2090,76 +2110,57 @@ function attachDragToRuleGroup(groupEl) {
             e.dataTransfer.setData('text/plain', 'group');
         }
     });
+    
     groupEl.addEventListener('dragend', function () {
         this.classList.remove('dragging');
+        this.setAttribute('draggable', 'false'); // Reset after drag
         draggedElement = null;
         draggedType = null;
         draggedSourceContainer = null;
     });
 }
-/*
+
 function attachDragToRule(ruleEl) {
     if (ruleEl.getAttribute('data-draggable-init') === '1') return;
     ruleEl.setAttribute('data-draggable-init', '1');
     const header = ruleEl.querySelector('.rule-header h4');
     if (!header) return;
-    if (!header.querySelector('.drag-handle')) {
-        const handle = document.createElement('span');
-        handle.className = 'drag-handle';
-        handle.textContent = '⋮⋮';
-        handle.title = 'Drag to reorder Billing Rule';
-        handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
-        handle.setAttribute('role', 'button');
-        handle.setAttribute('tabindex', '0');
-        handle.style.marginRight = '10px';
-        handle.style.cursor = 'grab';
-        handle.addEventListener('mousedown', e => e.stopPropagation());
-        header.insertBefore(handle, header.firstChild);
-    }
-    ruleEl.setAttribute('draggable', 'true');
-    ruleEl.addEventListener('dragstart', function (e) {
-        draggedElement = this;
-        draggedType = 'rule';
-        draggedSourceContainer = this.closest('.rules');
-        setTimeout(() => this.classList.add('dragging'), 0);
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', 'rule');
-        }
-    });
-    ruleEl.addEventListener('dragend', function () {
-        this.classList.remove('dragging');
-        draggedElement = null;
-        draggedType = null;
-        draggedSourceContainer = null;
-    });
-}
-*/
-// With Debugging
-function attachDragToRule(ruleEl) {
-    if (ruleEl.getAttribute('data-draggable-init') === '1') return;
-    ruleEl.setAttribute('data-draggable-init', '1');
-    const header = ruleEl.querySelector('.rule-header h4');
-    if (!header) return;
-    if (!header.querySelector('.drag-handle')) {
-        const handle = document.createElement('span');
-        handle.className = 'drag-handle';
-        handle.textContent = '⋮⋮';
-        handle.title = 'Drag to reorder Billing Rule';
-        handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
-        handle.setAttribute('role', 'button');
-        handle.setAttribute('tabindex', '0');
-        handle.style.marginRight = '10px';
-        handle.style.cursor = 'grab';
-        // ✅ CRITICAL FIX: Stop propagation to parent Rule Group
-        handle.addEventListener('mousedown', e => e.stopPropagation());
-        header.insertBefore(handle, header.firstChild);
-    }
-    ruleEl.setAttribute('draggable', 'true');
     
-    // ✅ CRITICAL FIX: Stop propagation on dragstart
+    if (!header.querySelector('.drag-handle')) {
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = 'Drag to reorder Billing Rule';
+        handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
+        
+        // ✅ Enable dragging ONLY when handle is grabbed
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation(); // Prevent bubbling to parent
+            ruleEl.setAttribute('draggable', 'true');
+        });
+        
+        handle.addEventListener('mouseup', function() {
+            ruleEl.setAttribute('draggable', 'false');
+        });
+        
+        header.insertBefore(handle, header.firstChild);
+    }
+    
+    // ✅ Start with draggable=false (only enabled when handle grabbed)
+    ruleEl.setAttribute('draggable', 'false');
+    
     ruleEl.addEventListener('dragstart', function (e) {
-        e.stopPropagation(); // ✅ Prevent bubbling to Rule Group!
+        // ✅ Only allow drag if draggable is true (handle was grabbed)
+        if (this.getAttribute('draggable') !== 'true') {
+            e.preventDefault();
+            return;
+        }
+        
+        e.stopPropagation(); // Prevent bubbling to Rule Group
         console.log('🟢 RULE DRAG START');
         draggedElement = this;
         draggedType = 'rule';
@@ -2175,12 +2176,12 @@ function attachDragToRule(ruleEl) {
     ruleEl.addEventListener('dragend', function () {
         console.log('🔴 RULE DRAG END');
         this.classList.remove('dragging');
+        this.setAttribute('draggable', 'false'); // Reset after drag
         draggedElement = null;
         draggedType = null;
         draggedSourceContainer = null;
     });
 }
-
 function setupDragContainers() {
     const groupsContainer = document.getElementById('groupsContainer');
     if (groupsContainer && groupsContainer.getAttribute('data-drop-init') !== '1') {
