@@ -2151,24 +2151,29 @@ function attachDragToRule(ruleEl) {
         handle.setAttribute('tabindex', '0');
         handle.style.marginRight = '10px';
         handle.style.cursor = 'grab';
+        // ✅ CRITICAL FIX: Stop propagation to parent Rule Group
         handle.addEventListener('mousedown', e => e.stopPropagation());
         header.insertBefore(handle, header.firstChild);
     }
     ruleEl.setAttribute('draggable', 'true');
+    
+    // ✅ CRITICAL FIX: Stop propagation on dragstart
     ruleEl.addEventListener('dragstart', function (e) {
-        console.log('🟢 RULE DRAG START'); // ✅ DEBUG
+        e.stopPropagation(); // ✅ Prevent bubbling to Rule Group!
+        console.log('🟢 RULE DRAG START');
         draggedElement = this;
         draggedType = 'rule';
         draggedSourceContainer = this.closest('.rules');
-        console.log('Source container:', draggedSourceContainer); // ✅ DEBUG
+        console.log('Source container:', draggedSourceContainer);
         setTimeout(() => this.classList.add('dragging'), 0);
         if (e.dataTransfer) {
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', 'rule');
         }
     });
+    
     ruleEl.addEventListener('dragend', function () {
-        console.log('🔴 RULE DRAG END'); // ✅ DEBUG
+        console.log('🔴 RULE DRAG END');
         this.classList.remove('dragging');
         draggedElement = null;
         draggedType = null;
