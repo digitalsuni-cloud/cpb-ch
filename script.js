@@ -1,3 +1,7 @@
+let draggedElement = null;
+let draggedType = null;
+let draggedSourceContainer = null;
+
 document.addEventListener('DOMContentLoaded', function () {
     // === Theme Detection ===
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -62,8 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === Assign same to Refresh button ===
-
-   const refreshBtn = document.getElementById('refreshNLBtn');
+    const refreshBtn = document.getElementById('refreshNLBtn');
     if (refreshBtn) {
         handleButtonWithRetry(refreshBtn, generateAndThenSummarize);
     }
@@ -83,7 +86,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    setTimeout(() => {
+        initializeDragAndDrop();
+        setupDragContainers();
+    }, 100);
 });
+
+
 
 
 function toggleTheme() {
@@ -198,6 +208,8 @@ function addRuleGroup(afterElement = null, insertAtTop = false) {
 
     // Update navigation after adding the group
     setTimeout(updateNavigation, 0);
+    attachDragToRuleGroup(div);
+    setupDragContainers();
 }
 
 function removeRuleGroup(button) {
@@ -475,11 +487,17 @@ function addRule(button) {
     // Add event listener for rule name changes
     const ruleNameInput = div.querySelector('.ruleName');
     ruleNameInput.addEventListener('input', updateNavigation);
+
+    // NEW: make draggable for drag-and-drop functionality
+    attachDragToRule(div);
+    setupDragContainers();
 }
+
 
 // Initialize navigation on page load
 document.addEventListener('DOMContentLoaded', function () {
     setTimeout(updateNavigation, 0);
+    
 });
 function removeRule(button) {
     const rule = button.closest('.rule');
@@ -2030,3 +2048,232 @@ function handleButtonWithRetry(button, handler) {
         }, 600);
     });
 }
+
+// ========== DRAG AND DROP FUNCTIONALITY ==========
+
+function initializeDragAndDrop() {
+    document.querySelectorAll('.rule-group').forEach(group => {
+        attachDragToRuleGroup(group);
+    });
+    document.querySelectorAll('.rule').forEach(rule => {
+        attachDragToRule(rule);
+    });
+    setupDragContainers();
+}
+
+function attachDragToRuleGroup(groupEl) {
+    if (groupEl.getAttribute('data-draggable-init') === '1') return;
+    groupEl.setAttribute('data-draggable-init', '1');
+    const header = groupEl.querySelector('.rule-group-header h3');
+    if (!header) return;
+    
+    if (!header.querySelector('.drag-handle')) {
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = 'Drag to reorder Rule Group';
+        handle.setAttribute('aria-label', 'Drag to reorder Rule Group');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
+        
+        // ✅ Enable dragging ONLY when handle is grabbed
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            groupEl.setAttribute('draggable', 'true');
+        });
+        
+        handle.addEventListener('mouseup', function() {
+            groupEl.setAttribute('draggable', 'false');
+        });
+        
+        header.insertBefore(handle, header.firstChild);
+    }
+    
+    // ✅ Start with draggable=false
+    groupEl.setAttribute('draggable', 'false');
+    
+    groupEl.addEventListener('dragstart', function (e) {
+        // ✅ Only allow drag if draggable is true
+        if (this.getAttribute('draggable') !== 'true') {
+            e.preventDefault();
+            return;
+        }
+        
+        draggedElement = this;
+        draggedType = 'group';
+        draggedSourceContainer = document.getElementById('groupsContainer');
+        setTimeout(() => this.classList.add('dragging'), 0);
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'group');
+        }
+    });
+    
+    groupEl.addEventListener('dragend', function () {
+        this.classList.remove('dragging');
+        this.setAttribute('draggable', 'false'); // Reset after drag
+        draggedElement = null;
+        draggedType = null;
+        draggedSourceContainer = null;
+    });
+}
+
+function attachDragToRule(ruleEl) {
+    if (ruleEl.getAttribute('data-draggable-init') === '1') return;
+    ruleEl.setAttribute('data-draggable-init', '1');
+    const header = ruleEl.querySelector('.rule-header h4');
+    if (!header) return;
+    
+    if (!header.querySelector('.drag-handle')) {
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = 'Drag to reorder Billing Rule';
+        handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
+        
+        // ✅ Enable dragging ONLY when handle is grabbed
+        handle.addEventListener('mousedown', function(e) {
+            e.stopPropagation(); // Prevent bubbling to parent
+            ruleEl.setAttribute('draggable', 'true');
+        });
+        
+        handle.addEventListener('mouseup', function() {
+            ruleEl.setAttribute('draggable', 'false');
+        });
+        
+        header.insertBefore(handle, header.firstChild);
+    }
+    
+    // ✅ Start with draggable=false (only enabled when handle grabbed)
+    ruleEl.setAttribute('draggable', 'false');
+    
+    ruleEl.addEventListener('dragstart', function (e) {
+        // ✅ Only allow drag if draggable is true (handle was grabbed)
+        if (this.getAttribute('draggable') !== 'true') {
+            e.preventDefault();
+            return;
+        }
+        
+        e.stopPropagation(); // Prevent bubbling to Rule Group
+        console.log('🟢 RULE DRAG START');
+        draggedElement = this;
+        draggedType = 'rule';
+        draggedSourceContainer = this.closest('.rules');
+        console.log('Source container:', draggedSourceContainer);
+        setTimeout(() => this.classList.add('dragging'), 0);
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'rule');
+        }
+    });
+    
+    ruleEl.addEventListener('dragend', function () {
+        console.log('🔴 RULE DRAG END');
+        this.classList.remove('dragging');
+        this.setAttribute('draggable', 'false'); // Reset after drag
+        draggedElement = null;
+        draggedType = null;
+        draggedSourceContainer = null;
+    });
+}
+function setupDragContainers() {
+    const groupsContainer = document.getElementById('groupsContainer');
+    if (groupsContainer && groupsContainer.getAttribute('data-drop-init') !== '1') {
+        groupsContainer.setAttribute('data-drop-init', '1');
+        groupsContainer.addEventListener('dragover', function (e) {
+            if (!draggedElement || draggedType !== 'group') return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            const afterEl = getDragAfterElement(this, e.clientY, '.rule-group');
+            if (!afterEl) {
+                this.appendChild(draggedElement);
+            } else {
+                this.insertBefore(draggedElement, afterEl);
+            }
+        });
+        groupsContainer.addEventListener('drop', function (e) {
+            if (!draggedElement || draggedType !== 'group') return;
+            e.preventDefault();
+            setTimeout(() => { updateNavigation(); }, 0);
+        });
+    }
+
+    // ✅ ADD DEBUGGING TO RULES CONTAINERS
+    document.querySelectorAll('.rules').forEach(rulesContainer => {
+        if (rulesContainer.getAttribute('data-drop-init') === '1') return;
+        rulesContainer.setAttribute('data-drop-init', '1');
+        
+        console.log('🔧 Setting up drag container for:', rulesContainer); // ✅ DEBUG
+        
+        rulesContainer.addEventListener('dragover', function (e) {
+            console.log('🟡 DRAGOVER EVENT FIRED'); // ✅ DEBUG
+            console.log('draggedElement:', draggedElement); // ✅ DEBUG
+            console.log('draggedType:', draggedType); // ✅ DEBUG
+            console.log('draggedSourceContainer:', draggedSourceContainer); // ✅ DEBUG
+            console.log('this (target container):', this); // ✅ DEBUG
+            
+            if (!draggedElement || draggedType !== 'rule') {
+                console.log('❌ Early return: draggedElement or draggedType check failed'); // ✅ DEBUG
+                return;
+            }
+            
+            const targetContainer = this;
+            
+            if (draggedSourceContainer !== targetContainer) {
+                console.log('❌ Early return: container mismatch'); // ✅ DEBUG
+                console.log('Source:', draggedSourceContainer); // ✅ DEBUG
+                console.log('Target:', targetContainer); // ✅ DEBUG
+                return;
+            }
+            
+            console.log('✅ Passed all checks, proceeding with drag'); // ✅ DEBUG
+            
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            
+            const afterEl = getDragAfterElement(targetContainer, e.clientY, '.rule');
+            console.log('afterEl:', afterEl); // ✅ DEBUG
+            
+            if (!afterEl) {
+                targetContainer.appendChild(draggedElement);
+                console.log('📍 Appended to end'); // ✅ DEBUG
+            } else {
+                targetContainer.insertBefore(draggedElement, afterEl);
+                console.log('📍 Inserted before:', afterEl); // ✅ DEBUG
+            }
+        });
+        
+        rulesContainer.addEventListener('drop', function (e) {
+            console.log('🟢 DROP EVENT FIRED'); // ✅ DEBUG
+            if (!draggedElement || draggedType !== 'rule') return;
+            if (draggedSourceContainer !== this) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => { updateNavigation(); }, 0);
+        });
+    });
+}
+
+function getDragAfterElement(container, mouseY, selector) {
+    const draggableElements = [...container.querySelectorAll(selector + ':not(.dragging)')];
+    return draggableElements.reduce(
+        (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = mouseY - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        },
+        { offset: Number.NEGATIVE_INFINITY, element: null }
+    ).element;
+}
+

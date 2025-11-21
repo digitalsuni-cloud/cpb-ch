@@ -1243,3 +1243,219 @@ transition: all 0.3s ease;
                 width: 100% !important;
             }
         }
+
+/* ========== DRAG AND DROP STYLES ========== */
+
+/* Make rule groups and rules draggable */
+.rule-group[draggable="true"],
+.rule[draggable="true"] {
+    cursor: move;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* Drag handle styling */
+.drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: var(--primary);
+    color: white;
+    border-radius: 6px;
+    cursor: grab;
+    font-size: 1.2rem;
+    transition: all var(--transition-speed);
+    flex-shrink: 0;
+    user-select: none;
+    margin-right: 10px;
+}
+
+.drag-handle:hover {
+    background-color: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Visual feedback during dragging */
+.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border: 2px dashed var(--primary);
+}
+
+/* Drop zone indicator */
+.drag-over {
+    border: 3px dashed var(--primary);
+    background-color: rgba(52, 152, 219, 0.1);
+    transform: scale(1.01);
+}
+
+/* Placeholder for drop position */
+.drop-placeholder {
+    height: 60px;
+    border: 2px dashed var(--primary);
+    border-radius: 8px;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(52, 152, 219, 0.05),
+        rgba(52, 152, 219, 0.05) 10px,
+        rgba(52, 152, 219, 0.1) 10px,
+        rgba(52, 152, 219, 0.1) 20px
+    );
+    margin-bottom: 15px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Header modifications for drag handles */
+.rule-group-header h3,
+.rule-header h4 {
+    display: flex;
+    align-items: center;
+}
+
+/* Drag instruction tooltip */
+.drag-instruction {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background-color: var(--surface);
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 999;
+    display: none;
+    animation: slideIn 0.3s ease-out;
+}
+
+.drag-instruction.show {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.drag-instruction p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+/* Accessibility improvements */
+.drag-handle:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Keyboard navigation indicator */
+.keyboard-dragging {
+    border: 3px solid var(--success);
+    box-shadow: 0 0 12px rgba(39, 174, 96, 0.4);
+}
+
+/* Reorder buttons for accessibility */
+.reorder-buttons {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.reorder-btn {
+    background-color: var(--text-light);
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-speed);
+}
+
+.reorder-btn:hover {
+    background-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.reorder-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.reorder-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.reorder-btn:disabled:hover {
+    transform: none;
+    background-color: var(--text-light);
+}
+
+/* Dark mode adjustments for drag elements */
+[data-theme="dark"] .drag-handle {
+    background-color: var(--primary);
+}
+
+[data-theme="dark"] .drag-instruction {
+    background-color: var(--surface);
+    border-color: var(--primary);
+}
+
+[data-theme="dark"] .dragging {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Responsive adjustments for drag handles */
+@media (max-width: 768px) {
+    .drag-handle {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+        margin-right: 8px;
+    }
+    
+    .reorder-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+    }
+    
+    .drag-instruction {
+        bottom: 70px;
+        right: 10px;
+        padding: 10px 12px;
+        max-width: calc(100% - 20px);
+    }
+    
+    .drag-instruction p {
+        font-size: 0.8rem;
+    }
+}
+
