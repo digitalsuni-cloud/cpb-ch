@@ -2156,25 +2156,42 @@ function setupDragContainers() {
             setTimeout(() => { updateNavigation(); }, 0);
         });
     }
+
+    // ✅ IMPROVED: Better handling for billing rules containers
     document.querySelectorAll('.rules').forEach(rulesContainer => {
+        // Remove the check that prevents re-initialization
+        // This ensures newly added .rules containers get wired
+        rulesContainer.removeAttribute('data-drop-init');
+        
         if (rulesContainer.getAttribute('data-drop-init') === '1') return;
         rulesContainer.setAttribute('data-drop-init', '1');
+        
         rulesContainer.addEventListener('dragover', function (e) {
             if (!draggedElement || draggedType !== 'rule') return;
-            if (draggedSourceContainer !== this) return;
+            
+            // ✅ FIXED: Use the container itself, not just sourceContainer check
+            const currentRulesContainer = e.currentTarget;
+            
+            // Only allow dragging within the same .rules container
+            if (draggedSourceContainer !== currentRulesContainer) return;
+            
             e.preventDefault();
+            e.stopPropagation(); // ✅ ADDED: Prevent event bubbling
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-            const afterEl = getDragAfterElement(this, e.clientY, '.rule');
+            
+            const afterEl = getDragAfterElement(currentRulesContainer, e.clientY, '.rule');
             if (!afterEl) {
-                this.appendChild(draggedElement);
+                currentRulesContainer.appendChild(draggedElement);
             } else {
-                this.insertBefore(draggedElement, afterEl);
+                currentRulesContainer.insertBefore(draggedElement, afterEl);
             }
         });
+        
         rulesContainer.addEventListener('drop', function (e) {
             if (!draggedElement || draggedType !== 'rule') return;
             if (draggedSourceContainer !== this) return;
             e.preventDefault();
+            e.stopPropagation(); // ✅ ADDED: Prevent event bubbling
             setTimeout(() => { updateNavigation(); }, 0);
         });
     });
