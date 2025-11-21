@@ -1,3 +1,7 @@
+let draggedElement = null;
+let draggedType = null;
+let draggedSourceContainer = null;
+
 document.addEventListener('DOMContentLoaded', function () {
     // === Theme Detection ===
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -2046,10 +2050,6 @@ function handleButtonWithRetry(button, handler) {
 }
 
 // ========== DRAG AND DROP FUNCTIONALITY ==========
-
-let draggedElement = null;
-let draggedType = null;        // 'group' or 'rule'
-let draggedSourceContainer = null;
 
 function initializeDragAndDrop() {
     document.querySelectorAll('.rule-group').forEach(group => {
