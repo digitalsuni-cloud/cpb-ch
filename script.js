@@ -2097,7 +2097,7 @@ function attachDragToRuleGroup(groupEl) {
         draggedSourceContainer = null;
     });
 }
-
+/*
 function attachDragToRule(ruleEl) {
     if (ruleEl.getAttribute('data-draggable-init') === '1') return;
     ruleEl.setAttribute('data-draggable-init', '1');
@@ -2128,6 +2128,47 @@ function attachDragToRule(ruleEl) {
         }
     });
     ruleEl.addEventListener('dragend', function () {
+        this.classList.remove('dragging');
+        draggedElement = null;
+        draggedType = null;
+        draggedSourceContainer = null;
+    });
+}
+*/
+// With Debugging
+function attachDragToRule(ruleEl) {
+    if (ruleEl.getAttribute('data-draggable-init') === '1') return;
+    ruleEl.setAttribute('data-draggable-init', '1');
+    const header = ruleEl.querySelector('.rule-header h4');
+    if (!header) return;
+    if (!header.querySelector('.drag-handle')) {
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = 'Drag to reorder Billing Rule';
+        handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
+        handle.addEventListener('mousedown', e => e.stopPropagation());
+        header.insertBefore(handle, header.firstChild);
+    }
+    ruleEl.setAttribute('draggable', 'true');
+    ruleEl.addEventListener('dragstart', function (e) {
+        console.log('🟢 RULE DRAG START'); // ✅ DEBUG
+        draggedElement = this;
+        draggedType = 'rule';
+        draggedSourceContainer = this.closest('.rules');
+        console.log('Source container:', draggedSourceContainer); // ✅ DEBUG
+        setTimeout(() => this.classList.add('dragging'), 0);
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'rule');
+        }
+    });
+    ruleEl.addEventListener('dragend', function () {
+        console.log('🔴 RULE DRAG END'); // ✅ DEBUG
         this.classList.remove('dragging');
         draggedElement = null;
         draggedType = null;
