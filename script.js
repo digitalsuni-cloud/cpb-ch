@@ -2157,18 +2157,20 @@ function setupDragContainers() {
         });
     }
 
-    // ✅ SIMPLIFIED: More direct approach
+    // ✅ FIX: Only wire containers that haven't been wired yet
     document.querySelectorAll('.rules').forEach(rulesContainer => {
+        // Skip if already initialized
+        if (rulesContainer.getAttribute('data-drop-init') === '1') return;
         rulesContainer.setAttribute('data-drop-init', '1');
         
         rulesContainer.addEventListener('dragover', function (e) {
-            // ✅ Allow any billing rule to be dragged within its container
             if (!draggedElement || draggedType !== 'rule') return;
             
-            const targetContainer = e.currentTarget;
+            // Get the .rules container that's receiving the drag event
+            const targetContainer = this;
             
-            // Check if the dragged element belongs to THIS container
-            if (!targetContainer.contains(draggedElement)) return;
+            // Only allow dragging within the same .rules container
+            if (draggedSourceContainer !== targetContainer) return;
             
             e.preventDefault();
             e.stopPropagation();
@@ -2184,12 +2186,14 @@ function setupDragContainers() {
         
         rulesContainer.addEventListener('drop', function (e) {
             if (!draggedElement || draggedType !== 'rule') return;
+            if (draggedSourceContainer !== this) return;
             e.preventDefault();
             e.stopPropagation();
             setTimeout(() => { updateNavigation(); }, 0);
         });
     });
 }
+
 
 
 function getDragAfterElement(container, mouseY, selector) {
