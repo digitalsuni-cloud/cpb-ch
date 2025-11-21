@@ -81,13 +81,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 toggleNLBtn.textContent = '▶';
             }
         });
-    } // ✅ Close the if-block here
+    }
 
-    // ✅ CORRECT: Initialize drag-drop OUTSIDE the if-block
     setTimeout(() => {
         initializeDragAndDrop();
+        setupDragContainers();
     }, 100);
 });
+
 
 
 
@@ -203,11 +204,8 @@ function addRuleGroup(afterElement = null, insertAtTop = false) {
 
     // Update navigation after adding the group
     setTimeout(updateNavigation, 0);
-    setTimeout(() => {
-    if (!div.hasAttribute('draggable')) {
-        addDragHandleToRuleGroup(div);
-    }
-}, 50);
+    attachDragToRuleGroup(div);
+    setupDragContainers();
 }
 
 function removeRuleGroup(button) {
@@ -485,12 +483,12 @@ function addRule(button) {
     // Add event listener for rule name changes
     const ruleNameInput = div.querySelector('.ruleName');
     ruleNameInput.addEventListener('input', updateNavigation);
-    setTimeout(() => {
-    if (!div.hasAttribute('draggable')) {
-        addDragHandleToRule(div);
-    }
-}, 50);
+
+    // NEW: make draggable for drag-and-drop functionality
+    attachDragToRule(div);
+    setupDragContainers();
 }
+
 
 // Initialize navigation on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -2053,34 +2051,21 @@ let draggedElement = null;
 let draggedType = null;        // 'group' or 'rule'
 let draggedSourceContainer = null;
 
-/**
- * Initialize drag-and-drop for existing Rule Groups and Billing Rules.
- * Call this once after initial UI build, and again after imports if needed.
- */
 function initializeDragAndDrop() {
-    // Rule Groups
     document.querySelectorAll('.rule-group').forEach(group => {
         attachDragToRuleGroup(group);
     });
-
-    // Billing Rules
     document.querySelectorAll('.rule').forEach(rule => {
         attachDragToRule(rule);
     });
+    setupDragContainers();
 }
 
-/**
- * Attach drag handlers to a Rule Group element.
- */
 function attachDragToRuleGroup(groupEl) {
-    // Avoid double-initialization
     if (groupEl.getAttribute('data-draggable-init') === '1') return;
     groupEl.setAttribute('data-draggable-init', '1');
-
     const header = groupEl.querySelector('.rule-group-header h3');
     if (!header) return;
-
-    // Add drag handle only once
     if (!header.querySelector('.drag-handle')) {
         const handle = document.createElement('span');
         handle.className = 'drag-handle';
@@ -2089,12 +2074,12 @@ function attachDragToRuleGroup(groupEl) {
         handle.setAttribute('aria-label', 'Drag to reorder Rule Group');
         handle.setAttribute('role', 'button');
         handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
         handle.addEventListener('mousedown', e => e.stopPropagation());
         header.insertBefore(handle, header.firstChild);
     }
-
     groupEl.setAttribute('draggable', 'true');
-
     groupEl.addEventListener('dragstart', function (e) {
         draggedElement = this;
         draggedType = 'group';
@@ -2102,10 +2087,9 @@ function attachDragToRuleGroup(groupEl) {
         setTimeout(() => this.classList.add('dragging'), 0);
         if (e.dataTransfer) {
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', 'rule-group');
+            e.dataTransfer.setData('text/plain', 'group');
         }
     });
-
     groupEl.addEventListener('dragend', function () {
         this.classList.remove('dragging');
         draggedElement = null;
@@ -2114,16 +2098,11 @@ function attachDragToRuleGroup(groupEl) {
     });
 }
 
-/**
- * Attach drag handlers to a Billing Rule element.
- */
 function attachDragToRule(ruleEl) {
     if (ruleEl.getAttribute('data-draggable-init') === '1') return;
     ruleEl.setAttribute('data-draggable-init', '1');
-
     const header = ruleEl.querySelector('.rule-header h4');
     if (!header) return;
-
     if (!header.querySelector('.drag-handle')) {
         const handle = document.createElement('span');
         handle.className = 'drag-handle';
@@ -2132,12 +2111,12 @@ function attachDragToRule(ruleEl) {
         handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
         handle.setAttribute('role', 'button');
         handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
         handle.addEventListener('mousedown', e => e.stopPropagation());
         header.insertBefore(handle, header.firstChild);
     }
-
     ruleEl.setAttribute('draggable', 'true');
-
     ruleEl.addEventListener('dragstart', function (e) {
         draggedElement = this;
         draggedType = 'rule';
@@ -2148,7 +2127,6 @@ function attachDragToRule(ruleEl) {
             e.dataTransfer.setData('text/plain', 'rule');
         }
     });
-
     ruleEl.addEventListener('dragend', function () {
         this.classList.remove('dragging');
         draggedElement = null;
@@ -2157,21 +2135,14 @@ function attachDragToRule(ruleEl) {
     });
 }
 
-/**
- * Wire containers so they accept drops.
- * For Rule Groups: #groupsContainer
- * For Billing Rules: each .rules inside a Rule Group (but keep reordering within the same group).
- */
 function setupDragContainers() {
     const groupsContainer = document.getElementById('groupsContainer');
-    if (groupsContainer && !groupsContainer.getAttribute('data-drop-init')) {
+    if (groupsContainer && groupsContainer.getAttribute('data-drop-init') !== '1') {
         groupsContainer.setAttribute('data-drop-init', '1');
-
         groupsContainer.addEventListener('dragover', function (e) {
             if (!draggedElement || draggedType !== 'group') return;
             e.preventDefault();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-
             const afterEl = getDragAfterElement(this, e.clientY, '.rule-group');
             if (!afterEl) {
                 this.appendChild(draggedElement);
@@ -2179,29 +2150,20 @@ function setupDragContainers() {
                 this.insertBefore(draggedElement, afterEl);
             }
         });
-
         groupsContainer.addEventListener('drop', function (e) {
             if (!draggedElement || draggedType !== 'group') return;
             e.preventDefault();
-            setTimeout(() => {
-                updateNavigation();
-                showSuccessNotification();
-            }, 0);
+            setTimeout(() => { updateNavigation(); }, 0);
         });
     }
-
-    // For Billing Rules: each .rules container
     document.querySelectorAll('.rules').forEach(rulesContainer => {
         if (rulesContainer.getAttribute('data-drop-init') === '1') return;
         rulesContainer.setAttribute('data-drop-init', '1');
-
         rulesContainer.addEventListener('dragover', function (e) {
             if (!draggedElement || draggedType !== 'rule') return;
-            // Only allow reordering within the same rules container
             if (draggedSourceContainer !== this) return;
             e.preventDefault();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-
             const afterEl = getDragAfterElement(this, e.clientY, '.rule');
             if (!afterEl) {
                 this.appendChild(draggedElement);
@@ -2209,30 +2171,21 @@ function setupDragContainers() {
                 this.insertBefore(draggedElement, afterEl);
             }
         });
-
         rulesContainer.addEventListener('drop', function (e) {
             if (!draggedElement || draggedType !== 'rule') return;
             if (draggedSourceContainer !== this) return;
             e.preventDefault();
-            setTimeout(() => {
-                updateNavigation();
-                showSuccessNotification();
-            }, 0);
+            setTimeout(() => { updateNavigation(); }, 0);
         });
     });
 }
 
-/**
- * Utility: find the element after which the dragged element should be inserted.
- */
 function getDragAfterElement(container, mouseY, selector) {
     const draggableElements = [...container.querySelectorAll(selector + ':not(.dragging)')];
-
     return draggableElements.reduce(
         (closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = mouseY - box.top - box.height / 2;
-
             if (offset < 0 && offset > closest.offset) {
                 return { offset: offset, element: child };
             } else {
@@ -2242,3 +2195,4 @@ function getDragAfterElement(container, mouseY, selector) {
         { offset: Number.NEGATIVE_INFINITY, element: null }
     ).element;
 }
+
