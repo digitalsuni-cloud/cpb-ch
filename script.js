@@ -62,8 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === Assign same to Refresh button ===
-
-   const refreshBtn = document.getElementById('refreshNLBtn');
+    const refreshBtn = document.getElementById('refreshNLBtn');
     if (refreshBtn) {
         handleButtonWithRetry(refreshBtn, generateAndThenSummarize);
     }
@@ -82,8 +81,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 toggleNLBtn.textContent = '▶';
             }
         });
-    }
+    } // ✅ Close the if-block here
+
+    // ✅ CORRECT: Initialize drag-drop OUTSIDE the if-block
+    setTimeout(() => {
+        initializeDragAndDrop();
+    }, 100);
 });
+
 
 
 function toggleTheme() {
@@ -198,6 +203,11 @@ function addRuleGroup(afterElement = null, insertAtTop = false) {
 
     // Update navigation after adding the group
     setTimeout(updateNavigation, 0);
+    setTimeout(() => {
+    if (!div.hasAttribute('draggable')) {
+        addDragHandleToRuleGroup(div);
+    }
+}, 50);
 }
 
 function removeRuleGroup(button) {
@@ -475,11 +485,17 @@ function addRule(button) {
     // Add event listener for rule name changes
     const ruleNameInput = div.querySelector('.ruleName');
     ruleNameInput.addEventListener('input', updateNavigation);
+    setTimeout(() => {
+    if (!div.hasAttribute('draggable')) {
+        addDragHandleToRule(div);
+    }
+}, 50);
 }
 
 // Initialize navigation on page load
 document.addEventListener('DOMContentLoaded', function () {
     setTimeout(updateNavigation, 0);
+    
 });
 function removeRule(button) {
     const rule = button.closest('.rule');
@@ -2030,3 +2046,349 @@ function handleButtonWithRetry(button, handler) {
         }, 600);
     });
 }
+
+// ========== DRAG AND DROP FUNCTIONALITY - NEW FUNCTIONS ==========
+
+let draggedElement = null;
+let draggedType = null; // 'rule-group' or 'rule'
+let sourceContainer = null;
+
+/**
+ * Initialize drag and drop for all rule groups and billing rules
+ */
+function initializeDragAndDrop() {
+    // Add drag handles and make elements draggable
+    document.querySelectorAll('.rule-group').forEach(addDragHandleToRuleGroup);
+    document.querySelectorAll('.rule').forEach(addDragHandleToRule);
+    
+    // Setup container event listeners
+    setupContainerListeners();
+    
+    // Show instruction tooltip on first load
+    showDragInstruction();
+}
+
+/**
+ * Add drag handle to rule group
+ */
+function addDragHandleToRuleGroup(ruleGroup) {
+    if (ruleGroup.querySelector('.drag-handle')) return; // Already has handle
+    
+    const header = ruleGroup.querySelector('.rule-group-header h3');
+    if (!header) return;
+    
+    const dragHandle = createDragHandle('⋮⋮', 'Drag to reorder Rule Group');
+    const reorderButtons = createReorderButtons('rule-group', ruleGroup);
+    
+    header.insertBefore(dragHandle, header.firstChild);
+    header.appendChild(reorderButtons);
+    
+    // Make rule group draggable
+    ruleGroup.setAttribute('draggable', 'true');
+    ruleGroup.addEventListener('dragstart', handleDragStart);
+    ruleGroup.addEventListener('dragend', handleDragEnd);
+}
+
+/**
+ * Add drag handle to billing rule
+ */
+function addDragHandleToRule(rule) {
+    if (rule.querySelector('.drag-handle')) return; // Already has handle
+    
+    const header = rule.querySelector('.rule-header h4');
+    if (!header) return;
+    
+    const dragHandle = createDragHandle('⋮⋮', 'Drag to reorder Billing Rule');
+    const reorderButtons = createReorderButtons('rule', rule);
+    
+    header.insertBefore(dragHandle, header.firstChild);
+    header.appendChild(reorderButtons);
+    
+    // Make rule draggable
+    rule.setAttribute('draggable', 'true');
+    rule.addEventListener('dragstart', handleDragStart);
+    rule.addEventListener('dragend', handleDragEnd);
+}
+
+/**
+ * Create drag handle element
+ */
+function createDragHandle(icon, title) {
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.innerHTML = icon;
+    handle.title = title;
+    handle.setAttribute('aria-label', title);
+    handle.setAttribute('role', 'button');
+    handle.setAttribute('tabindex', '0');
+    
+    // Prevent drag from firing on handle click
+    handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+    });
+    
+    return handle;
+}
+
+/**
+ * Create reorder buttons for keyboard accessibility
+ */
+function createReorderButtons(type, element) {
+    const container = document.createElement('div');
+    container.className = 'reorder-buttons';
+    
+    const upBtn = document.createElement('button');
+    upBtn.className = 'reorder-btn';
+    upBtn.innerHTML = '▲';
+    upBtn.title = `Move ${type === 'rule-group' ? 'Rule Group' : 'Billing Rule'} Up`;
+    upBtn.setAttribute('aria-label', upBtn.title);
+    upBtn.onclick = (e) => {
+        e.stopPropagation();
+        moveElement(element, 'up');
+    };
+    
+    const downBtn = document.createElement('button');
+    downBtn.className = 'reorder-btn';
+    downBtn.innerHTML = '▼';
+    downBtn.title = `Move ${type === 'rule-group' ? 'Rule Group' : 'Billing Rule'} Down`;
+    downBtn.setAttribute('aria-label', downBtn.title);
+    downBtn.onclick = (e) => {
+        e.stopPropagation();
+        moveElement(element, 'down');
+    };
+    
+    container.appendChild(upBtn);
+    container.appendChild(downBtn);
+    
+    return container;
+}
+
+/**
+ * Move element up or down using keyboard buttons
+ */
+function moveElement(element, direction) {
+    const isRuleGroup = element.classList.contains('rule-group');
+    const parent = element.parentElement;
+    const siblings = Array.from(parent.children).filter(child => 
+        child.classList.contains(isRuleGroup ? 'rule-group' : 'rule')
+    );
+    
+    const currentIndex = siblings.indexOf(element);
+    
+    if (direction === 'up' && currentIndex > 0) {
+        parent.insertBefore(element, siblings[currentIndex - 1]);
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        updateNavigation();
+    } else if (direction === 'down' && currentIndex < siblings.length - 1) {
+        parent.insertBefore(element, siblings[currentIndex + 2] || null);
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        updateNavigation();
+    }
+}
+
+/**
+ * Setup event listeners for drag containers
+ */
+function setupContainerListeners() {
+    const groupsContainer = document.getElementById('groupsContainer');
+    
+    groupsContainer.addEventListener('dragover', handleDragOver);
+    groupsContainer.addEventListener('drop', handleDrop);
+    groupsContainer.addEventListener('dragleave', handleDragLeave);
+}
+
+/**
+ * Handle drag start event
+ */
+function handleDragStart(e) {
+    draggedElement = e.currentTarget;
+    draggedType = draggedElement.classList.contains('rule-group') ? 'rule-group' : 'rule';
+    
+    if (draggedType === 'rule') {
+        sourceContainer = draggedElement.closest('.rules');
+    }
+    
+    // Add dragging class with slight delay for visual effect
+    setTimeout(() => {
+        if (draggedElement) {
+            draggedElement.classList.add('dragging');
+        }
+    }, 0);
+    
+    // Set drag data
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', draggedElement.innerHTML);
+}
+
+/**
+ * Handle drag over event
+ */
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (!draggedElement) return;
+    
+    const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
+    const container = e.currentTarget;
+    
+    // For billing rules, find the correct .rules container
+    if (draggedType === 'rule') {
+        const targetRuleGroup = e.target.closest('.rule-group');
+        if (!targetRuleGroup) return;
+        
+        const rulesContainer = targetRuleGroup.querySelector('.rules');
+        if (!rulesContainer) return;
+        
+        if (afterElement == null) {
+            rulesContainer.appendChild(draggedElement);
+        } else {
+            rulesContainer.insertBefore(draggedElement, afterElement);
+        }
+    } else if (draggedType === 'rule-group') {
+        // For rule groups, insert in main container
+        if (afterElement == null) {
+            container.appendChild(draggedElement);
+        } else {
+            container.insertBefore(draggedElement, afterElement);
+        }
+    }
+}
+
+/**
+ * Handle drop event
+ */
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Update navigation after drop
+    setTimeout(() => {
+        updateNavigation();
+        showSuccessNotification();
+    }, 100);
+}
+
+/**
+ * Handle drag end event
+ */
+function handleDragEnd(e) {
+    if (draggedElement) {
+        draggedElement.classList.remove('dragging');
+    }
+    
+    // Remove all drag-over classes
+    document.querySelectorAll('.drag-over').forEach(el => {
+        el.classList.remove('drag-over');
+    });
+    
+    // Reset drag state
+    draggedElement = null;
+    draggedType = null;
+    sourceContainer = null;
+}
+
+/**
+ * Handle drag leave event
+ */
+function handleDragLeave(e) {
+    if (e.target.classList.contains('drag-over')) {
+        e.target.classList.remove('drag-over');
+    }
+}
+
+/**
+ * Get the element after which the dragged element should be inserted
+ */
+function getDragAfterElement(container, y) {
+    let draggableElements;
+    
+    if (draggedType === 'rule-group') {
+        draggableElements = [...container.querySelectorAll('.rule-group:not(.dragging)')];
+    } else {
+        // For billing rules, only consider rules in the current rules container
+        const targetRuleGroup = document.elementFromPoint(event.clientX, y)?.closest('.rule-group');
+        if (!targetRuleGroup) return null;
+        
+        const rulesContainer = targetRuleGroup.querySelector('.rules');
+        if (!rulesContainer) return null;
+        
+        draggableElements = [...rulesContainer.querySelectorAll('.rule:not(.dragging)')];
+    }
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+/**
+ * Show drag instruction tooltip
+ */
+function showDragInstruction() {
+    const instructionDiv = document.createElement('div');
+    instructionDiv.className = 'drag-instruction';
+    instructionDiv.innerHTML = `
+        <p><strong>💡 Tip:</strong> Drag the ⋮⋮ handles to reorder Rule Groups and Billing Rules</p>
+    `;
+    document.body.appendChild(instructionDiv);
+    
+    // Show tooltip briefly
+    setTimeout(() => {
+        instructionDiv.classList.add('show');
+    }, 500);
+    
+    // Hide after 5 seconds
+    setTimeout(() => {
+        instructionDiv.classList.remove('show');
+        setTimeout(() => instructionDiv.remove(), 300);
+    }, 5500);
+}
+
+/**
+ * Show success notification after reordering
+ */
+function showSuccessNotification() {
+    const notification = document.createElement('div');
+    notification.className = 'drag-instruction show';
+    notification.innerHTML = `
+        <p><strong>✓</strong> Order updated! Navigation refreshed.</p>
+    `;
+    notification.style.backgroundColor = 'var(--success)';
+    notification.style.color = 'white';
+    notification.style.borderColor = 'var(--success)';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
+
+/**
+ * Helper function to handle button clicks with retry logic
+ */
+function handleButtonWithRetry(button, callback) {
+    let isExecuting = false;
+    
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        if (isExecuting) return;
+        isExecuting = true;
+        
+        callback();
+        
+        setTimeout(() => {
+            isExecuting = false;
+        }, 1000);
+    });
+}
+
