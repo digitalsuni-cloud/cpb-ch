@@ -2087,6 +2087,7 @@ function addDragHandleToRuleGroup(ruleGroup) {
     ruleGroup.setAttribute('draggable', 'true');
     ruleGroup.addEventListener('dragstart', handleDragStart);
     ruleGroup.addEventListener('dragend', handleDragEnd);
+    ruleGroup.addEventListener('dragover', handleDragOverElement);
 }
 
 /**
@@ -2108,6 +2109,7 @@ function addDragHandleToRule(rule) {
     rule.setAttribute('draggable', 'true');
     rule.addEventListener('dragstart', handleDragStart);
     rule.addEventListener('dragend', handleDragEnd);
+    rule.addEventListener('dragover', handleDragOverElement);
 }
 
 /**
@@ -2191,10 +2193,10 @@ function moveElement(element, direction) {
  */
 function setupContainerListeners() {
     const groupsContainer = document.getElementById('groupsContainer');
-    
-    groupsContainer.addEventListener('dragover', handleDragOver);
-    groupsContainer.addEventListener('drop', handleDrop);
-    groupsContainer.addEventListener('dragleave', handleDragLeave);
+    if (groupsContainer) {
+        groupsContainer.addEventListener('dragover', handleDragOver);
+        groupsContainer.addEventListener('drop', handleDrop);
+    }
 }
 
 /**
@@ -2221,37 +2223,74 @@ function handleDragStart(e) {
 }
 
 /**
- * Handle drag over event
+ * Handle drag over on individual elements (Rule Groups or Billing Rules)
+ */
+function handleDragOverElement(e) {
+    e.preventDefault();
+    
+    if (!draggedElement) return;
+    
+    const targetElement = e.currentTarget;
+    
+    // Don't swap with itself
+    if (targetElement === draggedElement) return;
+    
+    // Only swap elements of the same type
+    const targetIsRuleGroup = targetElement.classList.contains('rule-group');
+    const draggedIsRuleGroup = draggedElement.classList.contains('rule-group');
+    
+    // For Rule Groups: only swap with other Rule Groups
+    if (draggedIsRuleGroup && targetIsRuleGroup) {
+        swapElements(draggedElement, targetElement);
+    }
+    
+    // For Billing Rules: only swap with other Billing Rules in the same Rule Group
+    if (!draggedIsRuleGroup && !targetIsRuleGroup) {
+        const draggedParentGroup = draggedElement.closest('.rule-group');
+        const targetParentGroup = targetElement.closest('.rule-group');
+        
+        // Only swap if they're in the same rule group
+        if (draggedParentGroup === targetParentGroup) {
+            swapElements(draggedElement, targetElement);
+        }
+    }
+}
+
+/**
+ * Handle drag over on container
  */
 function handleDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+}
+
+/**
+ * Swap two elements in the DOM
+ */
+function swapElements(elem1, elem2) {
+    // Get bounding rectangles to determine if we should swap
+    const rect1 = elem1.getBoundingClientRect();
+    const rect2 = elem2.getBoundingClientRect();
     
-    if (!draggedElement) return;
+    // Calculate midpoint
+    const midpoint = rect2.top + rect2.height / 2;
     
-    const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
-    const container = e.currentTarget;
+    // Only swap if mouse is past the midpoint (50% threshold)
+    const afterMidpoint = event.clientY > midpoint;
     
-    // For billing rules, find the correct .rules container
-    if (draggedType === 'rule') {
-        const targetRuleGroup = e.target.closest('.rule-group');
-        if (!targetRuleGroup) return;
-        
-        const rulesContainer = targetRuleGroup.querySelector('.rules');
-        if (!rulesContainer) return;
-        
-        if (afterElement == null) {
-            rulesContainer.appendChild(draggedElement);
-        } else {
-            rulesContainer.insertBefore(draggedElement, afterElement);
-        }
-    } else if (draggedType === 'rule-group') {
-        // For rule groups, insert in main container
-        if (afterElement == null) {
-            container.appendChild(draggedElement);
-        } else {
-            container.insertBefore(draggedElement, afterElement);
-        }
+    // Create a temporary placeholder
+    const placeholder = document.createElement('div');
+    
+    // Get parent
+    const parent = elem2.parentNode;
+    
+    // Determine insert position based on drag direction
+    if (rect1.top < rect2.top) {
+        // Dragging downward - insert after elem2
+        parent.insertBefore(elem1, elem2.nextSibling);
+    } else {
+        // Dragging upward - insert before elem2
+        parent.insertBefore(elem1, elem2);
     }
 }
 
@@ -2286,46 +2325,6 @@ function handleDragEnd(e) {
     draggedElement = null;
     draggedType = null;
     sourceContainer = null;
-}
-
-/**
- * Handle drag leave event
- */
-function handleDragLeave(e) {
-    if (e.target.classList.contains('drag-over')) {
-        e.target.classList.remove('drag-over');
-    }
-}
-
-/**
- * Get the element after which the dragged element should be inserted
- */
-function getDragAfterElement(container, y) {
-    let draggableElements;
-    
-    if (draggedType === 'rule-group') {
-        draggableElements = [...container.querySelectorAll('.rule-group:not(.dragging)')];
-    } else {
-        // For billing rules, only consider rules in the current rules container
-        const targetRuleGroup = document.elementFromPoint(event.clientX, y)?.closest('.rule-group');
-        if (!targetRuleGroup) return null;
-        
-        const rulesContainer = targetRuleGroup.querySelector('.rules');
-        if (!rulesContainer) return null;
-        
-        draggableElements = [...rulesContainer.querySelectorAll('.rule:not(.dragging)')];
-    }
-    
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 /**
@@ -2391,4 +2390,3 @@ function handleButtonWithRetry(button, callback) {
         }, 1000);
     });
 }
-
