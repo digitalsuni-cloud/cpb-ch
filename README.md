@@ -3,7 +3,7 @@
 
 Custom price books allow you to develop a custom system of discounts, rates, and adjustments for customers on an individual level.
 
-This Tool will help you build and modify the Custom Price Book easily by filling the required forms and you can also genearete the JSON or CURL payload.
+This Tool will help you build and modify the Custom Price Book for CloudHealth easily by filling the required forms and you can also genearete the JSON or CURL payload.
 
 ## ✨ Key Features
 
