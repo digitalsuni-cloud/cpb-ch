@@ -2198,34 +2198,54 @@ function setupDragContainers() {
         });
     }
 
-    // ✅ FIX: Only wire containers that haven't been wired yet
+    // ✅ ADD DEBUGGING TO RULES CONTAINERS
     document.querySelectorAll('.rules').forEach(rulesContainer => {
-        // Skip if already initialized
         if (rulesContainer.getAttribute('data-drop-init') === '1') return;
         rulesContainer.setAttribute('data-drop-init', '1');
         
+        console.log('🔧 Setting up drag container for:', rulesContainer); // ✅ DEBUG
+        
         rulesContainer.addEventListener('dragover', function (e) {
-            if (!draggedElement || draggedType !== 'rule') return;
+            console.log('🟡 DRAGOVER EVENT FIRED'); // ✅ DEBUG
+            console.log('draggedElement:', draggedElement); // ✅ DEBUG
+            console.log('draggedType:', draggedType); // ✅ DEBUG
+            console.log('draggedSourceContainer:', draggedSourceContainer); // ✅ DEBUG
+            console.log('this (target container):', this); // ✅ DEBUG
             
-            // Get the .rules container that's receiving the drag event
+            if (!draggedElement || draggedType !== 'rule') {
+                console.log('❌ Early return: draggedElement or draggedType check failed'); // ✅ DEBUG
+                return;
+            }
+            
             const targetContainer = this;
             
-            // Only allow dragging within the same .rules container
-            if (draggedSourceContainer !== targetContainer) return;
+            if (draggedSourceContainer !== targetContainer) {
+                console.log('❌ Early return: container mismatch'); // ✅ DEBUG
+                console.log('Source:', draggedSourceContainer); // ✅ DEBUG
+                console.log('Target:', targetContainer); // ✅ DEBUG
+                return;
+            }
+            
+            console.log('✅ Passed all checks, proceeding with drag'); // ✅ DEBUG
             
             e.preventDefault();
             e.stopPropagation();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
             
             const afterEl = getDragAfterElement(targetContainer, e.clientY, '.rule');
+            console.log('afterEl:', afterEl); // ✅ DEBUG
+            
             if (!afterEl) {
                 targetContainer.appendChild(draggedElement);
+                console.log('📍 Appended to end'); // ✅ DEBUG
             } else {
                 targetContainer.insertBefore(draggedElement, afterEl);
+                console.log('📍 Inserted before:', afterEl); // ✅ DEBUG
             }
         });
         
         rulesContainer.addEventListener('drop', function (e) {
+            console.log('🟢 DROP EVENT FIRED'); // ✅ DEBUG
             if (!draggedElement || draggedType !== 'rule') return;
             if (draggedSourceContainer !== this) return;
             e.preventDefault();
@@ -2234,8 +2254,6 @@ function setupDragContainers() {
         });
     });
 }
-
-
 
 function getDragAfterElement(container, mouseY, selector) {
     const draggableElements = [...container.querySelectorAll(selector + ':not(.dragging)')];
