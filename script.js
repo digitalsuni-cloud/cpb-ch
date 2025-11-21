@@ -2047,24 +2047,19 @@ function handleButtonWithRetry(button, handler) {
     });
 }
 
-// ========== DRAG AND DROP FUNCTIONALITY - NEW FUNCTIONS ==========
+// ========== DRAG AND DROP FUNCTIONALITY ==========
 
 let draggedElement = null;
-let draggedType = null; // 'rule-group' or 'rule'
+let draggedType = null;
 let sourceContainer = null;
 
 /**
  * Initialize drag and drop for all rule groups and billing rules
  */
 function initializeDragAndDrop() {
-    // Add drag handles and make elements draggable
     document.querySelectorAll('.rule-group').forEach(addDragHandleToRuleGroup);
     document.querySelectorAll('.rule').forEach(addDragHandleToRule);
-    
-    // Setup container event listeners
     setupContainerListeners();
-    
-    // Show instruction tooltip on first load
     showDragInstruction();
 }
 
@@ -2072,7 +2067,7 @@ function initializeDragAndDrop() {
  * Add drag handle to rule group
  */
 function addDragHandleToRuleGroup(ruleGroup) {
-    if (ruleGroup.querySelector('.drag-handle')) return; // Already has handle
+    if (ruleGroup.querySelector('.drag-handle')) return;
     
     const header = ruleGroup.querySelector('.rule-group-header h3');
     if (!header) return;
@@ -2083,18 +2078,45 @@ function addDragHandleToRuleGroup(ruleGroup) {
     header.insertBefore(dragHandle, header.firstChild);
     header.appendChild(reorderButtons);
     
-    // Make rule group draggable
+    // Make draggable and attach handlers
     ruleGroup.setAttribute('draggable', 'true');
-    ruleGroup.addEventListener('dragstart', handleDragStart);
-    ruleGroup.addEventListener('dragend', handleDragEnd);
-    ruleGroup.addEventListener('dragover', handleDragOverElement);
+    
+    ruleGroup.ondragstart = function(e) {
+        draggedElement = this;
+        draggedType = 'rule-group';
+        setTimeout(() => this.classList.add('dragging'), 0);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    };
+    
+    ruleGroup.ondragend = function(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        draggedElement = null;
+        draggedType = null;
+        sourceContainer = null;
+    };
+    
+    ruleGroup.ondragover = function(e) {
+        e.preventDefault();
+        if (!draggedElement || draggedType !== 'rule-group') return;
+        
+        const afterElement = getDragAfterElement(document.getElementById('groupsContainer'), e.clientY);
+        const container = document.getElementById('groupsContainer');
+        
+        if (afterElement == null) {
+            container.appendChild(draggedElement);
+        } else {
+            container.insertBefore(draggedElement, afterElement);
+        }
+    };
 }
 
 /**
  * Add drag handle to billing rule
  */
 function addDragHandleToRule(rule) {
-    if (rule.querySelector('.drag-handle')) return; // Already has handle
+    if (rule.querySelector('.drag-handle')) return;
     
     const header = rule.querySelector('.rule-header h4');
     if (!header) return;
@@ -2105,11 +2127,41 @@ function addDragHandleToRule(rule) {
     header.insertBefore(dragHandle, header.firstChild);
     header.appendChild(reorderButtons);
     
-    // Make rule draggable
+    // Make draggable and attach handlers
     rule.setAttribute('draggable', 'true');
-    rule.addEventListener('dragstart', handleDragStart);
-    rule.addEventListener('dragend', handleDragEnd);
-    rule.addEventListener('dragover', handleDragOverElement);
+    
+    rule.ondragstart = function(e) {
+        draggedElement = this;
+        draggedType = 'rule';
+        sourceContainer = this.closest('.rules');
+        setTimeout(() => this.classList.add('dragging'), 0);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    };
+    
+    rule.ondragend = function(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        draggedElement = null;
+        draggedType = null;
+        sourceContainer = null;
+    };
+    
+    rule.ondragover = function(e) {
+        e.preventDefault();
+        if (!draggedElement || draggedType !== 'rule') return;
+        
+        const currentContainer = this.closest('.rules');
+        if (currentContainer !== sourceContainer) return; // Only same container
+        
+        const afterElement = getDragAfterElement(currentContainer, e.clientY);
+        
+        if (afterElement == null) {
+            currentContainer.appendChild(draggedElement);
+        } else {
+            currentContainer.insertBefore(draggedElement, afterElement);
+        }
+    };
 }
 
 /**
@@ -2124,7 +2176,6 @@ function createDragHandle(icon, title) {
     handle.setAttribute('role', 'button');
     handle.setAttribute('tabindex', '0');
     
-    // Prevent drag from firing on handle click
     handle.addEventListener('mousedown', (e) => {
         e.stopPropagation();
     });
@@ -2194,137 +2245,57 @@ function moveElement(element, direction) {
 function setupContainerListeners() {
     const groupsContainer = document.getElementById('groupsContainer');
     if (groupsContainer) {
-        groupsContainer.addEventListener('dragover', handleDragOver);
-        groupsContainer.addEventListener('drop', handleDrop);
-    }
-}
-
-/**
- * Handle drag start event
- */
-function handleDragStart(e) {
-    draggedElement = e.currentTarget;
-    draggedType = draggedElement.classList.contains('rule-group') ? 'rule-group' : 'rule';
-    
-    if (draggedType === 'rule') {
-        sourceContainer = draggedElement.closest('.rules');
-    }
-    
-    // Add dragging class with slight delay for visual effect
-    setTimeout(() => {
-        if (draggedElement) {
-            draggedElement.classList.add('dragging');
-        }
-    }, 0);
-    
-    // Set drag data
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', draggedElement.innerHTML);
-}
-
-/**
- * Handle drag over on individual elements (Rule Groups or Billing Rules)
- */
-function handleDragOverElement(e) {
-    e.preventDefault();
-    
-    if (!draggedElement) return;
-    
-    const targetElement = e.currentTarget;
-    
-    // Don't swap with itself
-    if (targetElement === draggedElement) return;
-    
-    // Only swap elements of the same type
-    const targetIsRuleGroup = targetElement.classList.contains('rule-group');
-    const draggedIsRuleGroup = draggedElement.classList.contains('rule-group');
-    
-    // For Rule Groups: only swap with other Rule Groups
-    if (draggedIsRuleGroup && targetIsRuleGroup) {
-        swapElements(draggedElement, targetElement);
-    }
-    
-    // For Billing Rules: only swap with other Billing Rules in the same Rule Group
-    if (!draggedIsRuleGroup && !targetIsRuleGroup) {
-        const draggedParentGroup = draggedElement.closest('.rule-group');
-        const targetParentGroup = targetElement.closest('.rule-group');
+        groupsContainer.ondragover = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        };
         
-        // Only swap if they're in the same rule group
-        if (draggedParentGroup === targetParentGroup) {
-            swapElements(draggedElement, targetElement);
-        }
-    }
-}
-
-/**
- * Handle drag over on container
- */
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-}
-
-/**
- * Swap two elements in the DOM
- */
-function swapElements(elem1, elem2) {
-    // Get bounding rectangles to determine if we should swap
-    const rect1 = elem1.getBoundingClientRect();
-    const rect2 = elem2.getBoundingClientRect();
-    
-    // Calculate midpoint
-    const midpoint = rect2.top + rect2.height / 2;
-    
-    // Only swap if mouse is past the midpoint (50% threshold)
-    const afterMidpoint = event.clientY > midpoint;
-    
-    // Create a temporary placeholder
-    const placeholder = document.createElement('div');
-    
-    // Get parent
-    const parent = elem2.parentNode;
-    
-    // Determine insert position based on drag direction
-    if (rect1.top < rect2.top) {
-        // Dragging downward - insert after elem2
-        parent.insertBefore(elem1, elem2.nextSibling);
-    } else {
-        // Dragging upward - insert before elem2
-        parent.insertBefore(elem1, elem2);
-    }
-}
-
-/**
- * Handle drop event
- */
-function handleDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Update navigation after drop
-    setTimeout(() => {
-        updateNavigation();
-        showSuccessNotification();
-    }, 100);
-}
-
-/**
- * Handle drag end event
- */
-function handleDragEnd(e) {
-    if (draggedElement) {
-        draggedElement.classList.remove('dragging');
+        groupsContainer.ondrop = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => {
+                updateNavigation();
+                showSuccessNotification();
+            }, 100);
+        };
     }
     
-    // Remove all drag-over classes
-    document.querySelectorAll('.drag-over').forEach(el => {
-        el.classList.remove('drag-over');
+    // Also setup for .rules containers
+    document.querySelectorAll('.rules').forEach(container => {
+        container.ondragover = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        };
+        
+        container.ondrop = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => {
+                updateNavigation();
+                showSuccessNotification();
+            }, 100);
+        };
     });
+}
+
+/**
+ * Get the element after which the dragged element should be inserted
+ */
+function getDragAfterElement(container, y) {
+    const draggableElements = draggedType === 'rule-group' 
+        ? [...container.querySelectorAll('.rule-group:not(.dragging)')]
+        : [...container.querySelectorAll('.rule:not(.dragging)')];
     
-    // Reset drag state
-    draggedElement = null;
-    draggedType = null;
-    sourceContainer = null;
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 /**
@@ -2338,12 +2309,10 @@ function showDragInstruction() {
     `;
     document.body.appendChild(instructionDiv);
     
-    // Show tooltip briefly
     setTimeout(() => {
         instructionDiv.classList.add('show');
     }, 500);
     
-    // Hide after 5 seconds
     setTimeout(() => {
         instructionDiv.classList.remove('show');
         setTimeout(() => instructionDiv.remove(), 300);
@@ -2390,3 +2359,4 @@ function handleButtonWithRetry(button, callback) {
         }, 1000);
     });
 }
+
