@@ -305,4 +305,4 @@ For issues, feature requests, or questions:
 
 **Happy pricing! 🎉**
 
-For detailed feature documentation and tutorials, visit the application's built-in help (? button).
+For detailed feature documentation for CloudHealth Custom Pricebook API Guide visit https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api.
