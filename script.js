@@ -2157,45 +2157,40 @@ function setupDragContainers() {
         });
     }
 
-    // ✅ IMPROVED: Better handling for billing rules containers
+    // ✅ SIMPLIFIED: More direct approach
     document.querySelectorAll('.rules').forEach(rulesContainer => {
-        // Remove the check that prevents re-initialization
-        // This ensures newly added .rules containers get wired
-        rulesContainer.removeAttribute('data-drop-init');
-        
-        if (rulesContainer.getAttribute('data-drop-init') === '1') return;
         rulesContainer.setAttribute('data-drop-init', '1');
         
         rulesContainer.addEventListener('dragover', function (e) {
+            // ✅ Allow any billing rule to be dragged within its container
             if (!draggedElement || draggedType !== 'rule') return;
             
-            // ✅ FIXED: Use the container itself, not just sourceContainer check
-            const currentRulesContainer = e.currentTarget;
+            const targetContainer = e.currentTarget;
             
-            // Only allow dragging within the same .rules container
-            if (draggedSourceContainer !== currentRulesContainer) return;
+            // Check if the dragged element belongs to THIS container
+            if (!targetContainer.contains(draggedElement)) return;
             
             e.preventDefault();
-            e.stopPropagation(); // ✅ ADDED: Prevent event bubbling
+            e.stopPropagation();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
             
-            const afterEl = getDragAfterElement(currentRulesContainer, e.clientY, '.rule');
+            const afterEl = getDragAfterElement(targetContainer, e.clientY, '.rule');
             if (!afterEl) {
-                currentRulesContainer.appendChild(draggedElement);
+                targetContainer.appendChild(draggedElement);
             } else {
-                currentRulesContainer.insertBefore(draggedElement, afterEl);
+                targetContainer.insertBefore(draggedElement, afterEl);
             }
         });
         
         rulesContainer.addEventListener('drop', function (e) {
             if (!draggedElement || draggedType !== 'rule') return;
-            if (draggedSourceContainer !== this) return;
             e.preventDefault();
-            e.stopPropagation(); // ✅ ADDED: Prevent event bubbling
+            e.stopPropagation();
             setTimeout(() => { updateNavigation(); }, 0);
         });
     });
 }
+
 
 function getDragAfterElement(container, mouseY, selector) {
     const draggableElements = [...container.querySelectorAll(selector + ':not(.dragging)')];
