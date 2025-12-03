@@ -51,18 +51,22 @@
             </select>
         </div>
         
-        <div class="import-section">
-            <button class="button" id="importButton"
-                title="Import an existing Price Book specification in JSON/XML to modify"
-                aria-label="Import existing price book">
-                <span class="button-icon">📂</span>Import Price Book
-            </button>
-            <input type="file" id="fileInput" accept=".json,.xml" class="sr-only">
-        </div>
-        <button class="button" onclick="readFromOutputButton()" title="Import from XML/JSON output below">
-            title="Paste the content from existing Price Book specification in XML or JSON outputbox to read/modify"
-            <span class="button-icon">📄</span>Read from Output
-        </button>
+<div class="import-section">
+    <button class="button" id="importButton"
+        title="Import an existing Price Book specification in JSON/XML to modify"
+        aria-label="Import existing price book">
+        <span class="button-icon">📂</span>Import Price Book
+    </button>
+    <input type="file" id="fileInput" accept=".json,.xml" class="sr-only">
+
+    <!-- New: Read from XML/JSON Output -->
+    <button class="button" id="readFromOutputButton"
+        title="Paste or edit XML/JSON in the output boxes below, then read it back into the form"
+        aria-label="Read price book from XML/JSON output">
+        <span class="button-icon">📄</span>Read from Output
+    </button>
+</div>
+
         <div class="input-row">
             <div class="input-group">
                 <label for="bookName">Price Book Name *</label>
