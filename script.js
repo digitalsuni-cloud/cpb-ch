@@ -1835,6 +1835,92 @@ function performReset() {
     addRuleGroup(null, true);
 }
 
+// IMPORT from the OUTPUT XML or JSON Text Boxes
+
+function readFromOutput() {
+    // Get the active tab
+    const xmlTab = document.getElementById('xmlTab');
+    const jsonTab = document.getElementById('jsonTab');
+    const xmlOutput = document.getElementById('xmlOutput');
+    const jsonOutput = document.getElementById('jsonOutput');
+    
+    let content = '';
+    let isXML = false;
+    
+    // Check which tab is active
+    if (xmlTab && xmlTab.classList.contains('active')) {
+        // XML tab is active
+        content = xmlOutput.value.trim();
+        isXML = true;
+    } else if (jsonTab && jsonTab.classList.contains('active')) {
+        // JSON tab is active
+        content = jsonOutput.value.trim();
+        isXML = false;
+    } else {
+        // Default to XML if no tab detection
+        content = xmlOutput.value.trim();
+        if (!content) {
+            content = jsonOutput.value.trim();
+            isXML = false;
+        } else {
+            isXML = true;
+        }
+    }
+    
+    // Validate content exists
+    if (!content) {
+        alert('⚠️ Error: No content found in XML or JSON output.\n\nPlease generate XML or JSON first, then click "Read from Output".');
+        return;
+    }
+    
+    // Validate content format
+    if (isXML && !content.startsWith('<')) {
+        alert('⚠️ Error: XML output does not appear to be valid XML format.\n\nPlease generate XML first.');
+        return;
+    }
+    
+    if (!isXML && !content.startsWith('{') && !content.startsWith('[')) {
+        alert('⚠️ Error: JSON output does not appear to be valid JSON format.\n\nPlease generate JSON first.');
+        return;
+    }
+    
+    // Confirm before importing
+    const confirmed = confirm(
+        `📄 Read from ${isXML ? 'XML' : 'JSON'} Output\n\n` +
+        `This will replace all current form data with the content from the ${isXML ? 'XML' : 'JSON'} output area.\n\n` +
+        `Do you want to continue?`
+    );
+    
+    if (!confirmed) {
+        return;
+    }
+    
+    // Reuse existing XML import logic
+    try {
+        // If your app only imports from XML, and `populateFieldsFromXMLString`
+        // expects XML, you probably want to only allow XML here.
+        // If you already support JSON import separately, call that instead
+        // when !isXML.
+        if (!isXML) {
+            alert('JSON import from output is not wired yet. Convert to XML output first, then use "Read from Output".');
+            return;
+        }
+
+        populateFieldsFromXMLString(content);
+        
+        alert(`✅ Success!\n\nPrice Book has been loaded from ${isXML ? 'XML' : 'JSON'} output.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+    } catch (error) {
+        console.error('Error reading from output:', error);
+        alert(
+            `❌ Error: Failed to read from ${isXML ? 'XML' : 'JSON'} output.\n\n` +
+            `Error: ${error.message}\n\n` +
+            `Please ensure the output is valid ${isXML ? 'XML' : 'JSON'} format.`
+        );
+    }
+}
+
 // BELOW CODE FOR READOUT PRICEBOOK FUNCTION
 
 // Fetch current XML, either from textarea or generate fresh
