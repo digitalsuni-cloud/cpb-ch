@@ -345,16 +345,39 @@
             transform: translateY(-2px);
         }
 
-/* Special styling for Read from Output button */
-button[onclick="readFromOutputButton()"] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-}
+        /* Special styling for Import and Read from Output button */
+        .import-section .button {
+            border: none;
+            color: #fff;
+            font-weight: 500;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        
+        .import-section .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        /* Import Price Book: blue/teal */
+        #importButton {
+            background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #22c55e 100%);
+        }
+        
+        #importButton:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #0891b2 50%, #16a34a 100%);
+        }
+        
+        /* Read from Output: purple/pink */
+        #readFromOutputButton {
+            background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f97316 100%);
+            margin-left: 0.75rem; /* spacing between buttons */
+        }
+        
+        #readFromOutputButton:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #db2777 50%, #ea580c 100%);
+        }
 
-button[onclick="readFromOutputButton()"]:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-    transform: translateY(-2px);
-}
 
 
         .rule-group {
