@@ -87,6 +87,53 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    //Read Pricebook from the Output textboxes.
+
+    const readFromOutputBtn = document.getElementById('readFromOutputButton');
+    if (readFromOutputBtn) {
+        readFromOutputBtn.addEventListener('click', function () {
+            const xmlOutputEl = document.getElementById('xmlOutput');
+            const jsonOutputEl = document.getElementById('jsonOutput');
+
+            if (!xmlOutputEl || !jsonOutputEl) {
+                alert('XML/JSON output areas not found in the page.');
+                return;
+            }
+
+            const xmlText = (xmlOutputEl.value || '').trim();
+            const jsonText = (jsonOutputEl.value || '').trim();
+
+            let chosenText = '';
+            if (xmlText) {
+                chosenText = xmlText;
+            } else if (jsonText) {
+                chosenText = jsonText;
+            }
+
+            if (!chosenText) {
+                alert('No XML or JSON output found.\nPaste or generate XML/JSON first, then click "Read from Output".');
+                return;
+            }
+
+            const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
+            const allFieldsEmpty = mainFields.every(id => document.getElementById(id).value.trim() === '');
+            const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
+
+            if (!(allFieldsEmpty && noRuleGroups)) {
+                const ok = confirm('Reading from output will clear the existing data in the form. Continue?');
+                if (!ok) return;
+            }
+
+            try {
+                performReset();              // your existing helper
+                detectAndImport(chosenText); // your existing import pipeline
+            } catch (e) {
+                console.error('ReadFromOutput error:', e);
+                alert('Failed to import from output: ' + e.message);
+            }
+        });
+    }
+
     setTimeout(() => {
         initializeDragAndDrop();
         setupDragContainers();
@@ -1834,49 +1881,6 @@ function performReset() {
     // Add initial rule group
     addRuleGroup(null, true);
 }
-
-// IMPORT from the OUTPUT XML or JSON Text Boxes
-
-document.getElementById('readFromOutputButton').addEventListener('click', function () {
-    const xmlOutputEl = document.getElementById('xmlOutput');
-    const jsonOutputEl = document.getElementById('jsonOutput');
-
-    if (!xmlOutputEl || !jsonOutputEl) {
-        alert('XML/JSON output areas not found in the page.');
-        return;
-    }
-
-    const xmlText = (xmlOutputEl.value || '').trim();
-    const jsonText = (jsonOutputEl.value || '').trim();
-
-    // Prefer XML if present, otherwise JSON
-    let chosenText = '';
-    if (xmlText) {
-        chosenText = xmlText;
-    } else if (jsonText) {
-        chosenText = jsonText;
-    }
-
-    if (!chosenText) {
-        alert('No XML or JSON output found.\nGenerate XML or JSON first, then click "Read from XML/JSON Output".');
-        return;
-    }
-
-    // If there is existing data, confirm like the file import
-    const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
-    const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
-    const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
-
-    if (!(allFieldsEmpty && noRuleGroups)) {
-        const ok = confirm('Reading from output will clear the existing data in the form. Do you want to continue?');
-        if (!ok) return;
-    }
-
-    // Clear form then reuse the same detection/import pipeline
-    performReset();        // same reset helper you already use in file import
-    detectAndImport(chosenText);  // reuse your existing content-sniffing dispatcher
-});
-
 
 // BELOW CODE FOR READOUT PRICEBOOK FUNCTION
 
