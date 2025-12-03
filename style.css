@@ -345,6 +345,18 @@
             transform: translateY(-2px);
         }
 
+/* Special styling for Read from Output button */
+button[onclick="readFromOutput()"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+button[onclick="readFromOutput()"]:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-2px);
+}
+
+
         .rule-group {
             background-color: var(--surface);
             border: 2px solid var(--border);
