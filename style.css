@@ -346,12 +346,12 @@
         }
 
 /* Special styling for Read from Output button */
-button[onclick="readFromOutput()"] {
+button[onclick="readFromOutputButton()"] {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
 }
 
-button[onclick="readFromOutput()"]:hover {
+button[onclick="readFromOutputButton()"]:hover {
     background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     transform: translateY(-2px);
 }
