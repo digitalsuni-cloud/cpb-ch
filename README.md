@@ -1,4 +1,6 @@
 
+# CloudHealth Custom Price Book Builder
+
 ## 🎯 Overview
 
 Custom price books allow you to develop a custom system of discounts, rates, and adjustments for customers on an individual level.
@@ -8,154 +10,179 @@ This Tool will help you build and modify the Custom Price Book for CloudHealth e
 ## ✨ Key Features
 
 ### 📋 Rule Management
-- **Rule Groups**: Organize pricing rules by date ranges and customer accounts
-  - Define start and end dates for rule applicability
-  - Optional PayerAccount ID filtering
-  - Enable/disable rule groups without deleting
-  
-- **Billing Rules**: Granular pricing adjustment rules within each group
-  - Named billing rules for easy identification
-  - Flexible billing adjustment types (percentage discount, percentage increase, fixed rate)
-  - Product-specific customization (inclusion of data transfer and RI purchases)
+- **Rule Groups**: Organize pricing rules by date ranges and customer accounts  
+  - Define start and end dates for rule applicability  
+  - Optional PayerAccount ID filtering  
+  - Enable/disable rule groups without deleting  
+
+- **Billing Rules**: Granular pricing adjustment rules within each group  
+  - Named billing rules for easy identification  
+  - Flexible billing adjustment types (percentage discount, percentage increase, fixed rate)  
+  - Product-specific customization (inclusion of data transfer and RI purchases)  
 
 ### 🎨 Advanced Property Filtering
 Define complex product filters using multiple property types:
-- **Region**: Geographic region filtering
-- **Usage Type**: Specific usage categories
-- **Operation**: operations type.
-- **Record Type**: Cost record classifications
-- **Instance Property**: EC2 instance type, size, and reservation status
-- **Line Item Description**: Line item description Pattern matching (contains, starts with, regex)
-- **Savings Plan Offering Type**: Savings plan specific filters
+- **Region**: Geographic region filtering  
+- **Usage Type**: Specific usage categories  
+- **Operation**: Operations type  
+- **Record Type**: Cost record classifications  
+- **Instance Property**: EC2 instance type, size, and reservation status  
+- **Line Item Description**: Line item description pattern matching (contains, starts with, regex)  
+- **Savings Plan Offering Type**: Savings plan specific filters  
 
 ### 🔄 Drag-and-Drop Reordering
-- **Intuitive drag handles** (⋮⋮) on both Rule Groups and Billing Rules
-- **Keyboard alternative**: Arrow buttons (▲ ▼) for accessibility
-- **Real-time updates**: Navigation and UI refresh automatically after reordering
-- **Precise control**: Drag only from handles, not from anywhere on elements
+- **Intuitive drag handles** (⋮⋮) on both Rule Groups and Billing Rules  
+- **Keyboard alternative**: Arrow buttons (▲ ▼) for accessibility  
+- **Real-time updates**: Navigation and UI refresh automatically after reordering  
+- **Precise control**: Drag only from handles, not from anywhere on elements  
 
 ### 📤 Multi-Format Export
 Generate outputs in multiple formats:
-- **XML**: Complete specification format for AWS integration
-- **JSON**: Structured data format with embedded XML specification
-- **cURL Commands**: Ready-to-use API calls for immediate deployment
+- **XML**: Complete specification format for CloudHealth Price Book API  
+- **JSON**: Structured data format with embedded XML specification  
+- **cURL Commands**: Ready-to-use API calls for immediate deployment  
 
 ### 📥 Flexible Import
-Support for multiple file formats:
-- **XML** price book specifications
-- **JSON** with embedded XML
-- **Auto-detection** of format and error-recovery mechanisms
-- **Smart parsing**: Handles malformed JSON with fallback extraction
+Support for multiple file and text-based sources:
+
+- **XML** price book specifications  
+- **JSON** with embedded XML (`specification` field)  
+- **Auto-detection** of format and error-recovery mechanisms  
+- **Smart parsing**: Handles malformed JSON with fallback extraction  
+- **Read from Output**:  
+  - Paste or edit a Price Book specification directly into the **XML Output** (`xmlOutput`) or **JSON Output** (`jsonOutput`) text areas  
+  - Click **“Read from Output”** to rebuild the entire UI from that content  
+  - Uses the same `detectAndImport(...)` pipeline as file import (including JSON-with-XML and pure XML support)  
 
 ### 🌍 Customer Assignment
 Generate customer assignment configurations:
-- **JSON format**: Structured customer-to-pricebook mappings
-- **cURL commands**: API-ready deployment instructions
-- **API ID and Payer ID**: Custom routing to specific price books
+- **JSON format**: Structured customer-to-pricebook mappings  
+- **cURL commands**: API-ready deployment instructions  
+- **API ID and Payer ID**: Custom routing to specific price books  
 
 ### 🤖 Natural Language Summary
-- **AI-powered summaries**: Human-readable descriptions of pricing rules
-- **Generated on-demand**: Click "Read Out Pricebook" to generate
-- **Collapsible interface**: Clean UI with expand/collapse functionality
-- **Smooth scrolling**: Auto-scroll to summary section
+- **AI-powered summaries**: Human-readable descriptions of pricing rules  
+- **Generated on-demand**: Click "Read Out Pricebook" to generate  
+- **Collapsible interface**: Clean UI with expand/collapse functionality  
+- **Smooth scrolling**: Auto-scroll to summary section  
 
 ### 🎨 Theme Support
-- **Dark/Light mode**: Automatic detection based on system preferences
-- **Manual toggle**: Switch themes with button control
-- **Persistent styling**: Clean, modern UI with accessibility focus
+- **Dark/Light mode**: Automatic detection based on system preferences  
+- **Manual toggle**: Switch themes with button control  
+- **Persistent styling**: Clean, modern UI with accessibility focus  
 
 ### 🔍 Smart Navigation
-- **Select2 search dropdown**: Quickly find and jump to specific billing rules
-- **Dynamic indexing**: Auto-numbered rule identification (1.1, 1.2, etc.)
-- **Hover tooltips**: Full rule names with date ranges
-- **Auto-expand**: Collapses expand sections when navigating
+- **Select2 search dropdown**: Quickly find and jump to specific billing rules  
+- **Dynamic indexing**: Auto-numbered rule identification (1.1, 1.2, etc.)  
+- **Hover tooltips**: Full rule names with date ranges  
+- **Auto-expand**: Collapses expand sections when navigating  
 
 ### ✅ Form Validation
-- **Required field validation**: Book Name and Created By
-- **Visual feedback**: Error messages and border highlighting
-- **Accessible errors**: ARIA labels for screen readers
-- **Focus management**: Auto-scroll to first invalid field
+- **Required field validation**: Book Name and Created By  
+- **Visual feedback**: Error messages and border highlighting  
+- **Accessible errors**: ARIA labels for screen readers  
+- **Focus management**: Auto-scroll to first invalid field  
 
 ## 🏗️ Technical Architecture
 
 ### Frontend Stack
-- **Vanilla JavaScript**: No framework dependencies
-- **HTML5**: Semantic markup
-- **CSS3**: Modern styling with CSS variables for theming
-- **DOM Manipulation**: Direct and efficient DOM updates
+- **Vanilla JavaScript**: No framework dependencies  
+- **HTML5**: Semantic markup  
+- **CSS3**: Modern styling with CSS variables for theming  
+- **DOM Manipulation**: Direct and efficient DOM updates  
 
 ### Core Technologies
-- **Drag and Drop API**: Native HTML5 drag-and-drop with custom logic
-- **FileReader API**: Client-side file import with format detection
-- **DOMParser**: XML/JSON parsing with error handling
-- **Select2**: Advanced dropdown search functionality
-- **Local Exports**: Direct browser download capability
+- **Drag and Drop API**: Native HTML5 drag-and-drop with custom logic  
+- **FileReader API**: Client-side file import with format detection  
+- **DOMParser**: XML/JSON parsing with error handling  
+- **Select2**: Advanced dropdown search functionality  
+- **Local Exports**: Direct browser download capability  
 
 ### Key Functions
 
 #### Rule Management
-- `addRuleGroup()`: Create new rule groups
-- `addRule()`: Add billing rules to groups
-- `removeRuleGroup()`: Delete rule groups
-- `removeRule()`: Delete billing rules
-- `moveElement()`: Reorder via keyboard buttons
+- `addRuleGroup()`: Create new rule groups  
+- `addRule()`: Add billing rules to groups  
+- `removeRuleGroup()`: Delete rule groups  
+- `removeRule()`: Delete billing rules  
+- `moveElement()`: Reorder via keyboard buttons  
 
 #### Drag and Drop
-- `initializeDragAndDrop()`: Setup drag functionality
-- `attachDragToRuleGroup()`: Wire rule group dragging
-- `attachDragToRule()`: Wire billing rule dragging
-- `setupDragContainers()`: Configure drop zones
-- `getDragAfterElement()`: Calculate drop position
+- `initializeDragAndDrop()`: Setup drag functionality  
+- `attachDragToRuleGroup()`: Wire rule group dragging  
+- `attachDragToRule()`: Wire billing rule dragging  
+- `setupDragContainers()`: Configure drop zones  
+- `getDragAfterElement()`: Calculate drop position  
 
 #### Data Management
-- `generateOutput()`: Create XML/JSON/cURL outputs
-- `handleXMLImport()`: Parse XML specifications
-- `handleJSONImport()`: Parse JSON price books
-- `detectAndImport()`: Auto-detect file format
-- `populateFieldsFromXMLString()`: Populate UI from XML
+- `generateOutput()`: Create XML/JSON/cURL outputs  
+- `handleXMLImport()`: Parse XML specifications  
+- `handleJSONImport()`: Parse JSON price books  
+- `detectAndImport()`: Auto-detect file/text format (JSON vs XML)  
+- `populateFieldsFromXMLString()`: Populate UI from XML  
+- **Read from Output handler**: Reads XML/JSON from `xmlOutput` / `jsonOutput`, calls `performReset()` and `detectAndImport()` to mirror Import behavior  
 
 #### Property Management
-- `addSelectedProperty()`: Add property filters
-- `updatePropertyStatus()`: Track property usage
-- `updateActiveTags()`: Display active filters
-- `importProperties()`: Restore properties on import
+- `addSelectedProperty()`: Add property filters  
+- `updatePropertyStatus()`: Track property usage  
+- `updateActiveTags()`: Display active filters  
+- `importProperties()`: Restore properties on import  
 
 #### UI/UX
-- `updateNavigation()`: Refresh rule search dropdown
-- `toggleRuleGroupCollapse()`: Expand/collapse groups
-- `toggleBillingRuleCollapse()`: Expand/collapse rules
-- `renderNaturalLanguageSummary()`: Generate AI summaries
-- `toggleTheme()`: Switch dark/light mode
+- `updateNavigation()`: Refresh rule search dropdown  
+- `toggleRuleGroupCollapse()`: Expand/collapse groups  
+- `toggleBillingRuleCollapse()`: Expand/collapse rules  
+- `renderNaturalLanguageSummary()`: Generate AI summaries  
+- `toggleTheme()`: Switch dark/light mode  
 
 ## 🚀 Getting Started
+
 1. Here is the webpage link : https://digitalsuni-cloud.github.io/cpb-ch/
 
 ### Basic Usage
 
 #### Creating a Price Book
-1. **Enter book details**: Fill in Book Name and Created By fields
-2. **Add Rule Group**: Click "Add Rule Group" to create a date-based container
-3. **Configure dates**: Set Start Date (required) and optional End Date
-4. **Add Billing Rules**: Click "Add Billing Rule" to add pricing adjustments
-5. **Set adjustments**: Configure billing type and adjustment amount
-6. **Add filters**: Use property filters to target specific products/usage patterns
-7. **Reorder**: Drag ⋮⋮ handles or use arrow buttons to arrange rules
+1. **Enter book details**: Fill in Book Name and Created By fields  
+2. **Add Rule Group**: Click "Add Rule Group" to create a date-based container  
+3. **Configure dates**: Set Start Date (required) and optional End Date  
+4. **Add Billing Rules**: Click "Add Billing Rule" to add pricing adjustments  
+5. **Set adjustments**: Configure billing type and adjustment amount  
+6. **Add filters**: Use property filters to target specific products/usage patterns  
+7. **Reorder**: Drag ⋮⋮ handles or use arrow buttons to arrange rules  
 
 #### Exporting Your Work
-1. **Generate outputs**: Click output format buttons (XML, JSON, cURL)
-2. **Copy to clipboard**: Use copy buttons next to outputs
-3. **Download**: Use download buttons to save files locally
-4. **Deploy**: Use generated cURL commands for immediate API deployment
+1. **Generate outputs**: Click output format buttons (XML, JSON, cURL)  
+2. **Copy to clipboard**: Use copy buttons next to outputs  
+3. **Download**: Use download buttons to save files locally  
+4. **Deploy**: Use generated cURL commands for immediate API deployment  
 
 #### Importing Existing Price Books
-1. **Click Import button**: Select "Import Price Book"
-2. **Choose file**: Select XML or JSON format price book
-3. **Automatic population**: Form fields and rules auto-populate
-4. **Edit as needed**: Modify imported rules and regenerate outputs
+
+1. **File-based import**
+   - Click **Import Price Book**  
+   - Choose an XML or JSON price book file  
+   - The app auto-detects format and populates all fields and rules  
+   - Edit as needed and regenerate outputs  
+
+2. **Read from XML/JSON Output**
+   - Paste or edit a Price Book specification into:
+     - the **XML Output** textarea (`xmlOutput`) for raw XML, or  
+     - the **JSON Output** textarea (`jsonOutput`) for JSON with embedded XML  
+   - Click **Read from Output**  
+   - Confirm overwrite if existing data is present  
+   - The app:
+     - Resets the current form via `performReset()`  
+     - Runs `detectAndImport(...)` on the pasted content  
+     - Repopulates all Rule Groups, Billing Rules, and properties from that XML/JSON  
+
+This is especially useful when:
+- Copying specs from CloudHealth API responses, tickets, or docs  
+- Tweaking generated XML/JSON manually and re-importing without saving to a file  
 
 ## 📊 Data Structure
 
 ### XML Format
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <specification createdBy="John Doe" version="1.0">
@@ -245,7 +272,12 @@ Modify CSS variables in style.css for dark/light mode colors:
 
 ## 📝 Changelog
 
-### Version 3.0 (Current)
+### Version 3.1 (Current)
+- ✅ Added Read from Output button to import directly from XML/JSON output text areas
+- ✅ Reuse of  detectAndImport(...)  pipeline for text-based imports
+- ✅ Improved import UX parity between file-based and output-based flows
+  
+### Version 3.0
 - ✅ Full rule management system
 - ✅ Drag-and-drop reordering
 - ✅ Multi-format import/export
