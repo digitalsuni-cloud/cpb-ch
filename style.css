@@ -390,6 +390,35 @@
                 width: 100%;
             }
         }
+        /* Products header labels row */
+        .products-header-labels {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 15px;
+            padding: 8px 12px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        
+        .products-header-labels span:last-child {
+            width: 37px; /* Match remove button width */
+        }
+        
+        /* Remove individual labels from input-group since we have header labels */
+        .product-row input,
+        .product-row select {
+            width: 100%;
+        }
+        
+        /* Remove margins/padding from inputs/selects in product rows */
+        .product-row .input-group label {
+            display: none; /* Hide labels inside product rows */
+        }
+
 
 
         .customer-ids {
