@@ -314,11 +314,46 @@ function addRule(button) {
                     </select>
                 </div>
             </div>
-                <div class="product-inline">
-                    <div class="input-group">
-                        <label>Product Name</label>
-                        <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
-                        <datalist id="productList">
+            <div class="product-inline">
+                                <div class="products-header">
+                                    <div class="products-title">
+                                        <strong>Products</strong>
+                                        <span class="products-hint">(add one or more Product Names under this Billing Rule)</span>
+                                    </div>
+                                    <button type="button" class="button add-product-button" onclick="addProductRow(this)">
+                                        <span class="button-icon">➕</span>Add Product
+                                    </button>
+                                </div>
+            
+                                <!-- Container for multiple product rows -->
+                                <div class="products-container">
+                                    <div class="product-row">
+                                        <div class="input-group">
+                                            <label>Product Name</label>
+                                            <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
+                                        </div>
+                                        <div class="input-group compact">
+                                            <label>Product Include Data Transfer</label>
+                                            <select class="productIncludeDataTransfer">
+                                                <option value="">(inherit)</option>
+                                                <option value="true">true</option>
+                                                <option value="false">false</option>
+                                            </select>
+                                        </div>
+                                        <div class="input-group compact">
+                                            <label>Product Include RI Purchases</label>
+                                            <select class="productIncludeRIPurchases">
+                                                <option value="">(inherit)</option>
+                                                <option value="true">true</option>
+                                                <option value="false">false</option>
+                                            </select>
+                                        </div>
+                                        <button type="button" class="button button-red remove-product-button" onclick="removeProductRow(this)">
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            <datalist id="productList">
                             <option value="Amazon API Gateway" />
                             <option value="Amazon AppFlow" />
                             <option value="Amazon AppStream" />
@@ -1076,7 +1111,7 @@ function generateXML() {
         }
         const endDate = group.querySelector('[id^="endDate-"]').value;
         const enabled = group.querySelector('[id^="enabled-"]').value;
-        const payerAccounts = group.querySelector('[id^="payerAccounts-"]').value.trim();  // Fetch and trim for safety
+        const payerAccounts = group.querySelector('[id^="payerAccounts-"]').value.trim();
 
         xml += `\t<RuleGroup startDate="${startDate}"${endDate ? ` endDate="${endDate}"` : ''}${payerAccounts ? ` payerAccounts="${payerAccounts}"` : ''}${enabled === "false" ? ` enabled="false"` : ''}>\n`;
 
@@ -1087,111 +1122,127 @@ function generateXML() {
             const type = rule.querySelector('.billingRuleType').value;
             const dataTransfer = rule.querySelector('.includeDataTransfer').value;
             const rip = rule.querySelector('.includeRIPurchases').value;
-            const product = rule.querySelector('.productName').value || 'ANY';
-
-            const prodDT = rule.querySelector('.productIncludeDataTransfer').value;
-            const prodRIP = rule.querySelector('.productIncludeRIPurchases').value;
 
             xml += `\t\t<BillingRule name="${name}" includeDataTransfer="${dataTransfer}"${rip === "true" ? ` includeRIPurchases="true"` : ''}>\n`;
             xml += `\t\t\t<BasicBillingRule billingAdjustment="${adj}" billingRuleType="${type}"/>\n`;
-            xml += `\t\t\t<Product productName="${product}"${prodDT ? ` includeDataTransfer="${prodDT}"` : ''}${prodRIP ? ` includeRIPurchases="${prodRIP}"` : ''}>`;
 
-            let subTags = '';
+            // ✅ NEW: Loop through all product rows in this billing rule
+            const productRows = rule.querySelectorAll('.products-container .product-row');
+            
+            productRows.forEach(productRow => {
+                const productName = (productRow.querySelector('.productName')?.value || '').trim();
+                const prodDT = productRow.querySelector('.productIncludeDataTransfer')?.value || '';
+                const prodRIP = productRow.querySelector('.productIncludeRIPurchases')?.value || '';
 
-            // Proper order of properties
-            const propertyOrder = [
-                'region',
-                'usageType',
-                'operation',
-                'recordType',
-                'instanceProperty',
-                'lineItemDescription',
-                'savingsPlanOfferingType'
-            ];
+                // Generate <Product> tag (even if productName is empty, to match your sample)
+                xml += `\t\t\t<Product`;
+                if (productName) {
+                    xml += ` productName="${productName}"`;
+                } else {
+                    xml += ` productName="ANY"`; // or leave empty based on your preference
+                }
+                if (prodDT) xml += ` includeDataTransfer="${prodDT}"`;
+                if (prodRIP) xml += ` includeRIPurchases="${prodRIP}"`;
+                xml += `>`;
 
-            // Safely collect addedProperties
-            const addedSet = new Set();
-            if (rule.addedProperties && typeof rule.addedProperties.forEach === 'function') {
-                rule.addedProperties.forEach(p => addedSet.add(p));
-            }
+                let subTags = '';
 
-            propertyOrder.forEach(propertyType => {
-                if (!addedSet.has(propertyType)) return;
+                // Proper order of properties
+                const propertyOrder = [
+                    'region',
+                    'usageType',
+                    'operation',
+                    'recordType',
+                    'instanceProperty',
+                    'lineItemDescription',
+                    'savingsPlanOfferingType'
+                ];
 
-                const valuesContainer = rule.querySelector(`#${propertyType}Values`);
-                if (!valuesContainer) return;
+                // Safely collect addedProperties
+                const addedSet = new Set();
+                if (rule.addedProperties && typeof rule.addedProperties.forEach === 'function') {
+                    rule.addedProperties.forEach(p => addedSet.add(p));
+                }
 
-                switch (propertyType) {
-                    case 'region':
-                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                            const val = input.value.trim();
-                            if (val) subTags += `\n\t\t\t\t<Region name="${val}"/>`;
-                        });
-                        break;
+                propertyOrder.forEach(propertyType => {
+                    if (!addedSet.has(propertyType)) return;
 
-                    case 'usageType':
-                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                            const val = input.value.trim();
-                            if (val) subTags += `\n\t\t\t\t<UsageType name="${val}"/>`;
-                        });
-                        break;
+                    const valuesContainer = rule.querySelector(`#${propertyType}Values`);
+                    if (!valuesContainer) return;
 
-                    case 'operation':
-                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                            const val = input.value.trim();
-                            if (val) subTags += `\n\t\t\t\t<Operation name="${val}"/>`;
-                        });
-                        break;
+                    switch (propertyType) {
+                        case 'region':
+                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                                const val = input.value.trim();
+                                if (val) subTags += `\n\t\t\t\t<Region name="${val}"/>`;
+                            });
+                            break;
 
-                    case 'recordType':
-                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                            const val = input.value.trim();
-                            if (val) subTags += `\n\t\t\t\t<RecordType name="${val}"/>`;
-                        });
-                        break;
+                        case 'usageType':
+                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                                const val = input.value.trim();
+                                if (val) subTags += `\n\t\t\t\t<UsageType name="${val}"/>`;
+                            });
+                            break;
 
-                    case 'instanceProperty':
-                        valuesContainer.querySelectorAll('.instance-property-value').forEach(entry => {
-                            const inputs = entry.querySelectorAll('input');
-                            const select = entry.querySelector('select');
-                            const type = inputs[0].value.trim();
-                            const size = inputs[1].value.trim();
-                            const reserved = select.value === 'true';
+                        case 'operation':
+                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                                const val = input.value.trim();
+                                if (val) subTags += `\n\t\t\t\t<Operation name="${val}"/>`;
+                            });
+                            break;
 
-                            if (type || size || reserved) {
-                                subTags += `\n\t\t\t\t<InstanceProperties`;
-                                if (type) subTags += ` instanceType="${type}"`;
-                                if (size) subTags += ` instanceSize="${size}"`;
-                                subTags += ` reserved="${reserved}"`;
-                                subTags += ` />`;
-                            }
-                        });
-                        break;
+                        case 'recordType':
+                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                                const val = input.value.trim();
+                                if (val) subTags += `\n\t\t\t\t<RecordType name="${val}"/>`;
+                            });
+                            break;
 
-                    case 'lineItemDescription':
-                        valuesContainer.querySelectorAll('.line-item-description-value').forEach(entry => {
-                            const select = entry.querySelector('select');
-                            const input = entry.querySelector('input');
-                            const key = select.value;
-                            const val = input.value.trim();
-                            if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
-                        });
-                        break;
+                        case 'instanceProperty':
+                            valuesContainer.querySelectorAll('.instance-property-value').forEach(entry => {
+                                const inputs = entry.querySelectorAll('input');
+                                const select = entry.querySelector('select');
+                                const type = inputs[0].value.trim();
+                                const size = inputs[1].value.trim();
+                                const reserved = select.value === 'true';
 
-                    case 'savingsPlanOfferingType':
-                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                            const val = input.value.trim();
-                            if (val) subTags += `\n\t\t\t\t<SavingsPlanOfferingType name="${val}"/>`;
-                        });
-                        break;
+                                if (type || size || reserved) {
+                                    subTags += `\n\t\t\t\t<InstanceProperties`;
+                                    if (type) subTags += ` instanceType="${type}"`;
+                                    if (size) subTags += ` instanceSize="${size}"`;
+                                    subTags += ` reserved="${reserved}"`;
+                                    subTags += ` />`;
+                                }
+                            });
+                            break;
+
+                        case 'lineItemDescription':
+                            valuesContainer.querySelectorAll('.line-item-description-value').forEach(entry => {
+                                const select = entry.querySelector('select');
+                                const input = entry.querySelector('input');
+                                const key = select.value;
+                                const val = input.value.trim();
+                                if (val) subTags += `\n\t\t\t\t<LineItemDescription ${key}="${val}" />`;
+                            });
+                            break;
+
+                        case 'savingsPlanOfferingType':
+                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                                const val = input.value.trim();
+                                if (val) subTags += `\n\t\t\t\t<SavingsPlanOfferingType name="${val}"/>`;
+                            });
+                            break;
+                    }
+                });
+
+                if (subTags) {
+                    xml += `${subTags}\n\t\t\t</Product>\n`;
+                } else {
+                    xml += `</Product>\n`;
                 }
             });
-
-            if (subTags) {
-                xml += `${subTags}\n\t\t\t</Product>\n`;
-            } else {
-                xml += `</Product>\n`;
-            }
+            // ✅ END of product loop
 
             xml += `\t\t</BillingRule>\n`;
         });
@@ -1429,7 +1480,7 @@ function detectAndImport(text) {
         // Likely XML
         const okXML = tryImportAsXML(trimmed);
         if (!okXML) {
-            // Maybe it’s JSON with leading BOM/spaces? Try JSON as fallback
+            // Maybe it's JSON with leading BOM/spaces? Try JSON as fallback
             const okJSON = tryImportAsJSON(trimmed);
             if (!okJSON) alert('Unable to parse file as XML or JSON.');
         }
@@ -1660,14 +1711,44 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
             currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer');
             currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
 
-            const product = billingRule.getElementsByTagName('Product')[0];
-            if (product) {
-                currentRule.querySelector('.productName').value = product.getAttribute('productName');
-                currentRule.querySelector('.productIncludeDataTransfer').value = product.getAttribute('includeDataTransfer') || '';
-                currentRule.querySelector('.productIncludeRIPurchases').value = product.getAttribute('includeRIPurchases') || '';
+            const products = billingRule.getElementsByTagName('Product');
+            if (products.length > 0) {
+                const productsContainer = currentRule.querySelector('.products-container');
+                if (productsContainer) {
+                    // ensure we start with a single cleared row
+                    let firstRow = productsContainer.querySelector('.product-row');
+                    if (!firstRow) {
+                        // create one using addProductRow if somehow missing
+                        addProductRow(productsContainer.closest('.rule').querySelector('.add-product-button'));
+                        firstRow = productsContainer.querySelector('.product-row');
+                    }
 
-                initializePropertySelector(currentRule.querySelector('.propertySelect'));
-                importProperties(product, currentRule);
+                    // for the first product, reuse the first row
+                    Array.from(products).forEach((productEl, index) => {
+                        let row;
+                        if (index === 0) {
+                            row = firstRow;
+                        } else {
+                            addProductRow(productsContainer.closest('.rule').querySelector('.add-product-button'));
+                            const rows = productsContainer.querySelectorAll('.product-row');
+                            row = rows[rows.length - 1];
+                        }
+
+                        if (!row) return;
+
+                        const nameInput = row.querySelector('.productName');
+                        const dtSelect = row.querySelector('.productIncludeDataTransfer');
+                        const riSelect = row.querySelector('.productIncludeRIPurchases');
+
+                        if (nameInput) nameInput.value = productEl.getAttribute('productName') || '';
+                        if (dtSelect) dtSelect.value = productEl.getAttribute('includeDataTransfer') || '';
+                        if (riSelect) riSelect.value = productEl.getAttribute('includeRIPurchases') || '';
+                    });
+
+                    // existing property import still uses first <Product>, which is fine
+                    initializePropertySelector(currentRule.querySelector('.propertySelect'));
+                    importProperties(products[0], currentRule);
+                }
             }
         });
     });
@@ -1779,21 +1860,6 @@ function addSelectedPropertyToRule(rule, propertyType) {
     }
 }
 
-if (!rule.addedProperties) {
-    rule.addedProperties = new Set();
-}
-if (!rule.addedProperties.has(propertyType)) {
-    addPropertySection(propertyType, rule);
-    rule.addedProperties.add(propertyType);
-
-    // Ensure the newly added section starts collapsed
-    const content = rule.querySelector(`#${propertyType}Content`);
-    if (content) {
-        content.classList.remove('expanded');
-    }
-}
-
-
 function toggleCollapse(button, contentSelector) {
     const content = button.closest('.rule-group, .rule').querySelector(contentSelector);
     button.classList.toggle('collapsed');
@@ -1805,6 +1871,7 @@ function toggleCollapse(button, contentSelector) {
         button.textContent = '▼';
     }
 }
+
 function toggleRuleGroupCollapse(button) {
     const ruleGroup = button.closest('.rule-group');
     const content = ruleGroup.querySelector('.rule-group-content');
@@ -1830,7 +1897,8 @@ function toggleBillingRuleCollapse(button) {
         button.textContent = '▼';
     }
 }
-//Rest all fields.
+
+//Reset all fields.
 function resetAllFields() {
     // Check if all main fields are empty
     const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
@@ -1847,6 +1915,7 @@ function resetAllFields() {
         }
     }
 }
+
 
 function performReset() {
     // Clear main fields
@@ -2324,3 +2393,47 @@ function getDragAfterElement(container, mouseY, selector) {
     ).element;
 }
 
+// Helper Funciton for the multiple product names under as single billing rule
+function addProductRow(buttonEl) {
+    const rule = buttonEl.closest('.rule');
+    const container = rule.querySelector('.products-container');
+    if (!container) return;
+
+    const firstRow = container.querySelector('.product-row');
+    if (!firstRow) return;
+
+    const newRow = firstRow.cloneNode(true);
+
+    // clear values in cloned row
+    const nameInput = newRow.querySelector('.productName');
+    const dtSelect = newRow.querySelector('.productIncludeDataTransfer');
+    const riSelect = newRow.querySelector('.productIncludeRIPurchases');
+
+    if (nameInput) nameInput.value = '';
+    if (dtSelect) dtSelect.value = '';
+    if (riSelect) riSelect.value = '';
+
+    container.appendChild(newRow);
+}
+
+function removeProductRow(buttonEl) {
+    const row = buttonEl.closest('.product-row');
+    const container = buttonEl.closest('.products-container');
+    if (!row || !container) return;
+
+    // keep at least one row to avoid empty container
+    const rows = container.querySelectorAll('.product-row');
+    if (rows.length <= 1) {
+        // just clear values instead of removing
+        const nameInput = row.querySelector('.productName');
+        const dtSelect = row.querySelector('.productIncludeDataTransfer');
+        const riSelect = row.querySelector('.productIncludeRIPurchases');
+
+        if (nameInput) nameInput.value = '';
+        if (dtSelect) dtSelect.value = '';
+        if (riSelect) riSelect.value = '';
+        return;
+    }
+
+    row.remove();
+}
