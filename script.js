@@ -315,45 +315,45 @@ function addRule(button) {
                 </div>
             </div>
             <div class="product-inline">
-                                <div class="products-header">
-                                    <div class="products-title">
-                                        <strong>Products</strong>
-                                        <span class="products-hint">(add one or more Product Names under this Billing Rule)</span>
-                                    </div>
-                                    <button type="button" class="button add-product-button" onclick="addProductRow(this)">
-                                        <span class="button-icon">➕</span>Add Product
-                                    </button>
-                                </div>
+                <div class="products-header">
+                    <div class="products-title">
+                        <strong>Products</strong>
+                        <span class="products-hint">(add one or more Product Names under this Billing Rule)</span>
+                    </div>
+                    <button type="button" class="button add-product-button" onclick="addProductRow(this)">
+                        <span class="button-icon">➕</span>Add Product
+                    </button>
+                </div>
             
-                                <!-- Container for multiple product rows -->
-                                <div class="products-container">
-                                    <div class="product-row">
-                                        <div class="input-group">
-                                            <label>Product Name</label>
-                                            <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
-                                        </div>
-                                        <div class="input-group compact">
-                                            <label>Product Include Data Transfer</label>
-                                            <select class="productIncludeDataTransfer">
-                                                <option value="">(inherit)</option>
-                                                <option value="true">true</option>
-                                                <option value="false">false</option>
-                                            </select>
-                                        </div>
-                                        <div class="input-group compact">
-                                            <label>Product Include RI Purchases</label>
-                                            <select class="productIncludeRIPurchases">
-                                                <option value="">(inherit)</option>
-                                                <option value="true">true</option>
-                                                <option value="false">false</option>
-                                            </select>
-                                        </div>
-                                        <button type="button" class="button button-red remove-product-button" onclick="removeProductRow(this)">
-                                            ×
-                                        </button>
-                                    </div>
-                                </div>
-                            <datalist id="productList">
+                <!-- Header labels for product rows -->
+                <div class="products-header-labels">
+                    <span>Product Name</span>
+                    <span>Include Data Transfer</span>
+                    <span>Include RI Purchases</span>
+                    <span></span> <!-- empty for remove button column -->
+                </div>
+            
+                <!-- Container for multiple product rows -->
+                <div class="products-container">
+                    <div class="product-row">
+                        <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
+                        <select class="productIncludeDataTransfer">
+                            <option value="">(inherit)</option>
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                        </select>
+                        <select class="productIncludeRIPurchases">
+                            <option value="">(inherit)</option>
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                        </select>
+                        <button type="button" class="button button-red remove-product-button" onclick="removeProductRow(this)">
+                            ×
+                        </button>
+                    </div>
+                </div>
+                <datalist id="productList">
+                        <datalist id="productList">
                             <option value="Amazon API Gateway" />
                             <option value="Amazon AppFlow" />
                             <option value="Amazon AppStream" />
