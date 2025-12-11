@@ -675,11 +675,15 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
     const propertyType = select.value;
     if (!propertyType) return;
 
-    // Collapse all expanded sections in this product
+    // Do NOT modify UI during imports
+    if (product.isImporting) return;
+
+    // Collapse all expanded sections (only on manual UI interaction)
     product.querySelectorAll('.property-content.expanded').forEach(content => {
         content.classList.remove('expanded');
     });
 
+    // Clean unused properties (only safe when not importing)
     removeUnusedPropertiesFromProduct(product);
 
     if (!product.addedProperties) {
@@ -689,36 +693,70 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
     if (!product.addedProperties.has(propertyType)) {
         addPropertySectionToProduct(propertyType, product);
         product.addedProperties.add(propertyType);
-        addValueToProduct(propertyType, product);
 
-        // Only expand on user add, not on import
+        // Skip status update if autoExpand = false (import mode)
+        addValueToProduct(propertyType, product, !autoExpand);
+
+        // Expand only when user manually selects
         if (autoExpand) {
             const newContent = product.querySelector(`#${propertyType}Content-${productId}`);
-            if (newContent) {
-                newContent.classList.add('expanded');
-            }
+            if (newContent) newContent.classList.add('expanded');
         }
     }
+
     updatePropertySelectForProduct(select, product);
 }
 
-
-// Remove unused properties from a product
+// Remove unused properties from a product (safe version)
 function removeUnusedPropertiesFromProduct(product) {
+    // NEVER modify UI while importing
+    if (product.isImporting) return;
+
     if (!product.addedProperties) return;
 
+    const productId = product.id;
+    const propsToRemove = [];
+
+    // Identify unused properties without mutating the Set mid-loop
     product.addedProperties.forEach(propertyType => {
-        const status = product.querySelector(`#${propertyType}Status-${product.id}`);
-        if (status && status.textContent === 'Not in use') {
-            const section = product.querySelector(`#${propertyType}Section-${product.id}`);
-            if (section) {
-                section.remove();
-                product.addedProperties.delete(propertyType);
-            }
+        const container = product.querySelector(`#${propertyType}Values-${productId}`);
+        if (!container) return;
+
+        let hasValue = false;
+
+        // Instance properties
+        if (propertyTypes[propertyType].type === 'instance') {
+            container.querySelectorAll('.instance-property-value').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if ([...inputs].some(i => i.value.trim() !== '')) {
+                    hasValue = true;
+                }
+            });
+
+            // Standard or line-item properties
+        } else {
+            container.querySelectorAll('input').forEach(input => {
+                if (input.value.trim() !== '') {
+                    hasValue = true;
+                }
+            });
+        }
+
+        if (!hasValue) {
+            propsToRemove.push(propertyType);
         }
     });
+
+    // Now safely remove them
+    propsToRemove.forEach(propertyType => {
+        const section = product.querySelector(`#${propertyType}Section-${productId}`);
+        if (section) section.remove();
+        product.addedProperties.delete(propertyType);
+    });
+
     updatePropertySelectForProduct(product.querySelector('.propertySelect'), product);
 }
+
 
 // Update property select for a product
 function updatePropertySelectForProduct(select, product) {
@@ -803,51 +841,88 @@ function toggleSectionForProduct(propertyType, product) {
     }
 }
 
-// Add value to a product's property
-function addValueToProduct(propertyType, product) {
-    const productId = product.id;
-    const container = product.querySelector(`#${propertyType}Values-${productId}`);
+// Add a value row to a property (supports silent mode)
+function addValueToProduct(propertyType, productDiv, skipStatusUpdate = false) {
+    const productId = productDiv.id;
+    const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
     if (!container) return;
 
     const div = document.createElement('div');
+    const propInfo = propertyTypes[propertyType];
 
-    switch (propertyTypes[propertyType].type) {
+    // Build row depending on type
+    switch (propInfo.type) {
         case 'standard':
             div.className = 'property-value';
             div.innerHTML = `
-                <input type="text" placeholder="Enter ${propertyTypes[propertyType].name}" 
-                       onchange="updatePropertyStatusForProduct('${propertyType}', this, '${productId}')">
-                <button onclick="removeValueFromProduct(this, '${propertyType}', '${productId}')">×</button>
+                <input type="text" placeholder="Enter ${propInfo.name}">
+                <button class="remove-btn">×</button>
             `;
             break;
+
         case 'instance':
             div.className = 'instance-property-value';
             div.innerHTML = `
-                <input type="text" placeholder="Instance Type" onchange="updatePropertyStatusForProduct('${propertyType}', this, '${productId}')">
-                <input type="text" placeholder="Instance Size" onchange="updatePropertyStatusForProduct('${propertyType}', this, '${productId}')">
-                <select onchange="updatePropertyStatusForProduct('${propertyType}', this, '${productId}')">
+                <input type="text" placeholder="Instance Type">
+                <input type="text" placeholder="Instance Size">
+                <select>
                     <option value="false">Not Reserved</option>
                     <option value="true">Reserved</option>
                 </select>
-                <button onclick="removeValueFromProduct(this, '${propertyType}', '${productId}')">×</button>
+                <button class="remove-btn">×</button>
             `;
             break;
+
         case 'lineItem':
             div.className = 'line-item-description-value';
             div.innerHTML = `
-                <select onchange="updatePropertyStatusForProduct('${propertyType}', this, '${productId}')">
+                <select>
                     <option value="contains">Contains</option>
                     <option value="startsWith">Starts With</option>
                     <option value="matchesRegex">Matches Regex</option>
                 </select>
-                <input type="text" placeholder="Enter description" onchange="updatePropertyStatusForProduct('${propertyType}', this, '${productId}')">
-                <button onclick="removeValueFromProduct(this, '${propertyType}', '${productId}')">×</button>
+                <input type="text" placeholder="Enter description">
+                <button class="remove-btn">×</button>
             `;
             break;
     }
 
+    // Append new row
     container.appendChild(div);
-    updatePropertyStatusForProduct(propertyType, div, productId);
+
+    // ---- Attach event listeners dynamically ----
+    const inputs = div.querySelectorAll('input, select');
+
+    inputs.forEach(el => {
+        el.addEventListener('input', () => {
+            if (!skipStatusUpdate && !productDiv.isImporting) {
+                updatePropertyStatusForProduct(propertyType, productId);
+                updateActiveTagsForProduct(productDiv);
+            }
+        });
+        el.addEventListener('change', () => {
+            if (!skipStatusUpdate && !productDiv.isImporting) {
+                updatePropertyStatusForProduct(propertyType, productId);
+                updateActiveTagsForProduct(productDiv);
+            }
+        });
+    });
+
+    // ---- Remove row button ----
+    const removeBtn = div.querySelector('.remove-btn');
+    removeBtn.addEventListener('click', () => {
+        div.remove();
+        if (!skipStatusUpdate && !productDiv.isImporting) {
+            updatePropertyStatusForProduct(propertyType, productId);
+            updateActiveTagsForProduct(productDiv);
+            removeUnusedPropertiesFromProduct(productDiv);
+        }
+    });
+
+    // ---- Final: update status unless silent ----
+    if (!skipStatusUpdate && !productDiv.isImporting) {
+        updatePropertyStatusForProduct(propertyType, productId);
+    }
 }
 
 // Remove value from product
@@ -862,43 +937,48 @@ function removeValueFromProduct(button, propertyType, productId) {
 }
 
 // Update property status for a product
-function updatePropertyStatusForProduct(propertyType, element, productId) {
+function updatePropertyStatusForProduct(propertyType, productId) {
     const product = document.getElementById(productId);
     if (!product) return;
+
+    // Do NOT update statuses during import
+    if (product.isImporting) return;
 
     const container = product.querySelector(`#${propertyType}Values-${productId}`);
     if (!container) return;
 
     let hasValues = false;
-    let valueCount = 0;
+    let count = 0;
 
-    if (propertyTypes[propertyType].type === 'instance') {
-        const instanceSets = container.querySelectorAll('.instance-property-value');
-        instanceSets.forEach(set => {
-            const inputs = set.querySelectorAll('input');
-            if (Array.from(inputs).some(input => input.value.trim() !== '')) {
+    const propInfo = propertyTypes[propertyType];
+
+    if (propInfo.type === 'instance') {
+        const rows = container.querySelectorAll('.instance-property-value');
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            if ([...inputs].some(i => i.value.trim() !== '')) {
                 hasValues = true;
-                valueCount++;
+                count++;
             }
         });
+
     } else {
         const inputs = container.querySelectorAll('input');
         inputs.forEach(input => {
             if (input.value.trim() !== '') {
                 hasValues = true;
-                valueCount++;
+                count++;
             }
         });
     }
 
-    const status = product.querySelector(`#${propertyType}Status-${productId}`);
-    if (status) {
-        status.textContent = hasValues ? 'In use' : 'Not in use';
-        status.className = `status ${hasValues ? 'active' : ''}`;
+    const statusEl = product.querySelector(`#${propertyType}Status-${productId}`);
+    if (statusEl) {
+        statusEl.textContent = hasValues ? 'In use' : 'Not in use';
+        statusEl.className = `status ${hasValues ? 'active' : ''}`;
     }
-
-    updateActiveTagsForProduct(product);
 }
+
 
 // Update active tags for a product (CORRECTED selector)
 function updateActiveTagsForProduct(product) {
@@ -1770,6 +1850,32 @@ function closeModal() {
 }
 
 // Import Price Book function
+
+// Add a field row WITHOUT triggering status updates
+function addValueToProductSilent(propertyType, productDiv) {
+    addValueToProduct(propertyType, productDiv, true); // true = skipStatusUpdate
+}
+
+// Always return the real values container
+function getPropertyContainer(propertyType, productDiv) {
+    return productDiv.querySelector(`#${propertyType}Values-${productDiv.id}`);
+}
+
+// Ensure section exists BEFORE adding values
+function ensurePropertySection(propertyType, productDiv) {
+    if (!productDiv.addedProperties) {
+        productDiv.addedProperties = new Set();
+    }
+
+    if (!productDiv.addedProperties.has(propertyType)) {
+        addPropertySectionToProduct(propertyType, productDiv);
+        productDiv.addedProperties.add(propertyType);
+    }
+
+    return getPropertyContainer(propertyType, productDiv);
+}
+
+
 document.getElementById('importButton').addEventListener('click', function () {
     const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
     const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
@@ -2056,24 +2162,8 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 // Import ALL properties for a specific product (corrected version)
 // Import ALL properties for a specific product (fully corrected)
 function importPropertiesForProduct(productEl, productDiv) {
-    const productId = productDiv.id;
+    productDiv.isImporting = true;  // important flag
 
-    if (!productDiv.addedProperties) {
-        productDiv.addedProperties = new Set();
-    }
-
-    // Helper to ensure a property section exists
-    function ensureProperty(propertyType) {
-        if (!productDiv.addedProperties.has(propertyType)) {
-            addPropertySectionToProduct(propertyType, productDiv);
-            productDiv.addedProperties.add(propertyType);
-        }
-        return productDiv.querySelector(`#${propertyType}Values-${productId}`);
-    }
-
-    //
-    // 1. STANDARD PROPERTIES
-    //
     const stdProps = [
         ['Region', 'region'],
         ['UsageType', 'usageType'],
@@ -2082,81 +2172,80 @@ function importPropertiesForProduct(productEl, productDiv) {
         ['SavingsPlanOfferingType', 'savingsPlanOfferingType']
     ];
 
+    // ---- 1. Standard Properties ----
     stdProps.forEach(([xmlTag, propertyType]) => {
-        const elements = productEl.getElementsByTagName(xmlTag);
-        if (elements.length === 0) return;
+        const nodes = productEl.getElementsByTagName(xmlTag);
+        if (!nodes.length) return;
 
-        const container = ensureProperty(propertyType);
+        const container = ensurePropertySection(propertyType, productDiv);
 
-        Array.from(elements).forEach(el => {
-            addValueToProduct(propertyType, productDiv);
-            const lastInput = container.querySelector('.property-value:last-child input');
-            if (lastInput) {
-                lastInput.value = el.getAttribute('name') || '';
-            }
+        Array.from(nodes).forEach(node => {
+            addValueToProductSilent(propertyType, productDiv);
+            const rows = container.querySelectorAll('.property-value');
+            const last = rows[rows.length - 1];
+            const input = last.querySelector('input');
+            if (input) input.value = node.getAttribute('name') || '';
         });
     });
 
-    //
-    // 2. INSTANCE PROPERTIES
-    //
-    const instanceProps = productEl.getElementsByTagName('InstanceProperties');
-    if (instanceProps.length > 0) {
+    // ---- 2. Instance Properties ----
+    const instNodes = productEl.getElementsByTagName('InstanceProperties');
+    if (instNodes.length) {
         const propertyType = 'instanceProperty';
-        const container = ensureProperty(propertyType);
+        const container = ensurePropertySection(propertyType, productDiv);
 
-        Array.from(instanceProps).forEach(inst => {
-            addValueToProduct(propertyType, productDiv);
-            const last = container.querySelector('.instance-property-value:last-child');
+        Array.from(instNodes).forEach(node => {
+            addValueToProductSilent(propertyType, productDiv);
+            const rows = container.querySelectorAll('.instance-property-value');
+            const last = rows[rows.length - 1];
 
-            if (last) {
-                const inputs = last.querySelectorAll('input');
-                const sel = last.querySelector('select');
+            const inputs = last.querySelectorAll('input');
+            const sel = last.querySelector('select');
 
-                if (inputs[0]) inputs[0].value = inst.getAttribute('instanceType') || '';
-                if (inputs[1]) inputs[1].value = inst.getAttribute('instanceSize') || '';
-                if (sel) sel.value = inst.getAttribute('reserved') === 'true' ? 'true' : 'false';
-            }
+            if (inputs[0]) inputs[0].value = node.getAttribute('instanceType') || '';
+            if (inputs[1]) inputs[1].value = node.getAttribute('instanceSize') || '';
+            if (sel) sel.value = node.getAttribute('reserved') === 'true' ? 'true' : 'false';
         });
     }
 
-    //
-    // 3. LINE ITEM DESCRIPTION
-    //
-    const lineItems = productEl.getElementsByTagName('LineItemDescription');
-    if (lineItems.length > 0) {
+    // ---- 3. Line Item Description ----
+    const liNodes = productEl.getElementsByTagName('LineItemDescription');
+    if (liNodes.length) {
         const propertyType = 'lineItemDescription';
-        const container = ensureProperty(propertyType);
+        const container = ensurePropertySection(propertyType, productDiv);
 
-        Array.from(lineItems).forEach(ld => {
-            addValueToProduct(propertyType, productDiv);
-            const last = container.querySelector('.line-item-description-value:last-child');
+        Array.from(liNodes).forEach(node => {
+            addValueToProductSilent(propertyType, productDiv);
+            const rows = container.querySelectorAll('.line-item-description-value');
+            const last = rows[rows.length - 1];
 
-            if (last) {
-                const selectEl = last.querySelector('select');
-                const input = last.querySelector('input');
+            const opSelect = last.querySelector('select');
+            const input = last.querySelector('input');
 
-                ['contains', 'startsWith', 'matchesRegex'].forEach(op => {
-                    if (ld.hasAttribute(op)) {
-                        if (selectEl) selectEl.value = op;
-                        if (input) input.value = ld.getAttribute(op) || '';
-                    }
-                });
-            }
+            ['contains', 'startsWith', 'matchesRegex'].forEach(op => {
+                if (node.hasAttribute(op)) {
+                    if (opSelect) opSelect.value = op;
+                    if (input) input.value = node.getAttribute(op) || '';
+                }
+            });
         });
     }
 
-    //
-    // 4. FINAL — update statuses + tags AFTER import is fully complete
-    //
+    // ---- 4. Final batch update (critical fix) ----
     setTimeout(() => {
-        productDiv.addedProperties.forEach(propertyType => {
-            const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-            updatePropertyStatusForProduct(propertyType, container, productId);
-        });
-
+        syncAllPropertyStatuses(productDiv);
         updateActiveTagsForProduct(productDiv);
-    }, 50);
+        productDiv.isImporting = false;
+    }, 60);
+}
+
+function syncAllPropertyStatuses(productDiv) {
+    if (!productDiv.addedProperties) return;
+
+    productDiv.addedProperties.forEach(type => {
+        const container = getPropertyContainer(type, productDiv);
+        updatePropertyStatusForProduct(type, container, productDiv.id);
+    });
 }
 
 // Import a standard property for a specific product (final corrected version)
