@@ -647,14 +647,12 @@ function toggleProductCollapse(button) {
 }
 
 // Add selected property to a specific product
-// CHANGE: Add 'autoExpand = true' parameter
 function addSelectedPropertyToProduct(productId, autoExpand = true) {
     const product = document.getElementById(productId);
     if (!product) return;
 
     const select = product.querySelector('.propertySelect');
     const propertyType = select.value;
-
     if (!propertyType) return;
 
     // Collapse all expanded sections in this product
@@ -673,7 +671,7 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
         product.addedProperties.add(propertyType);
         addValueToProduct(propertyType, product);
 
-        // CHANGE: Only expand if autoExpand is true
+        // Only expand on user add, not on import
         if (autoExpand) {
             const newContent = product.querySelector(`#${propertyType}Content-${productId}`);
             if (newContent) {
@@ -683,6 +681,7 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
     }
     updatePropertySelectForProduct(select, product);
 }
+
 
 // Remove unused properties from a product
 function removeUnusedPropertiesFromProduct(product) {
@@ -1411,7 +1410,7 @@ function generateXML() {
     }
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    
+
     // Book Level Info
     const bookName = document.getElementById('bookName').value;
     const createdBy = document.getElementById('createdBy').value;
@@ -1420,25 +1419,62 @@ function generateXML() {
 
     // Rule Groups
     document.querySelectorAll('.rule-group').forEach(groupElement => {
-        const startDate = groupElement.querySelector('[id^=startDate]').value;
-        const endDate = groupElement.querySelector('[id^=endDate]').value;
-        xml += `  <RuleGroup startDate="${startDate}" endDate="${endDate}">\n`;
+        const startDateInput = groupElement.querySelector('[id^="startDate-"]');
+        const endDateInput = groupElement.querySelector('[id^="endDate-"]');
+        const payerAccountsInput = groupElement.querySelector('[id^="payerAccounts-"]');
+        const enabledInput = groupElement.querySelector('[id^="enabled-"]');
+
+        const startDate = startDateInput ? startDateInput.value : '';
+        const endDate = endDateInput ? endDateInput.value : '';
+        const payerAccounts = payerAccountsInput ? payerAccountsInput.value.trim() : '';
+        const enabled = enabledInput ? enabledInput.value : 'true';
+
+        // Build RuleGroup open tag with optional attributes
+        let rgOpen = '  <RuleGroup';
+        if (startDate) {
+            rgOpen += ` startDate="${startDate}"`;
+        }
+        if (endDate) {
+            rgOpen += ` endDate="${endDate}"`;
+        }
+        if (payerAccounts) {
+            rgOpen += ` payerAccounts="${escapeXml(payerAccounts)}"`;
+        }
+        // Only emit enabled when explicitly false (matches original behavior)
+        if (enabled === 'false') {
+            rgOpen += ' enabled="false"';
+        }
+        rgOpen += '>\n';
+        xml += rgOpen;
 
         // Billing Rules
         groupElement.querySelectorAll('.rule').forEach(ruleElement => {
-            // FIXED: Use class selectors (.ruleName) instead of ID selectors
+            // Rule name
             const ruleNameInput = ruleElement.querySelector('.ruleName');
             const ruleName = ruleNameInput ? ruleNameInput.value : '';
-            
-            const includeDataTransferInput = ruleElement.querySelector('.includeDataTransfer');
-            const includeDataTransfer = includeDataTransferInput ? includeDataTransferInput.value : 'true';
-            
-            xml += `    <BillingRule name="${escapeXml(ruleName)}" includeDataTransfer="${includeDataTransfer}">\n`;
 
-            // FIXED: Use class selectors for adjustment and type
+            // Rule-level include flags
+            const includeDataTransferInput = ruleElement.querySelector('.includeDataTransfer');
+            const includeRIPurchasesInput = ruleElement.querySelector('.includeRIPurchases');
+
+            const includeDataTransfer = includeDataTransferInput ? includeDataTransferInput.value : '';
+            const includeRIPurchases = includeRIPurchasesInput ? includeRIPurchasesInput.value : '';
+
+            // Build BillingRule open tag with optional attributes
+            let brOpen = `    <BillingRule name="${escapeXml(ruleName)}"`;
+            if (includeDataTransfer) {
+                brOpen += ` includeDataTransfer="${includeDataTransfer}"`;
+            }
+            if (includeRIPurchases) {
+                brOpen += ` includeRIPurchases="${includeRIPurchases}"`;
+            }
+            brOpen += '>\n';
+            xml += brOpen;
+
+            // Billing adjustment
             const billingAdjustmentInput = ruleElement.querySelector('.billingAdjustment');
             const billingRuleTypeInput = ruleElement.querySelector('.billingRuleType');
-            
+
             const billingAdjustment = billingAdjustmentInput ? billingAdjustmentInput.value : '';
             const billingRuleType = billingRuleTypeInput ? billingRuleTypeInput.value : '';
 
@@ -1447,84 +1483,117 @@ function generateXML() {
             }
 
             let productsXML = '';
-            
+
             // Products
             ruleElement.querySelectorAll('.product-block').forEach(productBlock => {
-                // FIXED: Use class selector .productName
+                const productId = productBlock.id;
+
                 const productNameInput = productBlock.querySelector('.productName');
                 const productName = productNameInput ? productNameInput.value.trim() : '';
-                
-                if (productName) {
-                    let propertiesXML = '';
 
-                    const propMap = {
-                        region: 'Region',
-                        usageType: 'UsageType',
-                        operation: 'Operation',
-                        recordType: 'RecordType',
-                        savingsPlanOfferingType: 'SavingsPlanOfferingType'
-                    };
+                const productIncludeDataTransferInput = productBlock.querySelector('.productIncludeDataTransfer');
+                const productIncludeRIPurchasesInput = productBlock.querySelector('.productIncludeRIPurchases');
 
-                    Object.keys(propMap).forEach(propKey => {
-                        const valuesContainer = productBlock.querySelector(`#${propKey}Values-${productBlock.id}`);
-                        if (valuesContainer) {
-                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
-                                const value = input.value.trim();
-                                if (value) {
-                                    propertiesXML += `        <${propMap[propKey]} name="${escapeXml(value)}" />\n`;
-                                }
-                            });
-                        }
-                    });
+                const productIncludeDataTransfer = productIncludeDataTransferInput ? productIncludeDataTransferInput.value : '';
+                const productIncludeRIPurchases = productIncludeRIPurchasesInput ? productIncludeRIPurchasesInput.value : '';
 
-                    // Instance Properties
-                    const instanceValuesContainer = productBlock.querySelector(`#instancePropertyValues-${productBlock.id}`);
-                    if (instanceValuesContainer) {
-                        instanceValuesContainer.querySelectorAll('.instance-property-value').forEach(instSet => {
-                            const instanceType = instSet.querySelector('input:nth-of-type(1)').value.trim();
-                            const instanceSize = instSet.querySelector('input:nth-of-type(2)').value.trim();
-                            const reservedSelect = instSet.querySelector('select');
-                            const reserved = reservedSelect ? reservedSelect.value : 'false';
-                            
-                            propertiesXML += `        <InstanceProperties instanceType="${escapeXml(instanceType)}" instanceSize="${escapeXml(instanceSize)}" reserved="${reserved}" />\n`;
-                        });
-                    }
+                let propertiesXML = '';
 
-                    // Line Item Descriptions
-                    const lineItemContainer = productBlock.querySelector(`#lineItemDescriptionValues-${productBlock.id}`);
-                    if (lineItemContainer) {
-                        lineItemContainer.querySelectorAll('.line-item-description-value').forEach(lineSet => {
-                            const operatorSelect = lineSet.querySelector('select');
-                            const operator = operatorSelect ? operatorSelect.value : 'contains';
-                            const valueInput = lineSet.querySelector('input');
-                            const value = valueInput ? valueInput.value.trim() : '';
-                            
+                const propMap = {
+                    region: 'Region',
+                    usageType: 'UsageType',
+                    operation: 'Operation',
+                    recordType: 'RecordType',
+                    savingsPlanOfferingType: 'SavingsPlanOfferingType'
+                };
+
+                // Standard properties
+                Object.keys(propMap).forEach(propKey => {
+                    const valuesContainer = productBlock.querySelector(`#${propKey}Values-${productId}`);
+                    if (valuesContainer) {
+                        valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                            const value = input.value.trim();
                             if (value) {
-                                propertiesXML += `        <LineItemDescription ${operator}="${escapeXml(value)}" />\n`;
+                                propertiesXML += `        <${propMap[propKey]} name="${escapeXml(value)}" />\n`;
                             }
                         });
                     }
+                });
 
-                    if (propertiesXML) {
-                        productsXML += `      <Product productName="${escapeXml(productName)}">\n${propertiesXML}      </Product>\n`;
-                    } else {
-                        productsXML += `      <Product productName="${escapeXml(productName)}" />\n`;
-                    }
+                // Instance Properties
+                const instanceValuesContainer = productBlock.querySelector(`#instancePropertyValues-${productId}`);
+                if (instanceValuesContainer) {
+                    instanceValuesContainer.querySelectorAll('.instance-property-value').forEach(instSet => {
+                        const instanceTypeInput = instSet.querySelector('input:nth-of-type(1)');
+                        const instanceSizeInput = instSet.querySelector('input:nth-of-type(2)');
+                        const reservedSelect = instSet.querySelector('select');
+
+                        const instanceType = instanceTypeInput ? instanceTypeInput.value.trim() : '';
+                        const instanceSize = instanceSizeInput ? instanceSizeInput.value.trim() : '';
+                        const reserved = reservedSelect ? reservedSelect.value : 'false';
+
+                        if (instanceType || instanceSize || reserved) {
+                            propertiesXML += `        <InstanceProperties instanceType="${escapeXml(instanceType)}" instanceSize="${escapeXml(instanceSize)}" reserved="${reserved}" />\n`;
+                        }
+                    });
+                }
+
+                // Line Item Descriptions
+                const lineItemContainer = productBlock.querySelector(`#lineItemDescriptionValues-${productId}`);
+                if (lineItemContainer) {
+                    lineItemContainer.querySelectorAll('.line-item-description-value').forEach(lineSet => {
+                        const operatorSelect = lineSet.querySelector('select');
+                        const valueInput = lineSet.querySelector('input');
+
+                        const operator = operatorSelect ? operatorSelect.value : 'contains';
+                        const value = valueInput ? valueInput.value.trim() : '';
+
+                        if (value) {
+                            propertiesXML += `        <LineItemDescription ${operator}="${escapeXml(value)}" />\n`;
+                        }
+                    });
+                }
+
+                // Skip completely empty products (no name, no local flags, no filters)
+                const hasLocalFlags =
+                    (productIncludeDataTransfer && productIncludeDataTransfer !== 'inherit') ||
+                    (productIncludeRIPurchases && productIncludeRIPurchases !== 'inherit');
+
+                if (!productName && !hasLocalFlags && !propertiesXML) {
+                    return;
+                }
+
+                // Build Product open tag
+                let prodOpen = '      <Product';
+                if (productName) {
+                    prodOpen += ` productName="${escapeXml(productName)}"`;
+                }
+                if (productIncludeDataTransfer && productIncludeDataTransfer !== 'inherit') {
+                    prodOpen += ` includeDataTransfer="${productIncludeDataTransfer}"`;
+                }
+                if (productIncludeRIPurchases && productIncludeRIPurchases !== 'inherit') {
+                    prodOpen += ` includeRIPurchases="${productIncludeRIPurchases}"`;
+                }
+
+                if (propertiesXML) {
+                    prodOpen += '>\n';
+                    productsXML += prodOpen + propertiesXML + '      </Product>\n';
+                } else {
+                    prodOpen += ' />\n';
+                    productsXML += prodOpen;
                 }
             });
 
             xml += productsXML;
-            xml += `    </BillingRule>\n`;
+            xml += '    </BillingRule>\n';
         });
-        xml += `  </RuleGroup>\n`;
+
+        xml += '  </RuleGroup>\n';
     });
 
     xml += '</PriceBook>';
-    
     return xml;
 }
-
-
 
 function generateStandardProperty(container, tagName, xml) {
     const inputs = container.querySelectorAll('input');
@@ -1914,7 +1983,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
             }
 
             const addRuleButton = currentGroup.querySelector('.button-group button');
-            
+
             // CHANGE: Pass 'false' to prevent empty product creation
             addRule(addRuleButton, false);
 
@@ -1987,7 +2056,7 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (instanceProps.length > 0) {
         const select = productDiv.querySelector('.propertySelect');
         select.value = 'instanceProperty';
-        
+
         // CHANGE: Pass false to keep collapsed
         addSelectedPropertyToProduct(productId, false);
 
@@ -2015,7 +2084,7 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const select = productDiv.querySelector('.propertySelect');
         select.value = 'lineItemDescription';
-        
+
         // CHANGE: Pass false to keep collapsed
         addSelectedPropertyToProduct(productId, false);
 
@@ -2040,7 +2109,7 @@ function importPropertiesForProduct(productEl, productDiv) {
             productId
         );
     } // Don't forget the closing brace you added earlier!
-    
+
     // Also update the helper function inside here:
     function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         const elements = productEl.getElementsByTagName(xmlTag);
@@ -2048,7 +2117,7 @@ function importPropertiesForProduct(productEl, productDiv) {
             const productId = productDiv.id;
             const select = productDiv.querySelector('.propertySelect');
             select.value = propertyType;
-            
+
             // CHANGE: Pass false to keep collapsed
             addSelectedPropertyToProduct(productId, false);
 
@@ -2065,585 +2134,604 @@ function importPropertiesForProduct(productEl, productDiv) {
     }
 }
 
-    function collapseAllProperties() {
-        const products = document.querySelectorAll('.product-block');
-        products.forEach(product => {
-            const propertyContents = product.querySelectorAll('.property-content');
-            propertyContents.forEach(content => {
-                content.classList.remove('expanded');
-            });
-
-            if (!product.expandedSections) {
-                product.expandedSections = new Set();
-            }
-            product.expandedSections.clear();
-
-            updateActiveTagsForProduct(product);
+function collapseAllProperties() {
+    const products = document.querySelectorAll('.product-block');
+    products.forEach(product => {
+        const propertyContents = product.querySelectorAll('.property-content');
+        propertyContents.forEach(content => {
+            content.classList.remove('expanded');
         });
-    }
 
-    function toggleRuleGroupCollapse(button) {
-        const ruleGroup = button.closest('.rule-group');
-        const content = ruleGroup.querySelector('.rule-group-content');
-        button.classList.toggle('collapsed');
-        content.classList.toggle('collapsed');
-
-        if (button.classList.contains('collapsed')) {
-            button.textContent = '▶';
-        } else {
-            button.textContent = '▼';
+        if (!product.expandedSections) {
+            product.expandedSections = new Set();
         }
+        product.expandedSections.clear();
+
+        updateActiveTagsForProduct(product);
+    });
+}
+
+function toggleRuleGroupCollapse(button) {
+    const ruleGroup = button.closest('.rule-group');
+    const content = ruleGroup.querySelector('.rule-group-content');
+    button.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
+
+    if (button.classList.contains('collapsed')) {
+        button.textContent = '▶';
+    } else {
+        button.textContent = '▼';
     }
+}
 
-    function toggleBillingRuleCollapse(button) {
-        const rule = button.closest('.rule');
-        const content = rule.querySelector('.rule-content');
-        button.classList.toggle('collapsed');
-        content.classList.toggle('collapsed');
+function toggleBillingRuleCollapse(button) {
+    const rule = button.closest('.rule');
+    const content = rule.querySelector('.rule-content');
+    button.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
 
-        if (button.classList.contains('collapsed')) {
-            button.textContent = '▶';
-        } else {
-            button.textContent = '▼';
-        }
+    if (button.classList.contains('collapsed')) {
+        button.textContent = '▶';
+    } else {
+        button.textContent = '▼';
     }
+}
 
-    //Reset all fields.
-    function resetAllFields() {
-        // Check if all main fields are empty
-        const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
-        const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
-        const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
+//Reset all fields.
+function resetAllFields() {
+    // Check if all main fields are empty
+    const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
+    const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
+    const noRuleGroups = document.getElementById('groupsContainer').children.length === 0;
 
-        if (allFieldsEmpty && noRuleGroups) {
-            // If all fields are empty and there are no rule groups, reset without prompting
+    if (allFieldsEmpty && noRuleGroups) {
+        // If all fields are empty and there are no rule groups, reset without prompting
+        performReset();
+    } else {
+        // If there's data, prompt for confirmation
+        if (confirm('Are you sure you want to reset all fields? This action cannot be undone.')) {
             performReset();
-        } else {
-            // If there's data, prompt for confirmation
-            if (confirm('Are you sure you want to reset all fields? This action cannot be undone.')) {
-                performReset();
+        }
+    }
+}
+
+
+function performReset() {
+    // Clear main fields
+    ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'].forEach(fieldId => {
+        document.getElementById(fieldId).value = '';
+    });
+
+    // Clear all rule groups
+    document.getElementById('groupsContainer').innerHTML = '';
+
+    // Clear all output areas
+    ['xmlOutput', 'jsonOutput', 'assignCustomerJSON', 'assignCustomerAccountJSON'].forEach(fieldId => {
+        document.getElementById(fieldId).value = '';
+    });
+
+    // Remove any error styling
+    document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+    document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+
+    // Reset property selector and clear properties
+    addedProperties.clear();
+    const propertySections = document.getElementById('propertySections');
+    if (propertySections) {
+        propertySections.innerHTML = '';
+    }
+    const activeTags = document.getElementById('activeTags');
+    if (activeTags) {
+        activeTags.innerHTML = '';
+    }
+    updatePropertySelect();
+
+    // Add initial rule group
+    addRuleGroup(null, true);
+}
+
+// BELOW CODE FOR READOUT PRICEBOOK FUNCTION
+
+// Fetch current XML, either from textarea or generate fresh
+function getCurrentSpecificationXML() {
+    const xmlEl = document.getElementById('xmlOutput');
+    if (xmlEl && xmlEl.value && xmlEl.value.trim().startsWith('<')) {
+        return xmlEl.value.trim();
+    }
+    // Optionally regenerate XML here if needed
+    // return generateXML();
+    return null;
+}
+
+// Convert billing adjustment info to human readable
+function toReadableAdjustment(type, adjustment) {
+    if (!type) return 'No adjustment specified';
+    const adj = adjustment != null ? adjustment : 'unspecified';
+    const t = type.toLowerCase();
+    if (t.includes('discount')) return `a ${adj} % discount`;
+    if (t.includes('increase') || t.includes('markup')) return `a ${adj} % markup`;
+    if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of $${adj}`;
+    return `${type} set to ${adj}`;
+}
+
+// Collect property filters inside a Product node
+function collectProductFilters(productEl) {
+    const filters = [];
+
+    // Collect standard filters via helper
+    addNameList(productEl, 'Region', 'Region', filters);
+    addNameList(productEl, 'UsageType', 'Usage Type', filters);
+    addNameList(productEl, 'Operation', 'Operation', filters);
+    addNameList(productEl, 'RecordType', 'Record Type', filters);
+
+    // InstanceProperties may be multiple sets
+    const instProps = Array.from(productEl.getElementsByTagName('InstanceProperties'));
+    instProps.forEach(ip => {
+        const t = (ip.getAttribute('instanceType') || 'any').trim();
+        const s = (ip.getAttribute('instanceSize') || 'any').trim();
+        const r = ip.getAttribute('reserved');
+        const parts = [`instanceType=${t}`, `instanceSize=${s}`];
+        if (r !== null && r !== undefined) parts.push(`reserved=${r}`);
+        filters.push(`Instance with ${parts.join(', ')}`);
+    });
+
+    // LineItemDescription with operator attributes
+    const descNodes = Array.from(productEl.getElementsByTagName('LineItemDescription'));
+    descNodes.forEach(ld => {
+        let added = false;
+        ['contains', 'startsWith', 'matchesRegex'].forEach(op => {
+            if (ld.hasAttribute(op)) {
+                filters.push(`LineItemDescription ${op} "${ld.getAttribute(op)}"`);
+                added = true;
             }
-        }
-    }
-
-
-    function performReset() {
-        // Clear main fields
-        ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'].forEach(fieldId => {
-            document.getElementById(fieldId).value = '';
         });
+        if (!added) filters.push('LineItemDescription (no operator)');
+    });
 
-        // Clear all rule groups
-        document.getElementById('groupsContainer').innerHTML = '';
+    // SavingsPlanOfferingType
+    addNameList(productEl, 'SavingsPlanOfferingType', 'Savings Plan Offering Type', filters);
 
-        // Clear all output areas
-        ['xmlOutput', 'jsonOutput', 'assignCustomerJSON', 'assignCustomerAccountJSON'].forEach(fieldId => {
-            document.getElementById(fieldId).value = '';
-        });
+    return filters;
+}
 
-        // Remove any error styling
-        document.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
-        document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+// Helper to extract names of given tag and join them for description
+function joinWithCommasAndAnd(arr) {
+    if (arr.length === 0) return '';
+    if (arr.length === 1) return arr[0];
+    if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+    return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
+}
 
-        // Reset property selector and clear properties
-        addedProperties.clear();
-        const propertySections = document.getElementById('propertySections');
-        if (propertySections) {
-            propertySections.innerHTML = '';
-        }
-        const activeTags = document.getElementById('activeTags');
-        if (activeTags) {
-            activeTags.innerHTML = '';
-        }
-        updatePropertySelect();
-
-        // Add initial rule group
-        addRuleGroup(null, true);
+function addNameList(parent, tag, label, outputArr) {
+    const nodes = Array.from(parent.getElementsByTagName(tag));
+    const names = nodes.map(n => n.getAttribute('name')).filter(Boolean).map(s => s.trim());
+    if (names.length > 0) {
+        outputArr.push(`${label}: ${joinWithCommasAndAnd(names)}`);
     }
+}
 
-    // BELOW CODE FOR READOUT PRICEBOOK FUNCTION
+// Escape HTML for safe display
+function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
 
-    // Fetch current XML, either from textarea or generate fresh
-    function getCurrentSpecificationXML() {
-        const xmlEl = document.getElementById('xmlOutput');
-        if (xmlEl && xmlEl.value && xmlEl.value.trim().startsWith('<')) {
-            return xmlEl.value.trim();
-        }
-        // Optionally regenerate XML here if needed
-        // return generateXML();
-        return null;
-    }
+// Format lines into HTML blocks with group styling
+function wrapLinesAsHTML(lines) {
+    const htmlBlocks = [];
+    let group = [];
 
-    // Convert billing adjustment info to human readable
-    function toReadableAdjustment(type, adjustment) {
-        if (!type) return 'No adjustment specified';
-        const adj = adjustment != null ? adjustment : 'unspecified';
-        const t = type.toLowerCase();
-        if (t.includes('discount')) return `a ${adj} % discount`;
-        if (t.includes('increase') || t.includes('markup')) return `a ${adj} % markup`;
-        if (t.includes('fixed') || t.includes('rate')) return `a fixed rate of $${adj}`;
-        return `${type} set to ${adj}`;
-    }
-
-    // Collect property filters inside a Product node
-    function collectProductFilters(productEl) {
-        const filters = [];
-
-        // Collect standard filters via helper
-        addNameList(productEl, 'Region', 'Region', filters);
-        addNameList(productEl, 'UsageType', 'Usage Type', filters);
-        addNameList(productEl, 'Operation', 'Operation', filters);
-        addNameList(productEl, 'RecordType', 'Record Type', filters);
-
-        // InstanceProperties may be multiple sets
-        const instProps = Array.from(productEl.getElementsByTagName('InstanceProperties'));
-        instProps.forEach(ip => {
-            const t = (ip.getAttribute('instanceType') || 'any').trim();
-            const s = (ip.getAttribute('instanceSize') || 'any').trim();
-            const r = ip.getAttribute('reserved');
-            const parts = [`instanceType=${t}`, `instanceSize=${s}`];
-            if (r !== null && r !== undefined) parts.push(`reserved=${r}`);
-            filters.push(`Instance with ${parts.join(', ')}`);
-        });
-
-        // LineItemDescription with operator attributes
-        const descNodes = Array.from(productEl.getElementsByTagName('LineItemDescription'));
-        descNodes.forEach(ld => {
-            let added = false;
-            ['contains', 'startsWith', 'matchesRegex'].forEach(op => {
-                if (ld.hasAttribute(op)) {
-                    filters.push(`LineItemDescription ${op} "${ld.getAttribute(op)}"`);
-                    added = true;
-                }
-            });
-            if (!added) filters.push('LineItemDescription (no operator)');
-        });
-
-        // SavingsPlanOfferingType
-        addNameList(productEl, 'SavingsPlanOfferingType', 'Savings Plan Offering Type', filters);
-
-        return filters;
-    }
-
-    // Helper to extract names of given tag and join them for description
-    function joinWithCommasAndAnd(arr) {
-        if (arr.length === 0) return '';
-        if (arr.length === 1) return arr[0];
-        if (arr.length === 2) return arr[0] + ' and ' + arr[1];
-        return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
-    }
-
-    function addNameList(parent, tag, label, outputArr) {
-        const nodes = Array.from(parent.getElementsByTagName(tag));
-        const names = nodes.map(n => n.getAttribute('name')).filter(Boolean).map(s => s.trim());
-        if (names.length > 0) {
-            outputArr.push(`${label}: ${joinWithCommasAndAnd(names)}`);
-        }
-    }
-
-    // Escape HTML for safe display
-    function escapeHTML(str) {
-        return str.replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-    }
-
-    // Format lines into HTML blocks with group styling
-    function wrapLinesAsHTML(lines) {
-        const htmlBlocks = [];
-        let group = [];
-
-        lines.forEach(line => {
-            if (!line.trim()) {
-                if (group.length > 0) {
-                    htmlBlocks.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
-                    group = [];
-                }
-            } else if (line.startsWith('  ')) {
-                if (line.startsWith('    ')) {
-                    group.push(`<div class="filters">${escapeHTML(line)}</div>`);
-                } else {
-                    group.push(`<div class="rule">${escapeHTML(line)}</div>`);
-                }
+    lines.forEach(line => {
+        if (!line.trim()) {
+            if (group.length > 0) {
+                htmlBlocks.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+                group = [];
+            }
+        } else if (line.startsWith('  ')) {
+            if (line.startsWith('    ')) {
+                group.push(`<div class="filters">${escapeHTML(line)}</div>`);
             } else {
-                group.push(escapeHTML(line));
+                group.push(`<div class="rule">${escapeHTML(line)}</div>`);
             }
-        });
-
-        if (group.length > 0) {
-            htmlBlocks.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+        } else {
+            group.push(escapeHTML(line));
         }
-        return htmlBlocks.join('\n');
+    });
+
+    if (group.length > 0) {
+        htmlBlocks.push(`<div class="rulegroup">${group.join('<br>')}</div>`);
+    }
+    return htmlBlocks.join('\n');
+}
+
+// Main Natural Language summary
+function renderNaturalLanguageSummary() {
+    const outputEl = document.getElementById('nlSummary');
+    if (!outputEl) return;
+
+    const xml = getCurrentSpecificationXML();
+    if (!xml) {
+        outputEl.textContent = 'No price book loaded.';
+        return;
     }
 
-    // Main Natural Language summary
-    function renderNaturalLanguageSummary() {
-        const outputEl = document.getElementById('nlSummary');
-        if (!outputEl) return;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length > 0) {
+        outputEl.textContent = 'Error parsing XML.';
+        return;
+    }
 
-        const xml = getCurrentSpecificationXML();
-        if (!xml) {
-            outputEl.textContent = 'No price book loaded.';
-            return;
-        }
+    const lines = [];
+    const root = doc.documentElement;
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, 'application/xml');
-        if (doc.getElementsByTagName('parsererror').length > 0) {
-            outputEl.textContent = 'Error parsing XML.';
-            return;
-        }
+    // Book name and createdBy
+    const bookNameField = document.getElementById('bookName')?.value?.trim();
+    const bookName = bookNameField || root.getAttribute('name') || 'Unnamed';
+    const createdBy = root.getAttribute('createdBy') || 'Unknown';
 
-        const lines = [];
-        const root = doc.documentElement;
-        const bookName = (document.getElementById('bookName')?.value?.trim()) || 'Unnamed';
-        const createdBy = root.getAttribute('createdBy') || 'Unknown';
-        const comment = doc.querySelector('Comment')?.textContent?.trim();
+    // Comment: prefer XML attribute, fall back to form field
+    const commentAttr = root.getAttribute('comment');
+    const commentField = document.getElementById('comment')?.value?.trim();
+    const comment = (commentAttr && commentAttr.trim()) || commentField || '';
 
-        lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
-        if (comment) lines.push(`💡 Purpose: ${comment}`);
+    lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
+    if (comment) lines.push(`💡 Purpose: ${comment}`);
+    lines.push('');
+    lines.push('🛠 Rules are processed top-down — first match applies.');
+
+    const groups = Array.from(doc.getElementsByTagName('RuleGroup'));
+    groups.forEach((group, gi) => {
+        const enabled = group.getAttribute('enabled') === 'false' ? 'Disabled' : 'Enabled';
+        const start = (group.getAttribute('startDate') || 'unspecified').trim();
+        const end = (group.getAttribute('endDate') || '').trim();
+        const payer = group.getAttribute('payerAccounts');
+
+        let header = `RuleGroup #${gi + 1}: (${enabled}) — Effective from ${start}`;
+        if (end && end.toLowerCase() !== 'unspecified') header += ` to ${end}.`; else header += `.`;
+        if (payer && payer.trim()) header += ` Applies only to Payer Account(s): ${payer}`;
         lines.push('');
-        lines.push("🛠 Rules are processed top-down — first match applies.");
+        lines.push(header);
 
-        const groups = Array.from(doc.getElementsByTagName('RuleGroup'));
-        groups.forEach((group, gi) => {
-            const enabled = group.getAttribute('enabled') === 'false' ? 'Disabled' : 'Enabled';
-            const start = (group.getAttribute('startDate') || 'unspecified').trim();
-            const end = (group.getAttribute('endDate') || '').trim();
-            const payer = group.getAttribute('payerAccounts');
+        const billingRules = Array.from(group.getElementsByTagName('BillingRule'));
+        billingRules.forEach(rule => {
+            const ruleName = rule.getAttribute('name') || '(Unnamed Rule)';
+            const basic = rule.querySelector('BasicBillingRule');
+            const type = basic?.getAttribute('billingRuleType') || '';
+            const adj = basic?.getAttribute('billingAdjustment') || '';
+            let adjPhrase = toReadableAdjustment(type, adj);
+            if (adj && adj.trim().startsWith('-')) {
+                adjPhrase += ' (Negative rate)';
+            }
 
-            let header = `RuleGroup #${gi + 1}: (${enabled}) — Effective from ${start}`;
-            if (end && end.toLowerCase() !== 'unspecified') header += ` to ${end}.`; else header += `.`;
-            if (payer && payer.trim()) header += ` Applies only to Payer Account(s): ${payer}`;
-            lines.push('');
-            lines.push(header);
+            const includeDT = rule.getAttribute('includeDataTransfer') === 'true';
+            const includeRI = rule.getAttribute('includeRIPurchases') === 'true';
 
-            const billingRules = Array.from(group.getElementsByTagName('BillingRule'));
-            billingRules.forEach(rule => {
-                const ruleName = rule.getAttribute('name') || '(Unnamed Rule)';
-                const basic = rule.querySelector('BasicBillingRule');
-                const type = basic?.getAttribute('billingRuleType') || '';
-                const adj = basic?.getAttribute('billingAdjustment') || '';
-                let adjPhrase = toReadableAdjustment(type, adj);
-                if (adj && adj.trim().startsWith('-')) {
-                    adjPhrase += ' (Negative rate)';
-                }
+            lines.push(`• Billing Rule Name = "${ruleName}"`);
+            lines.push(`→ Applies ${adjPhrase}`);
+            lines.push(
+                `→ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ` +
+                `${includeRI ? 'Includes' : 'Excludes'} RI Purchase line items.`
+            );
 
-                const includeDT = rule.getAttribute('includeDataTransfer') === 'true';
-                const includeRI = rule.getAttribute('includeRIPurchases') === 'true';
+            const products = Array.from(rule.getElementsByTagName('Product'));
 
-                lines.push(`• Billing Rule Name = "${ruleName}"`);
-                lines.push(`→ Applies ${adjPhrase}`);
-                lines.push(`→ ${includeDT ? 'Includes' : 'Excludes'} Data Transfer and ${includeRI ? 'Includes' : 'Excludes'} RI Purchase line items.`);
+            if (products.length === 0) {
+                lines.push('No product filters defined.');
+            } else {
+                products.forEach((productEl, idx) => {
+                    const pname = productEl.getAttribute('productName') || 'ANY';
+                    const filters = collectProductFilters(productEl);
 
-                const product = rule.querySelector('Product');
-                if (product) {
-                    const pname = product.getAttribute('productName') || 'ANY';
-                    lines.push(`Product Name = ${pname === 'ANY' ? 'All the Products' : pname}`);
-                    const filters = collectProductFilters(product);
+                    let pHeader = `Product #${idx + 1}: `;
+                    pHeader += (pname === 'ANY' ? 'All Products' : pname);
+                    lines.push(pHeader);
+
                     if (filters.length) {
-                        lines.push('Filters:');
                         filters.forEach(f => lines.push(`- ${f}`));
-
+                    } else {
+                        lines.push('- (no additional filters)');
                     }
-                }
-            });
-        });
-
-        outputEl.innerHTML = wrapLinesAsHTML(lines);
-    }
-    // handleButtonWithRetry function to doublelcik the NL Summary refresh button
-    function handleButtonWithRetry(button, handler) {
-        let isAutoRetry = false;
-
-        button.addEventListener('click', function (event) {
-            if (isAutoRetry) {
-                // This is the automatic second click - just execute and reset
-                isAutoRetry = false;
-                handler.call(this, event);
-                return;
+                });
             }
+        });
+    });
 
-            // This is a manual first click
+    outputEl.innerHTML = wrapLinesAsHTML(lines);
+}
+// handleButtonWithRetry function to doublelcik the NL Summary refresh button
+function handleButtonWithRetry(button, handler) {
+    let isAutoRetry = false;
+
+    button.addEventListener('click', function (event) {
+        if (isAutoRetry) {
+            // This is the automatic second click - just execute and reset
+            isAutoRetry = false;
             handler.call(this, event);
-
-            // Schedule the automatic second click
-            setTimeout(() => {
-                isAutoRetry = true;
-                this.click();
-            }, 600);
-        });
-    }
-
-    // ========== DRAG AND DROP FUNCTIONALITY ==========
-
-    function initializeDragAndDrop() {
-        document.querySelectorAll('.rule-group').forEach(group => {
-            attachDragToRuleGroup(group);
-        });
-        document.querySelectorAll('.rule').forEach(rule => {
-            attachDragToRule(rule);
-        });
-        setupDragContainers();
-    }
-
-    function attachDragToRuleGroup(groupEl) {
-        if (groupEl.getAttribute('data-draggable-init') === '1') return;
-        groupEl.setAttribute('data-draggable-init', '1');
-        const header = groupEl.querySelector('.rule-group-header h3');
-        if (!header) return;
-
-        if (!header.querySelector('.drag-handle')) {
-            const handle = document.createElement('span');
-            handle.className = 'drag-handle';
-            handle.textContent = '⋮⋮';
-            handle.title = 'Drag to reorder Rule Group';
-            handle.setAttribute('aria-label', 'Drag to reorder Rule Group');
-            handle.setAttribute('role', 'button');
-            handle.setAttribute('tabindex', '0');
-            handle.style.marginRight = '10px';
-            handle.style.cursor = 'grab';
-
-            // ✅ Enable dragging ONLY when handle is grabbed
-            handle.addEventListener('mousedown', function (e) {
-                e.stopPropagation();
-                groupEl.setAttribute('draggable', 'true');
-            });
-
-            handle.addEventListener('mouseup', function () {
-                groupEl.setAttribute('draggable', 'false');
-            });
-
-            header.insertBefore(handle, header.firstChild);
+            return;
         }
 
-        // ✅ Start with draggable=false
-        groupEl.setAttribute('draggable', 'false');
+        // This is a manual first click
+        handler.call(this, event);
 
-        groupEl.addEventListener('dragstart', function (e) {
-            // ✅ Only allow drag if draggable is true
-            if (this.getAttribute('draggable') !== 'true') {
-                e.preventDefault();
+        // Schedule the automatic second click
+        setTimeout(() => {
+            isAutoRetry = true;
+            this.click();
+        }, 600);
+    });
+}
+
+// ========== DRAG AND DROP FUNCTIONALITY ==========
+
+function initializeDragAndDrop() {
+    document.querySelectorAll('.rule-group').forEach(group => {
+        attachDragToRuleGroup(group);
+    });
+    document.querySelectorAll('.rule').forEach(rule => {
+        attachDragToRule(rule);
+    });
+    setupDragContainers();
+}
+
+function attachDragToRuleGroup(groupEl) {
+    if (groupEl.getAttribute('data-draggable-init') === '1') return;
+    groupEl.setAttribute('data-draggable-init', '1');
+    const header = groupEl.querySelector('.rule-group-header h3');
+    if (!header) return;
+
+    if (!header.querySelector('.drag-handle')) {
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = 'Drag to reorder Rule Group';
+        handle.setAttribute('aria-label', 'Drag to reorder Rule Group');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
+
+        // ✅ Enable dragging ONLY when handle is grabbed
+        handle.addEventListener('mousedown', function (e) {
+            e.stopPropagation();
+            groupEl.setAttribute('draggable', 'true');
+        });
+
+        handle.addEventListener('mouseup', function () {
+            groupEl.setAttribute('draggable', 'false');
+        });
+
+        header.insertBefore(handle, header.firstChild);
+    }
+
+    // ✅ Start with draggable=false
+    groupEl.setAttribute('draggable', 'false');
+
+    groupEl.addEventListener('dragstart', function (e) {
+        // ✅ Only allow drag if draggable is true
+        if (this.getAttribute('draggable') !== 'true') {
+            e.preventDefault();
+            return;
+        }
+
+        draggedElement = this;
+        draggedType = 'group';
+        draggedSourceContainer = document.getElementById('groupsContainer');
+        setTimeout(() => this.classList.add('dragging'), 0);
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'group');
+        }
+    });
+
+    groupEl.addEventListener('dragend', function () {
+        this.classList.remove('dragging');
+        this.setAttribute('draggable', 'false'); // Reset after drag
+        draggedElement = null;
+        draggedType = null;
+        draggedSourceContainer = null;
+    });
+}
+
+function attachDragToRule(ruleEl) {
+    if (ruleEl.getAttribute('data-draggable-init') === '1') return;
+    ruleEl.setAttribute('data-draggable-init', '1');
+    const header = ruleEl.querySelector('.rule-header h4');
+    if (!header) return;
+
+    if (!header.querySelector('.drag-handle')) {
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⋮⋮';
+        handle.title = 'Drag to reorder Billing Rule';
+        handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
+        handle.setAttribute('role', 'button');
+        handle.setAttribute('tabindex', '0');
+        handle.style.marginRight = '10px';
+        handle.style.cursor = 'grab';
+
+        // ✅ Enable dragging ONLY when handle is grabbed
+        handle.addEventListener('mousedown', function (e) {
+            e.stopPropagation(); // Prevent bubbling to parent
+            ruleEl.setAttribute('draggable', 'true');
+        });
+
+        handle.addEventListener('mouseup', function () {
+            ruleEl.setAttribute('draggable', 'false');
+        });
+
+        header.insertBefore(handle, header.firstChild);
+    }
+
+    // ✅ Start with draggable=false (only enabled when handle grabbed)
+    ruleEl.setAttribute('draggable', 'false');
+
+    ruleEl.addEventListener('dragstart', function (e) {
+        // ✅ Only allow drag if draggable is true (handle was grabbed)
+        if (this.getAttribute('draggable') !== 'true') {
+            e.preventDefault();
+            return;
+        }
+
+        e.stopPropagation(); // Prevent bubbling to Rule Group
+        console.log('🟢 RULE DRAG START');
+        draggedElement = this;
+        draggedType = 'rule';
+        draggedSourceContainer = this.closest('.rules');
+        console.log('Source container:', draggedSourceContainer);
+        setTimeout(() => this.classList.add('dragging'), 0);
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'rule');
+        }
+    });
+
+    ruleEl.addEventListener('dragend', function () {
+        console.log('🔴 RULE DRAG END');
+        this.classList.remove('dragging');
+        this.setAttribute('draggable', 'false'); // Reset after drag
+        draggedElement = null;
+        draggedType = null;
+        draggedSourceContainer = null;
+    });
+}
+function setupDragContainers() {
+    const groupsContainer = document.getElementById('groupsContainer');
+    if (groupsContainer && groupsContainer.getAttribute('data-drop-init') !== '1') {
+        groupsContainer.setAttribute('data-drop-init', '1');
+        groupsContainer.addEventListener('dragover', function (e) {
+            if (!draggedElement || draggedType !== 'group') return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            const afterEl = getDragAfterElement(this, e.clientY, '.rule-group');
+            if (!afterEl) {
+                this.appendChild(draggedElement);
+            } else {
+                this.insertBefore(draggedElement, afterEl);
+            }
+        });
+        groupsContainer.addEventListener('drop', function (e) {
+            if (!draggedElement || draggedType !== 'group') return;
+            e.preventDefault();
+            setTimeout(() => { updateNavigation(); }, 0);
+        });
+    }
+
+    // ✅ ADD DEBUGGING TO RULES CONTAINERS
+    document.querySelectorAll('.rules').forEach(rulesContainer => {
+        if (rulesContainer.getAttribute('data-drop-init') === '1') return;
+        rulesContainer.setAttribute('data-drop-init', '1');
+
+        console.log('🔧 Setting up drag container for:', rulesContainer); // ✅ DEBUG
+
+        rulesContainer.addEventListener('dragover', function (e) {
+            console.log('🟡 DRAGOVER EVENT FIRED'); // ✅ DEBUG
+            console.log('draggedElement:', draggedElement); // ✅ DEBUG
+            console.log('draggedType:', draggedType); // ✅ DEBUG
+            console.log('draggedSourceContainer:', draggedSourceContainer); // ✅ DEBUG
+            console.log('this (target container):', this); // ✅ DEBUG
+
+            if (!draggedElement || draggedType !== 'rule') {
+                console.log('❌ Early return: draggedElement or draggedType check failed'); // ✅ DEBUG
                 return;
             }
 
-            draggedElement = this;
-            draggedType = 'group';
-            draggedSourceContainer = document.getElementById('groupsContainer');
-            setTimeout(() => this.classList.add('dragging'), 0);
-            if (e.dataTransfer) {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', 'group');
-            }
-        });
+            const targetContainer = this;
 
-        groupEl.addEventListener('dragend', function () {
-            this.classList.remove('dragging');
-            this.setAttribute('draggable', 'false'); // Reset after drag
-            draggedElement = null;
-            draggedType = null;
-            draggedSourceContainer = null;
-        });
-    }
-
-    function attachDragToRule(ruleEl) {
-        if (ruleEl.getAttribute('data-draggable-init') === '1') return;
-        ruleEl.setAttribute('data-draggable-init', '1');
-        const header = ruleEl.querySelector('.rule-header h4');
-        if (!header) return;
-
-        if (!header.querySelector('.drag-handle')) {
-            const handle = document.createElement('span');
-            handle.className = 'drag-handle';
-            handle.textContent = '⋮⋮';
-            handle.title = 'Drag to reorder Billing Rule';
-            handle.setAttribute('aria-label', 'Drag to reorder Billing Rule');
-            handle.setAttribute('role', 'button');
-            handle.setAttribute('tabindex', '0');
-            handle.style.marginRight = '10px';
-            handle.style.cursor = 'grab';
-
-            // ✅ Enable dragging ONLY when handle is grabbed
-            handle.addEventListener('mousedown', function (e) {
-                e.stopPropagation(); // Prevent bubbling to parent
-                ruleEl.setAttribute('draggable', 'true');
-            });
-
-            handle.addEventListener('mouseup', function () {
-                ruleEl.setAttribute('draggable', 'false');
-            });
-
-            header.insertBefore(handle, header.firstChild);
-        }
-
-        // ✅ Start with draggable=false (only enabled when handle grabbed)
-        ruleEl.setAttribute('draggable', 'false');
-
-        ruleEl.addEventListener('dragstart', function (e) {
-            // ✅ Only allow drag if draggable is true (handle was grabbed)
-            if (this.getAttribute('draggable') !== 'true') {
-                e.preventDefault();
+            if (draggedSourceContainer !== targetContainer) {
+                console.log('❌ Early return: container mismatch'); // ✅ DEBUG
+                console.log('Source:', draggedSourceContainer); // ✅ DEBUG
+                console.log('Target:', targetContainer); // ✅ DEBUG
                 return;
             }
 
-            e.stopPropagation(); // Prevent bubbling to Rule Group
-            console.log('🟢 RULE DRAG START');
-            draggedElement = this;
-            draggedType = 'rule';
-            draggedSourceContainer = this.closest('.rules');
-            console.log('Source container:', draggedSourceContainer);
-            setTimeout(() => this.classList.add('dragging'), 0);
-            if (e.dataTransfer) {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', 'rule');
+            console.log('✅ Passed all checks, proceeding with drag'); // ✅ DEBUG
+
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+
+            const afterEl = getDragAfterElement(targetContainer, e.clientY, '.rule');
+            console.log('afterEl:', afterEl); // ✅ DEBUG
+
+            if (!afterEl) {
+                targetContainer.appendChild(draggedElement);
+                console.log('📍 Appended to end'); // ✅ DEBUG
+            } else {
+                targetContainer.insertBefore(draggedElement, afterEl);
+                console.log('📍 Inserted before:', afterEl); // ✅ DEBUG
             }
         });
 
-        ruleEl.addEventListener('dragend', function () {
-            console.log('🔴 RULE DRAG END');
-            this.classList.remove('dragging');
-            this.setAttribute('draggable', 'false'); // Reset after drag
-            draggedElement = null;
-            draggedType = null;
-            draggedSourceContainer = null;
+        rulesContainer.addEventListener('drop', function (e) {
+            console.log('🟢 DROP EVENT FIRED'); // ✅ DEBUG
+            if (!draggedElement || draggedType !== 'rule') return;
+            if (draggedSourceContainer !== this) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => { updateNavigation(); }, 0);
         });
-    }
-    function setupDragContainers() {
-        const groupsContainer = document.getElementById('groupsContainer');
-        if (groupsContainer && groupsContainer.getAttribute('data-drop-init') !== '1') {
-            groupsContainer.setAttribute('data-drop-init', '1');
-            groupsContainer.addEventListener('dragover', function (e) {
-                if (!draggedElement || draggedType !== 'group') return;
-                e.preventDefault();
-                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-                const afterEl = getDragAfterElement(this, e.clientY, '.rule-group');
-                if (!afterEl) {
-                    this.appendChild(draggedElement);
-                } else {
-                    this.insertBefore(draggedElement, afterEl);
-                }
-            });
-            groupsContainer.addEventListener('drop', function (e) {
-                if (!draggedElement || draggedType !== 'group') return;
-                e.preventDefault();
-                setTimeout(() => { updateNavigation(); }, 0);
-            });
-        }
+    });
+}
 
-        // ✅ ADD DEBUGGING TO RULES CONTAINERS
-        document.querySelectorAll('.rules').forEach(rulesContainer => {
-            if (rulesContainer.getAttribute('data-drop-init') === '1') return;
-            rulesContainer.setAttribute('data-drop-init', '1');
+function getDragAfterElement(container, mouseY, selector) {
+    const draggableElements = [...container.querySelectorAll(selector + ':not(.dragging)')];
+    return draggableElements.reduce(
+        (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = mouseY - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        },
+        { offset: Number.NEGATIVE_INFINITY, element: null }
+    ).element;
+}
 
-            console.log('🔧 Setting up drag container for:', rulesContainer); // ✅ DEBUG
+// Helper Funciton for the multiple product names under as single billing rule
+function addProductRow(buttonEl) {
+    const rule = buttonEl.closest('.rule');
+    const container = rule.querySelector('.products-container');
+    if (!container) return;
 
-            rulesContainer.addEventListener('dragover', function (e) {
-                console.log('🟡 DRAGOVER EVENT FIRED'); // ✅ DEBUG
-                console.log('draggedElement:', draggedElement); // ✅ DEBUG
-                console.log('draggedType:', draggedType); // ✅ DEBUG
-                console.log('draggedSourceContainer:', draggedSourceContainer); // ✅ DEBUG
-                console.log('this (target container):', this); // ✅ DEBUG
+    const firstRow = container.querySelector('.product-row');
+    if (!firstRow) return;
 
-                if (!draggedElement || draggedType !== 'rule') {
-                    console.log('❌ Early return: draggedElement or draggedType check failed'); // ✅ DEBUG
-                    return;
-                }
+    const newRow = firstRow.cloneNode(true);
 
-                const targetContainer = this;
+    // clear values in cloned row
+    const nameInput = newRow.querySelector('.productName');
+    const dtSelect = newRow.querySelector('.productIncludeDataTransfer');
+    const riSelect = newRow.querySelector('.productIncludeRIPurchases');
 
-                if (draggedSourceContainer !== targetContainer) {
-                    console.log('❌ Early return: container mismatch'); // ✅ DEBUG
-                    console.log('Source:', draggedSourceContainer); // ✅ DEBUG
-                    console.log('Target:', targetContainer); // ✅ DEBUG
-                    return;
-                }
+    if (nameInput) nameInput.value = '';
+    if (dtSelect) dtSelect.value = '';
+    if (riSelect) riSelect.value = '';
 
-                console.log('✅ Passed all checks, proceeding with drag'); // ✅ DEBUG
+    container.appendChild(newRow);
+}
 
-                e.preventDefault();
-                e.stopPropagation();
-                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+function removeProductRow(buttonEl) {
+    const row = buttonEl.closest('.product-row');
+    const container = buttonEl.closest('.products-container');
+    if (!row || !container) return;
 
-                const afterEl = getDragAfterElement(targetContainer, e.clientY, '.rule');
-                console.log('afterEl:', afterEl); // ✅ DEBUG
-
-                if (!afterEl) {
-                    targetContainer.appendChild(draggedElement);
-                    console.log('📍 Appended to end'); // ✅ DEBUG
-                } else {
-                    targetContainer.insertBefore(draggedElement, afterEl);
-                    console.log('📍 Inserted before:', afterEl); // ✅ DEBUG
-                }
-            });
-
-            rulesContainer.addEventListener('drop', function (e) {
-                console.log('🟢 DROP EVENT FIRED'); // ✅ DEBUG
-                if (!draggedElement || draggedType !== 'rule') return;
-                if (draggedSourceContainer !== this) return;
-                e.preventDefault();
-                e.stopPropagation();
-                setTimeout(() => { updateNavigation(); }, 0);
-            });
-        });
-    }
-
-    function getDragAfterElement(container, mouseY, selector) {
-        const draggableElements = [...container.querySelectorAll(selector + ':not(.dragging)')];
-        return draggableElements.reduce(
-            (closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = mouseY - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            },
-            { offset: Number.NEGATIVE_INFINITY, element: null }
-        ).element;
-    }
-
-    // Helper Funciton for the multiple product names under as single billing rule
-    function addProductRow(buttonEl) {
-        const rule = buttonEl.closest('.rule');
-        const container = rule.querySelector('.products-container');
-        if (!container) return;
-
-        const firstRow = container.querySelector('.product-row');
-        if (!firstRow) return;
-
-        const newRow = firstRow.cloneNode(true);
-
-        // clear values in cloned row
-        const nameInput = newRow.querySelector('.productName');
-        const dtSelect = newRow.querySelector('.productIncludeDataTransfer');
-        const riSelect = newRow.querySelector('.productIncludeRIPurchases');
+    // keep at least one row to avoid empty container
+    const rows = container.querySelectorAll('.product-row');
+    if (rows.length <= 1) {
+        // just clear values instead of removing
+        const nameInput = row.querySelector('.productName');
+        const dtSelect = row.querySelector('.productIncludeDataTransfer');
+        const riSelect = row.querySelector('.productIncludeRIPurchases');
 
         if (nameInput) nameInput.value = '';
         if (dtSelect) dtSelect.value = '';
         if (riSelect) riSelect.value = '';
-
-        container.appendChild(newRow);
+        return;
     }
 
-    function removeProductRow(buttonEl) {
-        const row = buttonEl.closest('.product-row');
-        const container = buttonEl.closest('.products-container');
-        if (!row || !container) return;
-
-        // keep at least one row to avoid empty container
-        const rows = container.querySelectorAll('.product-row');
-        if (rows.length <= 1) {
-            // just clear values instead of removing
-            const nameInput = row.querySelector('.productName');
-            const dtSelect = row.querySelector('.productIncludeDataTransfer');
-            const riSelect = row.querySelector('.productIncludeRIPurchases');
-
-            if (nameInput) nameInput.value = '';
-            if (dtSelect) dtSelect.value = '';
-            if (riSelect) riSelect.value = '';
-            return;
-        }
-
-        row.remove();
-    }
+    row.remove();
+}
