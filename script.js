@@ -880,11 +880,14 @@ function updatePropertyStatusForProduct(propertyType, element, productId) {
     updateActiveTagsForProduct(product);
 }
 
-// Update active tags for a product
+// Update active tags for a product (CORRECTED selector)
 function updateActiveTagsForProduct(product) {
     const productId = product.id;
-    const container = product.querySelector(`#activeTags-${productId}`);
-    if (!container) return;
+    const container = product.querySelector(`#activeTags-${productId}`);  // Added # prefix
+    if (!container) {
+        console.warn(`Tag container not found for product ${productId}`);
+        return;
+    }
 
     container.innerHTML = '';
     if (!product.addedProperties || product.addedProperties.size === 0) return;
@@ -913,8 +916,9 @@ function updateActiveTagsForProduct(product) {
             tag.className = 'property-tag';
             tag.onclick = () => {
                 const content = product.querySelector(`#${propertyType}Content-${productId}`);
-                if (!content) return;
-                content.classList.toggle('expanded');
+                if (content) {
+                    content.classList.toggle('expanded');
+                }
             };
             tag.innerHTML = `${propertyTypes[propertyType].name}<span class="count">${activeCount}</span>`;
             container.appendChild(tag);
@@ -2017,7 +2021,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     }, 100);
 }
 
-// NEW: Import properties for a specific product
+// Import ALL properties for a specific product (corrected version)
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2025,7 +2029,7 @@ function importPropertiesForProduct(productEl, productDiv) {
         productDiv.addedProperties = new Set();
     }
 
-    // Standard properties
+    // Import standard properties
     importPropertyForProduct(productEl, productDiv, 'Region', 'region');
     importPropertyForProduct(productEl, productDiv, 'UsageType', 'usageType');
     importPropertyForProduct(productEl, productDiv, 'Operation', 'operation');
@@ -2037,26 +2041,28 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
 
+        // Create section if not exists
         if (!productDiv.addedProperties.has(propertyType)) {
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
         }
 
         const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-        Array.from(instanceProps).forEach(instanceProp => {
-            addValueToProduct(propertyType, productDiv);
-            const lastSet = container.querySelector('.instance-property-value:last-child');
-            if (lastSet) {
-                const inputs = lastSet.querySelectorAll('input');
-                const sel = lastSet.querySelector('select');
-                if (inputs[0]) inputs[0].value = instanceProp.getAttribute('instanceType') || '';
-                if (inputs[1]) inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
-                if (sel) sel.value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
-            }
-        });
+        if (container) {
+            Array.from(instanceProps).forEach(instanceProp => {
+                addValueToProduct(propertyType, productDiv);
+                const lastSet = container.querySelector('.instance-property-value:last-child');
+                if (lastSet) {
+                    const inputs = lastSet.querySelectorAll('input');
+                    const sel = lastSet.querySelector('select');
+                    if (inputs[0]) inputs[0].value = instanceProp.getAttribute('instanceType') || '';
+                    if (inputs[1]) inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
+                    if (sel) sel.value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
+                }
+            });
 
-        // CRITICAL: status + tags for this product's instanceProperty
-        updatePropertyStatusForProduct(propertyType, container, productId);
+            updatePropertyStatusForProduct(propertyType, container, productId);
+        }
     }
 
     // LineItemDescription
@@ -2064,36 +2070,38 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
 
+        // Create section if not exists
         if (!productDiv.addedProperties.has(propertyType)) {
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
         }
 
         const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-        Array.from(lineItems).forEach(lineItem => {
-            addValueToProduct(propertyType, productDiv);
-            const lastSet = container.querySelector('.line-item-description-value:last-child');
-            if (lastSet) {
-                const selectEl = lastSet.querySelector('select');
-                const input = lastSet.querySelector('input');
-                ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
-                    if (lineItem.hasAttribute(type)) {
-                        if (selectEl) selectEl.value = type;
-                        if (input) input.value = lineItem.getAttribute(type) || '';
-                    }
-                });
-            }
-        });
+        if (container) {
+            Array.from(lineItems).forEach(lineItem => {
+                addValueToProduct(propertyType, productDiv);
+                const lastSet = container.querySelector('.line-item-description-value:last-child');
+                if (lastSet) {
+                    const selectEl = lastSet.querySelector('select');
+                    const input = lastSet.querySelector('input');
+                    ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
+                        if (lineItem.hasAttribute(type)) {
+                            if (selectEl) selectEl.value = type;
+                            if (input) input.value = lineItem.getAttribute(type) || '';
+                        }
+                    });
+                }
+            });
 
-        // CRITICAL: status + tags for this product's lineItemDescription
-        updatePropertyStatusForProduct(propertyType, container, productId);
+            updatePropertyStatusForProduct(propertyType, container, productId);
+        }
     }
 
-    // Rebuild tags for this product
+    // Rebuild tags for this product AFTER all properties are imported
     updateActiveTagsForProduct(productDiv);
 }
 
-// Import a standard property for a specific product (Region, UsageType, etc.)
+// Import a standard property for a specific product (corrected version)
 function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
     const elements = productEl.getElementsByTagName(xmlTag);
     if (elements.length === 0) return;
@@ -2104,24 +2112,25 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         productDiv.addedProperties = new Set();
     }
 
+    // Create section if not exists (WITHOUT calling addSelectedPropertyToProduct)
     if (!productDiv.addedProperties.has(propertyType)) {
         addPropertySectionToProduct(propertyType, productDiv);
         productDiv.addedProperties.add(propertyType);
     }
 
     const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-    Array.from(elements).forEach(element => {
-        addValueToProduct(propertyType, productDiv);
-        const lastInput = container.querySelector('.property-value:last-child input');
-        if (lastInput) {
-            lastInput.value = element.getAttribute('name') || '';
-        }
-    });
+    if (container) {
+        Array.from(elements).forEach(element => {
+            addValueToProduct(propertyType, productDiv);
+            const lastInput = container.querySelector('.property-value:last-child input');
+            if (lastInput) {
+                lastInput.value = element.getAttribute('name') || '';
+            }
+        });
 
-    // CRITICAL: sets "In use" / "Not in use" pill correctly per product
-    updatePropertyStatusForProduct(propertyType, container, productId);
+        updatePropertyStatusForProduct(propertyType, container, productId);
+    }
 }
-
 
 function collapseAllProperties() {
     const products = document.querySelectorAll('.product-block');
