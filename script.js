@@ -2072,12 +2072,10 @@ function importPropertiesForProduct(productEl, productDiv) {
         productDiv.addedProperties = new Set();
     }
 
-    console.log(`[Import] Starting import for product: ${productId}`);
 
     // Helper to ensure a property section exists
     function ensureProperty(propertyType) {
         if (!productDiv.addedProperties.has(propertyType)) {
-            console.log(`[Import] Creating section for ${propertyType}`);
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
         }
@@ -2100,14 +2098,12 @@ function importPropertiesForProduct(productEl, productDiv) {
         if (elements.length === 0) return;
 
         const container = ensureProperty(propertyType);
-        console.log(`[Import] Adding ${elements.length} values for ${propertyType}`);
 
         Array.from(elements).forEach(el => {
             addValueToProduct(propertyType, productDiv);
             const lastInput = container.querySelector('.property-value:last-child input');
             if (lastInput) {
                 lastInput.value = el.getAttribute('name') || '';
-                console.log(`[Import]   - Added value: ${lastInput.value}`);
             }
         });
     });
@@ -2119,8 +2115,6 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
         const container = ensureProperty(propertyType);
-        console.log(`[Import] Adding ${instanceProps.length} instance properties`);
-
         Array.from(instanceProps).forEach(inst => {
             addValueToProduct(propertyType, productDiv);
             const last = container.querySelector('.instance-property-value:last-child');
@@ -2133,7 +2127,6 @@ function importPropertiesForProduct(productEl, productDiv) {
                 if (inputs[1]) inputs[1].value = inst.getAttribute('instanceSize') || '';
                 if (sel) sel.value = inst.getAttribute('reserved') === 'true' ? 'true' : 'false';
 
-                console.log(`[Import]   - Added instance: ${inputs[0]?.value} / ${inputs[1]?.value}`);
             }
         });
     }
@@ -2145,7 +2138,6 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
         const container = ensureProperty(propertyType);
-        console.log(`[Import] Adding ${lineItems.length} line item descriptions`);
 
         Array.from(lineItems).forEach(ld => {
             addValueToProduct(propertyType, productDiv);
@@ -2159,7 +2151,6 @@ function importPropertiesForProduct(productEl, productDiv) {
                     if (ld.hasAttribute(op)) {
                         if (selectEl) selectEl.value = op;
                         if (input) input.value = ld.getAttribute(op) || '';
-                        console.log(`[Import]   - Added lineItem [${op}]: ${input?.value}`);
                     }
                 });
             }
@@ -2171,12 +2162,10 @@ function importPropertiesForProduct(productEl, productDiv) {
     // This MUST happen in a setTimeout to ensure all DOM values are committed
     //
     setTimeout(() => {
-        console.log(`[Import] Updating status for all properties in ${productId}`);
 
         productDiv.addedProperties.forEach(propertyType => {
             const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
             if (container) {
-                console.log(`[Import]   - Updating status for ${propertyType}`);
                 updatePropertyStatusForProduct(propertyType, container, productId);
             }
         });
@@ -2184,9 +2173,7 @@ function importPropertiesForProduct(productEl, productDiv) {
         // Force DOM reflow to ensure all updates are rendered
         void productDiv.offsetHeight;
 
-        console.log(`[Import] Rebuilding active tags for ${productId}`);
         updateActiveTagsForProduct(productDiv);
-        console.log(`[Import] Complete for ${productId}`);
     }, 150);  // INCREASED timeout to 150ms
 }
 
@@ -2196,19 +2183,15 @@ function importPropertiesForProduct(productEl, productDiv) {
  */
 function updateActiveTagsForProduct(product) {
     const productId = product.id;
-    console.log(`[Tags] Processing product: ${productId}, addedProperties:`, Array.from(product.addedProperties || []));
-
     const container = product.querySelector(`#activeTags-${productId}`);
     if (!container) {
         console.warn(`[Tags] Container NOT found for ${productId}`);
         return;
     }
 
-    console.log(`[Tags] Container found, clearing...`);
     container.innerHTML = '';
 
     if (!product.addedProperties || product.addedProperties.size === 0) {
-        console.log(`[Tags] No addedProperties for ${productId}`);
         return;
     }
 
@@ -2234,7 +2217,6 @@ function updateActiveTagsForProduct(product) {
             activeCount = Array.from(inputs).filter(input => input.value.trim() !== '').length;
         }
 
-        console.log(`[Tags] ${propertyType}: ${activeCount} active values`);
 
         if (activeCount > 0) {
             const tag = document.createElement('div');
@@ -2243,19 +2225,16 @@ function updateActiveTagsForProduct(product) {
                 const content = product.querySelector(`#${propertyType}Content-${productId}`);
                 if (content) {
                     content.classList.toggle('expanded');
-                    console.log(`[Tags] Toggled ${propertyType} section`);
                 }
             };
             tag.innerHTML = `${propertyTypes[propertyType].name}<span class="count">${activeCount}</span>`;
             container.appendChild(tag);
-            console.log(`[Tags] Created tag for ${propertyType} with count ${activeCount}`);
         }
     });
 }
 
 function collapseAllProperties() {
     const products = document.querySelectorAll('.product-block');
-    console.log(`[Collapse] Collapsing properties for ${products.length} products`);
 
     products.forEach(product => {
         const propertyContents = product.querySelectorAll('.property-content');
