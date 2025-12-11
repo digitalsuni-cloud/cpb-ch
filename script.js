@@ -1390,6 +1390,7 @@ function generateAndThenSummarize() {
 }
 
 // XML Generator
+// XML Generator
 function generateXML() {
     // Helper function to escape XML special characters
     function escapeXml(unsafe) {
@@ -1436,7 +1437,7 @@ function generateXML() {
         if (payerAccounts) {
             rgOpen += ` payerAccounts="${escapeXml(payerAccounts)}"`;
         }
-        // Only emit enabled when explicitly false (matches original behavior)
+        // Only emit enabled when explicitly false
         if (enabled === 'false') {
             rgOpen += ' enabled="false"';
         }
@@ -1445,18 +1446,15 @@ function generateXML() {
 
         // Billing Rules
         groupElement.querySelectorAll('.rule').forEach(ruleElement => {
-            // Rule name
             const ruleNameInput = ruleElement.querySelector('.ruleName');
             const ruleName = ruleNameInput ? ruleNameInput.value : '';
 
-            // Rule-level include flags
             const includeDataTransferInput = ruleElement.querySelector('.includeDataTransfer');
             const includeRIPurchasesInput = ruleElement.querySelector('.includeRIPurchases');
 
             const includeDataTransfer = includeDataTransferInput ? includeDataTransferInput.value : '';
             const includeRIPurchases = includeRIPurchasesInput ? includeRIPurchasesInput.value : '';
 
-            // Build BillingRule open tag with optional attributes
             let brOpen = `    <BillingRule name="${escapeXml(ruleName)}"`;
             if (includeDataTransfer) {
                 brOpen += ` includeDataTransfer="${includeDataTransfer}"`;
@@ -1467,7 +1465,6 @@ function generateXML() {
             brOpen += '>\n';
             xml += brOpen;
 
-            // Billing adjustment
             const billingAdjustmentInput = ruleElement.querySelector('.billingAdjustment');
             const billingRuleTypeInput = ruleElement.querySelector('.billingRuleType');
 
@@ -1485,7 +1482,7 @@ function generateXML() {
                 const productId = productBlock.id;
 
                 const productNameInput = productBlock.querySelector('.productName');
-                const productName = productNameInput ? productNameInput.value.trim() : '';
+                const rawProductName = productNameInput ? productNameInput.value.trim() : '';
 
                 const productIncludeDataTransferInput = productBlock.querySelector('.productIncludeDataTransfer');
                 const productIncludeRIPurchasesInput = productBlock.querySelector('.productIncludeRIPurchases');
@@ -1550,19 +1547,22 @@ function generateXML() {
                     });
                 }
 
-                // Skip completely empty products (no name, no local flags, no filters)
                 const hasLocalFlags =
                     (productIncludeDataTransfer && productIncludeDataTransfer !== 'inherit') ||
                     (productIncludeRIPurchases && productIncludeRIPurchases !== 'inherit');
 
-                if (!productName && !hasLocalFlags && !propertiesXML) {
+                // Skip completely empty products
+                if (!rawProductName && !hasLocalFlags && !propertiesXML) {
                     return;
                 }
 
+                // If name is empty but product is used, emit ANY
+                const effectiveProductName = rawProductName || 'ANY';
+
                 // Build Product open tag
                 let prodOpen = '      <Product';
-                if (productName) {
-                    prodOpen += ` productName="${escapeXml(productName)}"`;
+                if (effectiveProductName) {
+                    prodOpen += ` productName="${escapeXml(effectiveProductName)}"`;
                 }
                 if (productIncludeDataTransfer && productIncludeDataTransfer !== 'inherit') {
                     prodOpen += ` includeDataTransfer="${productIncludeDataTransfer}"`;
