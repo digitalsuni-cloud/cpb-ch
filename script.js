@@ -2054,6 +2054,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 }
 
 // Import ALL properties for a specific product (corrected version)
+// Import ALL properties for a specific product (fully corrected)
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2061,81 +2062,104 @@ function importPropertiesForProduct(productEl, productDiv) {
         productDiv.addedProperties = new Set();
     }
 
-    // Import standard properties
-    importPropertyForProduct(productEl, productDiv, 'Region', 'region');
-    importPropertyForProduct(productEl, productDiv, 'UsageType', 'usageType');
-    importPropertyForProduct(productEl, productDiv, 'Operation', 'operation');
-    importPropertyForProduct(productEl, productDiv, 'RecordType', 'recordType');
-    importPropertyForProduct(productEl, productDiv, 'SavingsPlanOfferingType', 'savingsPlanOfferingType');
+    // Helper to ensure a property section exists
+    function ensureProperty(propertyType) {
+        if (!productDiv.addedProperties.has(propertyType)) {
+            addPropertySectionToProduct(propertyType, productDiv);
+            productDiv.addedProperties.add(propertyType);
+        }
+        return productDiv.querySelector(`#${propertyType}Values-${productId}`);
+    }
 
-    // Import Instance Properties
+    //
+    // 1. STANDARD PROPERTIES
+    //
+    const stdProps = [
+        ['Region', 'region'],
+        ['UsageType', 'usageType'],
+        ['Operation', 'operation'],
+        ['RecordType', 'recordType'],
+        ['SavingsPlanOfferingType', 'savingsPlanOfferingType']
+    ];
+
+    stdProps.forEach(([xmlTag, propertyType]) => {
+        const elements = productEl.getElementsByTagName(xmlTag);
+        if (elements.length === 0) return;
+
+        const container = ensureProperty(propertyType);
+
+        Array.from(elements).forEach(el => {
+            addValueToProduct(propertyType, productDiv);
+            const lastInput = container.querySelector('.property-value:last-child input');
+            if (lastInput) {
+                lastInput.value = el.getAttribute('name') || '';
+            }
+        });
+    });
+
+    //
+    // 2. INSTANCE PROPERTIES
+    //
     const instanceProps = productEl.getElementsByTagName('InstanceProperties');
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
+        const container = ensureProperty(propertyType);
 
-        // Create section WITHOUT calling addSelectedPropertyToProduct
-        if (!productDiv.addedProperties.has(propertyType)) {
-            addPropertySectionToProduct(propertyType, productDiv);
-            productDiv.addedProperties.add(propertyType);
-        }
+        Array.from(instanceProps).forEach(inst => {
+            addValueToProduct(propertyType, productDiv);
+            const last = container.querySelector('.instance-property-value:last-child');
 
-        const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-        if (container) {
-            Array.from(instanceProps).forEach(instanceProp => {
-                addValueToProduct(propertyType, productDiv);
-                const lastSet = container.querySelector('.instance-property-value:last-child');
-                if (lastSet) {
-                    const inputs = lastSet.querySelectorAll('input');
-                    const sel = lastSet.querySelector('select');
-                    if (inputs[0]) inputs[0].value = instanceProp.getAttribute('instanceType') || '';
-                    if (inputs[1]) inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
-                    if (sel) sel.value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
-                }
-            });
+            if (last) {
+                const inputs = last.querySelectorAll('input');
+                const sel = last.querySelector('select');
 
-            updatePropertyStatusForProduct(propertyType, container, productId);
-        }
+                if (inputs[0]) inputs[0].value = inst.getAttribute('instanceType') || '';
+                if (inputs[1]) inputs[1].value = inst.getAttribute('instanceSize') || '';
+                if (sel) sel.value = inst.getAttribute('reserved') === 'true' ? 'true' : 'false';
+            }
+        });
     }
 
-    // LineItemDescription
+    //
+    // 3. LINE ITEM DESCRIPTION
+    //
     const lineItems = productEl.getElementsByTagName('LineItemDescription');
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
+        const container = ensureProperty(propertyType);
 
-        // Create section WITHOUT calling addSelectedPropertyToProduct
-        if (!productDiv.addedProperties.has(propertyType)) {
-            addPropertySectionToProduct(propertyType, productDiv);
-            productDiv.addedProperties.add(propertyType);
-        }
+        Array.from(lineItems).forEach(ld => {
+            addValueToProduct(propertyType, productDiv);
+            const last = container.querySelector('.line-item-description-value:last-child');
 
-        const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-        if (container) {
-            Array.from(lineItems).forEach(lineItem => {
-                addValueToProduct(propertyType, productDiv);
-                const lastSet = container.querySelector('.line-item-description-value:last-child');
-                if (lastSet) {
-                    const selectEl = lastSet.querySelector('select');
-                    const input = lastSet.querySelector('input');
-                    ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
-                        if (lineItem.hasAttribute(type)) {
-                            if (selectEl) selectEl.value = type;
-                            if (input) input.value = lineItem.getAttribute(type) || '';
-                        }
-                    });
-                }
-            });
+            if (last) {
+                const selectEl = last.querySelector('select');
+                const input = last.querySelector('input');
 
-            updatePropertyStatusForProduct(propertyType, container, productId);
-        }
+                ['contains', 'startsWith', 'matchesRegex'].forEach(op => {
+                    if (ld.hasAttribute(op)) {
+                        if (selectEl) selectEl.value = op;
+                        if (input) input.value = ld.getAttribute(op) || '';
+                    }
+                });
+            }
+        });
     }
 
-    // Rebuild tags AFTER all properties are imported
+    //
+    // 4. FINAL — update statuses + tags AFTER import is fully complete
+    //
     setTimeout(() => {
+        productDiv.addedProperties.forEach(propertyType => {
+            const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
+            updatePropertyStatusForProduct(propertyType, container, productId);
+        });
+
         updateActiveTagsForProduct(productDiv);
     }, 50);
 }
 
-// Import a standard property for a specific product (corrected version)
+// Import a standard property for a specific product (final corrected version)
 function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
     const elements = productEl.getElementsByTagName(xmlTag);
     if (elements.length === 0) return;
@@ -2146,29 +2170,25 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         productDiv.addedProperties = new Set();
     }
 
-    // Create section WITHOUT calling addSelectedPropertyToProduct
+    // Ensure section is created BEFORE adding values
     if (!productDiv.addedProperties.has(propertyType)) {
         addPropertySectionToProduct(propertyType, productDiv);
         productDiv.addedProperties.add(propertyType);
     }
 
     const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-    if (container) {
-        // Add all values first
-        Array.from(elements).forEach(element => {
-            addValueToProduct(propertyType, productDiv);
-            const lastInput = container.querySelector('.property-value:last-child input');
-            if (lastInput) {
-                lastInput.value = element.getAttribute('name') || '';
-            }
-        });
+    if (!container) return;
 
-        // Force status update after a brief delay to ensure DOM is updated
-        setTimeout(() => {
-            updatePropertyStatusForProduct(propertyType, container, productId);
-        }, 10);
-    }
+    // Add values (NO status updates here)
+    Array.from(elements).forEach(element => {
+        addValueToProduct(propertyType, productDiv);
+        const lastInput = container.querySelector('.property-value:last-child input');
+        if (lastInput) {
+            lastInput.value = element.getAttribute('name') || '';
+        }
+    });
 }
+
 
 function collapseAllProperties() {
     const products = document.querySelectorAll('.product-block');
