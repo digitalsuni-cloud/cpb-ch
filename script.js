@@ -339,13 +339,10 @@ function addRule(button, addInitialProduct = true) {
 
             <!-- Products Section -->
             <div class="products-section">
-                <div class="products-header">
-                    <h3>Products</h3>
-                    <button type="button" class="button add-product-button" onclick="addProduct('${ruleId}')">
-                        <span class="button-icon">➕</span>Add Product
-                    </button>
-                </div>
-                <div class="products-list">
+            <div class="products-header">
+                <h3>Products</h3>
+            </div>
+            <div class="products-list">
                 <!-- Products added here -->
             </div>
             <datalist id="productList">
@@ -538,6 +535,7 @@ function addRule(button, addInitialProduct = true) {
 }
 
 // Add a new product block
+// Add a new product block
 function addProduct(ruleId) {
     const rule = document.getElementById(ruleId);
     if (!rule) return;
@@ -552,14 +550,14 @@ function addProduct(ruleId) {
 
     productDiv.innerHTML = `
         <div class="product-header">
-            <h5>Product</h5>
+            <h5 class="product-title">Product: <span class="product-name-display">(Unnamed)</span></h5>
             <button type="button" class="collapse-button" onclick="toggleProductCollapse(this)">▼</button>
         </div>
         <div class="product-content">
             <div class="product-main-row">
                 <div class="input-group">
                     <label>Product Name</label>
-                    <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products" />
+                    <input type="text" class="productName" list="productList" placeholder="Leave empty for Any Products">
                 </div>
                 <div class="input-group compact">
                     <label>Include Data Transfer</label>
@@ -601,13 +599,40 @@ function addProduct(ruleId) {
             </div>
 
             <button type="button" class="button button-red" onclick="removeProduct('${productId}')">
-                <span class="button-icon">×</span>Remove Product
+                <span class="button-icon">✕</span>Remove Product
             </button>
         </div>
     `;
 
     productsList.appendChild(productDiv);
 
+    // Initialize property selector for this product
+    const product = document.getElementById(productId);
+    product.addedProperties = new Set();
+    initializePropertySelector(product.querySelector('.propertySelect'));
+
+    // Add listener to update header when product name changes
+    const productNameInput = product.querySelector('.productName');
+    const productNameDisplay = product.querySelector('.product-name-display');
+
+    productNameInput.addEventListener('input', function () {
+        const name = this.value.trim();
+        productNameDisplay.textContent = name || '(Unnamed)';
+    });
+
+    // Remove existing "Add Product" button if any
+    const existingAddButton = productsList.querySelector('.add-product-button');
+    if (existingAddButton) {
+        existingAddButton.remove();
+    }
+
+    // Add "Add Product" button at the bottom
+    const addProductBtn = document.createElement('button');
+    addProductBtn.type = 'button';
+    addProductBtn.className = 'button add-product-button';
+    addProductBtn.onclick = () => addProduct(ruleId);
+    addProductBtn.innerHTML = '<span class="button-icon">➕</span>Add Product';
+    productsList.appendChild(addProductBtn);
     // Initialize property selector for this product
     const product = document.getElementById(productId);
     product.addedProperties = new Set();
@@ -1995,6 +2020,11 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
                         const productNameInput = currentProduct.querySelector('.productName');
                         if (productNameInput) {
                             productNameInput.value = productEl.getAttribute('productName') || '';
+                        }
+                        const productNameDisplay = currentProduct.querySelector('.product-name-display');
+                        if (productNameDisplay) {
+                            const pName = productEl.getAttribute('productName') || '';
+                            productNameDisplay.textContent = pName || '(Unnamed)';
                         }
 
                         const productDT = currentProduct.querySelector('.productIncludeDataTransfer');
