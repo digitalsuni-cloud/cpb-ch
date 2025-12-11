@@ -1425,7 +1425,9 @@ function generateXML() {
 
             let productsXML = '';
             ruleElement.querySelectorAll('.product-block').forEach(productBlock => {
-                const productName = productBlock.querySelector('.product-name-input').value.trim();
+                const productNameInput = productBlock.querySelector('.productName');
+                const productName = productNameInput ? productNameInput.value.trim() : '';
+
                 if (productName) {
                     let propertiesXML = '';
 
