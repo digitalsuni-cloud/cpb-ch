@@ -2007,9 +2007,13 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
                 existingProducts.forEach(p => p.remove());
 
                 // Add each product from XML
+                // Add each product from XML
                 Array.from(products).forEach(productEl => {
                     addProduct(currentRule.id);
-                    const currentProduct = productsList.querySelector('.product-block:last-child');
+
+                    // Get all product blocks and select the last one (excluding the button)
+                    const allProducts = productsList.querySelectorAll('.product-block');
+                    const currentProduct = allProducts[allProducts.length - 1];
 
                     if (currentProduct) {
                         // Set product name
