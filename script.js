@@ -1997,7 +1997,6 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
             currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
 
             // Import products
-            // Import products
             const products = billingRule.getElementsByTagName('Product');
             const productsList = currentRule.querySelector('.products-list');
 
@@ -2131,7 +2130,9 @@ function importPropertiesForProduct(productEl, productDiv) {
     }
 
     // Rebuild tags AFTER all properties are imported
-    updateActiveTagsForProduct(productDiv);
+    setTimeout(() => {
+        updateActiveTagsForProduct(productDiv);
+    }, 50);
 }
 
 // Import a standard property for a specific product (corrected version)
@@ -2153,6 +2154,7 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
 
     const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
     if (container) {
+        // Add all values first
         Array.from(elements).forEach(element => {
             addValueToProduct(propertyType, productDiv);
             const lastInput = container.querySelector('.property-value:last-child input');
@@ -2161,7 +2163,10 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
             }
         });
 
-        updatePropertyStatusForProduct(propertyType, container, productId);
+        // Force status update after a brief delay to ensure DOM is updated
+        setTimeout(() => {
+            updatePropertyStatusForProduct(propertyType, container, productId);
+        }, 10);
     }
 }
 
