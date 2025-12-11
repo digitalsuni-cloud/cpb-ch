@@ -1998,6 +1998,7 @@ function importPropertiesForProduct(productEl, productDiv) {
             productId
         );
     }
+}
 
     // NEW: Import a standard property for a specific product
     function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
