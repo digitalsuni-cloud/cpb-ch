@@ -1389,144 +1389,105 @@ function generateAndThenSummarize() {
         });
 }
 
-
+function escapeXml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
 // XML Generator
 function generateXML() {
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     const bookName = document.getElementById('bookName').value;
     const createdBy = document.getElementById('createdBy').value;
     const comment = document.getElementById('comment').value;
-    const cxAPIId = document.getElementById('cxAPIId').value;
-    const cxPayerId = document.getElementById('cxPayerId').value;
+    xml += `<PriceBook name="${escapeXml(bookName)}" createdBy="${escapeXml(createdBy)}" comment="${escapeXml(comment)}">\n`;
 
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += `<PriceBook bookName="${escapeXml(bookName)}" createdBy="${escapeXml(createdBy)}"`;
+    document.querySelectorAll('.rule-group').forEach(groupElement => {
+        const startDate = groupElement.querySelector('[id^=startDate]').value;
+        const endDate = groupElement.querySelector('[id^=endDate]').value;
+        xml += `  <RuleGroup startDate="${startDate}" endDate="${endDate}">\n`;
 
-    if (comment) xml += ` comment="${escapeXml(comment)}"`;
-    if (cxAPIId) xml += ` cxAPIId="${escapeXml(cxAPIId)}"`;
-    if (cxPayerId) xml += ` cxPayerId="${escapeXml(cxPayerId)}"`;
-    xml += '>\n';
+        groupElement.querySelectorAll('.rule').forEach(ruleElement => {
+            const ruleName = ruleElement.querySelector('[id^=ruleName]').value;
+            const includeDataTransfer = ruleElement.querySelector('[id^=includeDataTransfer]').value;
+            xml += `    <BillingRule name="${escapeXml(ruleName)}" includeDataTransfer="${includeDataTransfer}">\n`;
 
-    document.querySelectorAll('.rule-group').forEach(group => {
-        const groupId = group.id;
-        const startDate = document.getElementById(`startDate-${groupId}`)?.value;
-        const endDate = document.getElementById(`endDate-${groupId}`)?.value;
-        const payerAccounts = document.getElementById(`payerAccounts-${groupId}`)?.value;
-        const enabled = document.getElementById(`enabled-${groupId}`)?.value;
+            const billingAdjustment = ruleElement.querySelector('[id^=billingAdjustment]').value;
+            const billingRuleType = ruleElement.querySelector('[id^=billingRuleType]').value;
+            if (billingAdjustment && billingRuleType) {
+                xml += `      <BasicBillingRule billingAdjustment="${billingAdjustment}" billingRuleType="${billingRuleType}"/>\n`;
+            }
 
-        xml += '\t<RuleGroup';
-        if (startDate) xml += ` startDate="${startDate}"`;
-        if (endDate) xml += ` endDate="${endDate}"`;
-        if (payerAccounts) xml += ` payerAccounts="${escapeXml(payerAccounts)}"`;
-        if (enabled === 'false') xml += ` enabled="false"`;
-        xml += '>\n';
+            let productsXML = '';
+            ruleElement.querySelectorAll('.product-block').forEach(productBlock => {
+                const productName = productBlock.querySelector('.product-name-input').value.trim();
+                if (productName) {
+                    let propertiesXML = '';
 
-        group.querySelectorAll('.rule').forEach(rule => {
-            const ruleName = rule.querySelector('.ruleName')?.value;
-            const billingAdjustment = rule.querySelector('.billingAdjustment')?.value;
-            const billingRuleType = rule.querySelector('.billingRuleType')?.value || 'percentDiscount';
-            const includeDataTransfer = rule.querySelector('.includeDataTransfer')?.value;
-            const includeRIPurchases = rule.querySelector('.includeRIPurchases')?.value;
+                    const propMap = {
+                        region: 'Region',
+                        usageType: 'UsageType',
+                        operation: 'Operation',
+                        recordType: 'RecordType',
+                        savingsPlanOfferingType: 'SavingsPlanOfferingType'
+                    };
 
-            if (!ruleName || !billingAdjustment) return;
-
-            xml += `\t\t<BillingRule name="${escapeXml(ruleName)}"`;
-            if (includeDataTransfer) xml += ` includeDataTransfer="${includeDataTransfer}"`;
-            if (includeRIPurchases) xml += ` includeRIPurchases="${includeRIPurchases}"`;
-            xml += '>\n';
-
-            xml += `\t\t\t<BasicBillingRule billingAdjustment="${billingAdjustment}" billingRuleType="${billingRuleType}"/>\n`;
-
-            const products = rule.querySelectorAll('.product-block');
-
-            products.forEach(product => {
-                const productName = product.querySelector('.productName')?.value.trim();
-                const productIncludeDataTransfer = product.querySelector('.productIncludeDataTransfer')?.value;
-                const productIncludeRIPurchases = product.querySelector('.productIncludeRIPurchases')?.value;
-                const hasFilters = product.addedProperties && product.addedProperties.size > 0;
-
-                xml += '\t\t\t<Product';
-                if (productName) xml += ` productName="${escapeXml(productName)}"`;
-                if (productIncludeDataTransfer) xml += ` includeDataTransfer="${productIncludeDataTransfer}"`;
-                if (productIncludeRIPurchases) xml += ` includeRIPurchases="${productIncludeRIPurchases}"`;
-
-                if (!hasFilters) {
-                    xml += ' />\n';
-                    return;
-                }
-
-                xml += '>\n';
-
-                if (product.addedProperties) {
-                    const productId = product.id;
-
-                    product.addedProperties.forEach(propertyType => {
-                        const valuesContainer = product.querySelector(`#${propertyType}Values-${productId}`);
-                        if (!valuesContainer) return;
-
-                        switch (propertyType) {
-                            case 'region':
-                                xml = generateStandardProperty(valuesContainer, 'Region', xml);
-                                break;
-                            case 'usageType':
-                                xml = generateStandardProperty(valuesContainer, 'UsageType', xml);
-                                break;
-                            case 'operation':
-                                xml = generateStandardProperty(valuesContainer, 'Operation', xml);
-                                break;
-                            case 'recordType':
-                                xml = generateStandardProperty(valuesContainer, 'RecordType', xml);
-                                break;
-                            case 'savingsPlanOfferingType':
-                                xml = generateStandardProperty(valuesContainer, 'SavingsPlanOfferingType', xml);
-                                break;
-                            case 'instanceProperty': {
-                                const instanceSets = valuesContainer.querySelectorAll('.instance-property-value');
-                                instanceSets.forEach(set => {
-                                    const inputs = set.querySelectorAll('input');
-                                    const select = set.querySelector('select');
-                                    const instanceType = inputs[0]?.value.trim();
-                                    const instanceSize = inputs[1]?.value.trim();
-                                    const reserved = select?.value || 'false';
-
-                                    if (instanceType || instanceSize) {
-                                        xml += '\t\t\t\t<InstanceProperties';
-                                        if (instanceType) xml += ` instanceType="${escapeXml(instanceType)}"`;
-                                        if (instanceSize) xml += ` instanceSize="${escapeXml(instanceSize)}"`;
-                                        xml += ` reserved="${reserved}"`;
-                                        xml += ' />\n';
-                                    }
-                                });
-                                break;
-                            }
-                            case 'lineItemDescription': {
-                                const lineItems = valuesContainer.querySelectorAll('.line-item-description-value');
-                                lineItems.forEach(item => {
-                                    const select = item.querySelector('select');
-                                    const input = item.querySelector('input');
-                                    const matchType = select?.value;
-                                    const value = input?.value.trim();
-                                    if (value && matchType) {
-                                        xml += `\t\t\t\t<LineItemDescription ${matchType}="${escapeXml(value)}" />\n`;
-                                    }
-                                });
-                                break;
-                            }
+                    Object.keys(propMap).forEach(propKey => {
+                        const valuesContainer = productBlock.querySelector(`#${propKey}Values-${productBlock.id}`);
+                        if (valuesContainer) {
+                            valuesContainer.querySelectorAll('.property-value input').forEach(input => {
+                                const value = input.value.trim();
+                                if (value) {
+                                    propertiesXML += `        <${propMap[propKey]} name="${escapeXml(value)}" />\n`;
+                                }
+                            });
                         }
                     });
-                }
 
-                xml += '\t\t\t</Product>\n';
+                    const instanceValuesContainer = productBlock.querySelector(`#instancePropertyValues-${productBlock.id}`);
+                    if (instanceValuesContainer) {
+                        instanceValuesContainer.querySelectorAll('.instance-property-value').forEach(instSet => {
+                            const instanceType = instSet.querySelector('input:nth-of-type(1)').value.trim();
+                            const instanceSize = instSet.querySelector('input:nth-of-type(2)').value.trim();
+                            const reserved = instSet.querySelector('select').value;
+                            propertiesXML += `        <InstanceProperties instanceType="${escapeXml(instanceType)}" instanceSize="${escapeXml(instanceSize)}" reserved="${reserved}" />\n`;
+                        });
+                    }
+
+                    const lineItemContainer = productBlock.querySelector(`#lineItemDescriptionValues-${productBlock.id}`);
+                    if (lineItemContainer) {
+                        lineItemContainer.querySelectorAll('.line-item-description-value').forEach(lineSet => {
+                            const operator = lineSet.querySelector('select').value;
+                            const value = lineSet.querySelector('input').value.trim();
+                            if (value) {
+                                propertiesXML += `        <LineItemDescription ${operator}="${escapeXml(value)}" />\n`;
+                            }
+                        });
+                    }
+
+                    if (propertiesXML) {
+                        productsXML += `      <Product productName="${escapeXml(productName)}">\n${propertiesXML}      </Product>\n`;
+                    } else {
+                        productsXML += `      <Product productName="${escapeXml(productName)}" />\n`;
+                    }
+                }
             });
 
-            xml += '\t\t</BillingRule>\n';
+            xml += productsXML;
+            xml += `    </BillingRule>\n`;
         });
-
-        xml += '\t</RuleGroup>\n';
+        xml += `  </RuleGroup>\n`;
     });
 
     xml += '</PriceBook>';
     return xml;
 }
+
 
 function generateStandardProperty(container, tagName, xml) {
     const inputs = container.querySelectorAll('input');
@@ -1537,16 +1498,6 @@ function generateStandardProperty(container, tagName, xml) {
         }
     });
     return xml;
-}
-
-function escapeXml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
 }
 
 //JSON Generator
