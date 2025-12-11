@@ -1394,45 +1394,66 @@ function generateAndThenSummarize() {
         });
 }
 
-function escapeXml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-}
 // XML Generator
 function generateXML() {
+    // Helper function to escape XML special characters
+    function escapeXml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe.replace(/[<>&'"]/g, function (c) {
+            switch (c) {
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '&': return '&amp;';
+                case "\'": return '&apos;';
+                case '"': return '&quot;';
+            }
+        });
+    }
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    
+    // Book Level Info
     const bookName = document.getElementById('bookName').value;
     const createdBy = document.getElementById('createdBy').value;
     const comment = document.getElementById('comment').value;
     xml += `<PriceBook name="${escapeXml(bookName)}" createdBy="${escapeXml(createdBy)}" comment="${escapeXml(comment)}">\n`;
 
+    // Rule Groups
     document.querySelectorAll('.rule-group').forEach(groupElement => {
         const startDate = groupElement.querySelector('[id^=startDate]').value;
         const endDate = groupElement.querySelector('[id^=endDate]').value;
         xml += `  <RuleGroup startDate="${startDate}" endDate="${endDate}">\n`;
 
+        // Billing Rules
         groupElement.querySelectorAll('.rule').forEach(ruleElement => {
-            const ruleName = ruleElement.querySelector('[id^=ruleName]').value;
-            const includeDataTransfer = ruleElement.querySelector('[id^=includeDataTransfer]').value;
+            // FIXED: Use class selectors (.ruleName) instead of ID selectors
+            const ruleNameInput = ruleElement.querySelector('.ruleName');
+            const ruleName = ruleNameInput ? ruleNameInput.value : '';
+            
+            const includeDataTransferInput = ruleElement.querySelector('.includeDataTransfer');
+            const includeDataTransfer = includeDataTransferInput ? includeDataTransferInput.value : 'true';
+            
             xml += `    <BillingRule name="${escapeXml(ruleName)}" includeDataTransfer="${includeDataTransfer}">\n`;
 
-            const billingAdjustment = ruleElement.querySelector('[id^=billingAdjustment]').value;
-            const billingRuleType = ruleElement.querySelector('[id^=billingRuleType]').value;
+            // FIXED: Use class selectors for adjustment and type
+            const billingAdjustmentInput = ruleElement.querySelector('.billingAdjustment');
+            const billingRuleTypeInput = ruleElement.querySelector('.billingRuleType');
+            
+            const billingAdjustment = billingAdjustmentInput ? billingAdjustmentInput.value : '';
+            const billingRuleType = billingRuleTypeInput ? billingRuleTypeInput.value : '';
+
             if (billingAdjustment && billingRuleType) {
                 xml += `      <BasicBillingRule billingAdjustment="${billingAdjustment}" billingRuleType="${billingRuleType}"/>\n`;
             }
 
             let productsXML = '';
+            
+            // Products
             ruleElement.querySelectorAll('.product-block').forEach(productBlock => {
+                // FIXED: Use class selector .productName
                 const productNameInput = productBlock.querySelector('.productName');
                 const productName = productNameInput ? productNameInput.value.trim() : '';
-
+                
                 if (productName) {
                     let propertiesXML = '';
 
@@ -1456,21 +1477,28 @@ function generateXML() {
                         }
                     });
 
+                    // Instance Properties
                     const instanceValuesContainer = productBlock.querySelector(`#instancePropertyValues-${productBlock.id}`);
                     if (instanceValuesContainer) {
                         instanceValuesContainer.querySelectorAll('.instance-property-value').forEach(instSet => {
                             const instanceType = instSet.querySelector('input:nth-of-type(1)').value.trim();
                             const instanceSize = instSet.querySelector('input:nth-of-type(2)').value.trim();
-                            const reserved = instSet.querySelector('select').value;
+                            const reservedSelect = instSet.querySelector('select');
+                            const reserved = reservedSelect ? reservedSelect.value : 'false';
+                            
                             propertiesXML += `        <InstanceProperties instanceType="${escapeXml(instanceType)}" instanceSize="${escapeXml(instanceSize)}" reserved="${reserved}" />\n`;
                         });
                     }
 
+                    // Line Item Descriptions
                     const lineItemContainer = productBlock.querySelector(`#lineItemDescriptionValues-${productBlock.id}`);
                     if (lineItemContainer) {
                         lineItemContainer.querySelectorAll('.line-item-description-value').forEach(lineSet => {
-                            const operator = lineSet.querySelector('select').value;
-                            const value = lineSet.querySelector('input').value.trim();
+                            const operatorSelect = lineSet.querySelector('select');
+                            const operator = operatorSelect ? operatorSelect.value : 'contains';
+                            const valueInput = lineSet.querySelector('input');
+                            const value = valueInput ? valueInput.value.trim() : '';
+                            
                             if (value) {
                                 propertiesXML += `        <LineItemDescription ${operator}="${escapeXml(value)}" />\n`;
                             }
@@ -1492,8 +1520,10 @@ function generateXML() {
     });
 
     xml += '</PriceBook>';
+    
     return xml;
 }
+
 
 
 function generateStandardProperty(container, tagName, xml) {
@@ -1941,7 +1971,6 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     }, 100);
 }
 
-// NEW: Import properties for a specific product
 // NEW: Import properties for a specific product
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
