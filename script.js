@@ -903,18 +903,22 @@ function updatePropertyStatusForProduct(propertyType, element, productId) {
 // Update active tags for a product (CORRECTED selector)
 function updateActiveTagsForProduct(product) {
     const productId = product.id;
-    const container = product.querySelector(`#activeTags-${productId}`);  // ADDED # prefix
+    const container = product.querySelector(`#activeTags-${productId}`);
     if (!container) {
-        console.warn(`activeTags container not found for ${productId}`);
         return;
     }
 
     container.innerHTML = '';
-    if (!product.addedProperties || product.addedProperties.size === 0) return;
+
+    if (!product.addedProperties || product.addedProperties.size === 0) {
+        return;
+    }
 
     product.addedProperties.forEach(propertyType => {
         const valueContainer = product.querySelector(`#${propertyType}Values-${productId}`);
-        if (!valueContainer) return;
+        if (!valueContainer) {
+            return;
+        }
 
         let activeCount = 0;
 
@@ -938,6 +942,7 @@ function updateActiveTagsForProduct(product) {
                 const content = product.querySelector(`#${propertyType}Content-${productId}`);
                 if (content) {
                     content.classList.toggle('expanded');
+                    content.classList.toggle('collapsed');
                 }
             };
             tag.innerHTML = `${propertyTypes[propertyType].name}<span class="count">${activeCount}</span>`;
@@ -2072,7 +2077,6 @@ function importPropertiesForProduct(productEl, productDiv) {
         productDiv.addedProperties = new Set();
     }
 
-
     // Helper to ensure a property section exists
     function ensureProperty(propertyType) {
         if (!productDiv.addedProperties.has(propertyType)) {
@@ -2082,9 +2086,7 @@ function importPropertiesForProduct(productEl, productDiv) {
         return productDiv.querySelector(`#${propertyType}Values-${productId}`);
     }
 
-    //
-    // 1. STANDARD PROPERTIES (Region, UsageType, Operation, RecordType, SavingsPlanOfferingType)
-    //
+    // 1. STANDARD PROPERTIES
     const stdProps = [
         ['Region', 'region'],
         ['UsageType', 'usageType'],
@@ -2108,13 +2110,12 @@ function importPropertiesForProduct(productEl, productDiv) {
         });
     });
 
-    //
     // 2. INSTANCE PROPERTIES
-    //
     const instanceProps = productEl.getElementsByTagName('InstanceProperties');
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
         const container = ensureProperty(propertyType);
+
         Array.from(instanceProps).forEach(inst => {
             addValueToProduct(propertyType, productDiv);
             const last = container.querySelector('.instance-property-value:last-child');
@@ -2126,14 +2127,11 @@ function importPropertiesForProduct(productEl, productDiv) {
                 if (inputs[0]) inputs[0].value = inst.getAttribute('instanceType') || '';
                 if (inputs[1]) inputs[1].value = inst.getAttribute('instanceSize') || '';
                 if (sel) sel.value = inst.getAttribute('reserved') === 'true' ? 'true' : 'false';
-
             }
         });
     }
 
-    //
     // 3. LINE ITEM DESCRIPTION
-    //
     const lineItems = productEl.getElementsByTagName('LineItemDescription');
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
@@ -2157,12 +2155,10 @@ function importPropertiesForProduct(productEl, productDiv) {
         });
     }
 
-    //
-    // 4. FINAL — Update all property statuses + rebuild active tags display
-    // This MUST happen in a setTimeout to ensure all DOM values are committed
-    //
+    // 4. FINAL — Update statuses THEN tags with proper sequencing
+    // CRITICAL: Use 200ms timeout to ensure all DOM updates have completed
     setTimeout(() => {
-
+        // First update status for each property
         productDiv.addedProperties.forEach(propertyType => {
             const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
             if (container) {
@@ -2170,11 +2166,12 @@ function importPropertiesForProduct(productEl, productDiv) {
             }
         });
 
-        // Force DOM reflow to ensure all updates are rendered
+        // Force DOM reflow
         void productDiv.offsetHeight;
 
+        // NOW update tags after statuses are set
         updateActiveTagsForProduct(productDiv);
-    }, 150);  // INCREASED timeout to 150ms
+    }, 200);  // INCREASED to 200ms for safety
 }
 
 /**
@@ -2235,44 +2232,54 @@ function updateActiveTagsForProduct(product) {
 
 function collapseAllProperties() {
     const products = document.querySelectorAll('.product-block');
-
+    
     products.forEach(product => {
+        // 1. Collapse all property sections within this product
         const propertyContents = product.querySelectorAll('.property-content');
         propertyContents.forEach(content => {
+            content.classList.add('collapsed');
             content.classList.remove('expanded');
         });
 
+        // 2. Reset expanded sections tracking
         if (!product.expandedSections) {
             product.expandedSections = new Set();
         }
         product.expandedSections.clear();
 
-        // CRITICAL: Rebuild tags after collapsing
+        // 3. Collapse the product itself
+        const productHeader = product.querySelector('.product-header .collapse-button');
+        const productContent = product.querySelector('.product-content');
+        if (productHeader && productContent) {
+            productHeader.classList.add('collapsed');
+            productContent.classList.add('collapsed');
+            productHeader.textContent = '▶';
+        }
+
+        // 4. CRITICAL: Rebuild tags after collapsing
         updateActiveTagsForProduct(product);
     });
 
-    // Collapse all Billing Rules
+    // 5. Collapse all Billing Rules
     const billingRules = document.querySelectorAll('.rule');
     billingRules.forEach(rule => {
         const header = rule.querySelector('.rule-header .collapse-button');
         const content = rule.querySelector('.rule-content');
-
+        
         if (header && content) {
-            // Set to collapsed state
             header.classList.add('collapsed');
             content.classList.add('collapsed');
             header.textContent = '▶';
         }
     });
 
-    // Collapse all Rule Groups
+    // 6. Collapse all Rule Groups
     const ruleGroups = document.querySelectorAll('.rule-group');
     ruleGroups.forEach(group => {
         const header = group.querySelector('.rule-group-header .collapse-button');
         const content = group.querySelector('.rule-group-content');
-
+        
         if (header && content) {
-            // Set to collapsed state
             header.classList.add('collapsed');
             content.classList.add('collapsed');
             header.textContent = '▶';
