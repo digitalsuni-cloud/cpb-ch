@@ -680,7 +680,7 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
         content.classList.remove('expanded');
     });
 
-    removeUnusedPropertiesFromProduct(product);
+    // DO NOT call removeUnusedPropertiesFromProduct here - it will delete stuff prematurely
 
     if (!product.addedProperties) {
         product.addedProperties = new Set();
@@ -689,16 +689,18 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
     if (!product.addedProperties.has(propertyType)) {
         addPropertySectionToProduct(propertyType, product);
         product.addedProperties.add(propertyType);
-        addValueToProduct(propertyType, product);
+    }
 
-        // Only expand on user add, not on import
-        if (autoExpand) {
-            const newContent = product.querySelector(`#${propertyType}Content-${productId}`);
-            if (newContent) {
-                newContent.classList.add('expanded');
-            }
+    addValueToProduct(propertyType, product);
+
+    // Only expand on user add, not on import
+    if (autoExpand) {
+        const newContent = product.querySelector(`#${propertyType}Content-${productId}`);
+        if (newContent) {
+            newContent.classList.add('expanded');
         }
     }
+
     updatePropertySelectForProduct(select, product);
 }
 
@@ -709,14 +711,20 @@ function removeUnusedPropertiesFromProduct(product) {
 
     product.addedProperties.forEach(propertyType => {
         const status = product.querySelector(`#${propertyType}Status-${product.id}`);
-        if (status && status.textContent === 'Not in use') {
+        
+        // Only remove if NOT in use
+        if (status && status.textContent.includes('Not in use')) {
             const section = product.querySelector(`#${propertyType}Section-${product.id}`);
             if (section) {
                 section.remove();
-                product.addedProperties.delete(propertyType);
             }
+            product.addedProperties.delete(propertyType);
         }
     });
+
+    // After cleanup, rebuild tags one more time (in case any were removed)
+    updateActiveTagsForProduct(product);
+
     updatePropertySelectForProduct(product.querySelector('.propertySelect'), product);
 }
 
@@ -894,17 +902,20 @@ function updatePropertyStatusForProduct(propertyType, element, productId) {
     const status = product.querySelector(`#${propertyType}Status-${productId}`);
     if (status) {
         status.textContent = hasValues ? 'In use' : 'Not in use';
-        status.className = `status ${hasValues ? 'active' : ''}`;
+        status.className = status + (hasValues ? ' active' : '');
     }
 
+    // CRITICAL: Call updateActiveTagsForProduct IMMEDIATELY after status update
     updateActiveTagsForProduct(product);
 }
 
-// Update active tags for a product (CORRECTED selector)
+// CORRECTED: Update active tags - MUST find container correctly
 function updateActiveTagsForProduct(product) {
     const productId = product.id;
     const container = product.querySelector(`#activeTags-${productId}`);
+    
     if (!container) {
+        console.warn(`Tags container not found for ${productId}`);
         return;
     }
 
@@ -935,6 +946,7 @@ function updateActiveTagsForProduct(product) {
             activeCount = Array.from(inputs).filter(input => input.value.trim() !== '').length;
         }
 
+        // Only create tag if there are active values
         if (activeCount > 0) {
             const tag = document.createElement('div');
             tag.className = 'property-tag';
@@ -2061,15 +2073,6 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     }, 100);
 }
 
-/**
- * CORRECTED IMPORT FUNCTION - Imports ALL properties for a product
- * Key fixes:
- * 1. Ensures all property sections exist BEFORE adding values
- * 2. Adds all values to containers
- * 3. Updates property status for EACH property type
- * 4. After all updates complete, updates the active tags display
- * 5. Uses increased timeout to ensure DOM is fully updated
- */
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2155,8 +2158,10 @@ function importPropertiesForProduct(productEl, productDiv) {
         });
     }
 
-    // 4. FINAL — Update statuses THEN tags with proper sequencing
-    // CRITICAL: Use 200ms timeout to ensure all DOM updates have completed
+    // 4. CRITICAL SEQUENCING:
+    // Step 1: Update statuses for all properties
+    // Step 2: Update tags while properties still exist
+    // Step 3: Remove unused properties AFTER tags are created
     setTimeout(() => {
         // First update status for each property
         productDiv.addedProperties.forEach(propertyType => {
@@ -2169,9 +2174,10 @@ function importPropertiesForProduct(productEl, productDiv) {
         // Force DOM reflow
         void productDiv.offsetHeight;
 
-        // NOW update tags after statuses are set
-        updateActiveTagsForProduct(productDiv);
-    }, 200);  // INCREASED to 200ms for safety
+        // NOW remove unused properties (after tags are done)
+        removeUnusedPropertiesFromProduct(productDiv);
+
+    }, 100);  // Give DOM time to settle
 }
 
 /**
