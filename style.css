@@ -258,32 +258,109 @@
         }
 
         /* Multiple Products Section */
-        .products-header {
+        /* New Products Section (per-product blocks) */
+
+        .products-section {
+            margin-top: 15px;
+            padding: 12px 12px 15px;
+            background-color: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        [data-theme="dark"] .products-section {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .products-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Individual product block */
+
+        .product-block {
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: var(--surface);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .product-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.02);
             border-bottom: 1px solid var(--border);
+            cursor: pointer;
         }
-        
+
+        [data-theme="dark"] .product-header {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .product-header h5 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .product-content {
+            padding: 12px;
+        }
+
+        /* Row for product main fields (name + flags) */
+
+        .product-main-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .product-main-row .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .product-main-row .input-group.compact {
+            flex: 0 0 200px;
+            min-width: 160px;
+        }
+
+        /* Reuse existing collapse behavior for product content */
+
+        .product-content.collapsed {
+            display: none;
+        }
+
+        /* Make remove-product button match existing remove styles */
+
+        .product-block .button.button-red {
+            margin-top: 10px;
+        }
+
+
         .products-title {
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
-        
+
         .products-title strong {
             font-size: 1rem;
             color: var(--text);
         }
-        
+
         .products-hint {
             font-size: 0.85rem;
             color: var(--text-light);
             font-style: italic;
         }
-        
+
         .add-product-button {
             height: 37px;
             padding: 0 12px;
@@ -300,23 +377,23 @@
             gap: 6px;
             transition: all var(--transition-speed);
         }
-        
+
         .add-product-button:hover {
             background-color: #25a85a;
             transform: translateY(-2px);
         }
-        
+
         .add-product-button:focus {
             outline: none;
             box-shadow: 0 0 0 3px var(--focus-ring);
         }
-        
+
         .products-container {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
-        
+
         .product-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr auto;
@@ -327,20 +404,20 @@
             border-radius: 8px;
             border: 1px solid var(--border);
         }
-        
+
         [data-theme="dark"] .product-row {
             background-color: rgba(255, 255, 255, 0.03);
         }
-        
+
         .product-row .input-group {
             min-width: 0;
             margin-bottom: 0;
         }
-        
+
         .product-row .input-group.compact {
             min-width: 0;
         }
-        
+
         .remove-product-button {
             width: 37px;
             height: 37px;
@@ -357,17 +434,17 @@
             transition: all var(--transition-speed);
             flex-shrink: 0;
         }
-        
+
         .remove-product-button:hover {
             background-color: #c0392b;
             transform: scale(1.1);
         }
-        
+
         .remove-product-button:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
         }
-        
+
         /* Responsive adjustments for product rows */
         @media (max-width: 768px) {
             .products-header {
@@ -375,21 +452,22 @@
                 align-items: stretch;
                 gap: 10px;
             }
-            
+
             .add-product-button {
                 width: 100%;
                 justify-content: center;
             }
-            
+
             .product-row {
                 grid-template-columns: 1fr;
                 gap: 10px;
             }
-            
+
             .remove-product-button {
                 width: 100%;
             }
         }
+
         /* Products header labels row */
         .products-header-labels {
             display: grid;
@@ -403,20 +481,22 @@
             font-size: 0.85rem;
             color: var(--text);
         }
-        
+
         .products-header-labels span:last-child {
-            width: 37px; /* Match remove button width */
+            width: 37px;
+            /* Match remove button width */
         }
-        
+
         /* Remove individual labels from input-group since we have header labels */
         .product-row input,
         .product-row select {
             width: 100%;
         }
-        
+
         /* Remove margins/padding from inputs/selects in product rows */
         .product-row .input-group label {
-            display: none; /* Hide labels inside product rows */
+            display: none;
+            /* Hide labels inside product rows */
         }
 
 
@@ -514,30 +594,31 @@
             border: none;
             color: #fff;
             font-weight: 500;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
             transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
         }
-        
+
         .import-section .button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
-        
+
         /* Import Price Book: blue/teal */
         #importButton {
             background: linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #22c55e 100%);
         }
-        
+
         #importButton:hover {
             background: linear-gradient(135deg, #1d4ed8 0%, #0891b2 50%, #16a34a 100%);
         }
-        
+
         /* Read from Output: purple/pink */
         #readFromOutputButton {
             background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f97316 100%);
-            margin-left: 0.75rem; /* spacing between buttons */
+            margin-left: 0.75rem;
+            /* spacing between buttons */
         }
-        
+
         #readFromOutputButton:hover {
             background: linear-gradient(135deg, #6d28d9 0%, #db2777 50%, #ea580c 100%);
         }
@@ -825,7 +906,7 @@
             max-width: 600px;
             width: 90%;
         }
-        
+
         .modal-close {
             position: absolute;
             right: 20px;
@@ -844,7 +925,7 @@
             transition: all var(--transition-speed);
             font-weight: bold;
         }
-        
+
         .modal-close:hover {
             background-color: #c82333;
             transform: scale(1.1);
@@ -963,44 +1044,44 @@
             margin-bottom: 15px;
         }
 
-.property-header {
-    padding: 10px 15px;
-    background-color: var(--surface);
-    border-bottom: 1px solid var(--border);
-    transition: background-color 0.2s ease;
-}
+        .property-header {
+            padding: 10px 15px;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s ease;
+        }
 
-.property-header:hover {
-    background-color: rgba(52, 152, 219, 0.1);
-}
+        .property-header:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
 
-.property-header .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
+        .property-header .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
 
-.property-header h5 {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text);
-    line-height: 1.2;
-}
+        .property-header h5 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            line-height: 1.2;
+        }
 
-.property-header .status {
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background-color: var(--text-light);
-    color: white;
-    white-space: nowrap;
-}
+        .property-header .status {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: var(--text-light);
+            color: white;
+            white-space: nowrap;
+        }
 
-.property-header .status.active {
-    background-color: var(--success);
-}
+        .property-header .status.active {
+            background-color: var(--success);
+        }
 
         .property-content {
             display: none;
@@ -1119,13 +1200,14 @@
         .line-item-description-value input {
             flex-grow: 1;
         }
-    footer {
-      text-align: center;
-      margin-top: 20px;
-      padding: 5px 0;
-      font-size: 0.70em;
-      color: #616060f2;
-    }
+
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 5px 0;
+            font-size: 0.70em;
+            color: #616060f2;
+        }
 
         /* Rules Navigation Styles */
         .rule-nav {
@@ -1161,16 +1243,16 @@
         }
 
         .select2-container--classic .select2-selection--single {
-    height: 37px;
-    border: 2px solid var(--border) !important;
-    border-radius: 8px !important;
-    background-color: var(--surface) !important;
-    background: var(--surface) !important;
-    color: var(--text) !important;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    width: 100% !important;
+            height: 37px;
+            border: 2px solid var(--border) !important;
+            border-radius: 8px !important;
+            background-color: var(--surface) !important;
+            background: var(--surface) !important;
+            color: var(--text) !important;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            width: 100% !important;
         }
 
         .select2-container--classic .select2-selection--single .select2-selection__rendered {
@@ -1179,7 +1261,7 @@
             background-color: var(--surface) !important;
             padding-left: 12px !important;
             padding-right: 30px !important;
-                width: 100%;
+            width: 100%;
         }
 
         .select2-container--classic .select2-selection--single .select2-selection__arrow {
@@ -1286,93 +1368,97 @@
             transform: scale(1.1);
         }
 
-.button-ai {
-  background: linear-gradient(90deg, #8e2de2, #4a00e0);
-  color: #fff;
-  border-radius: 50px;
-  padding: 12px 20px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-transition: all 0.3s ease;
-}
-.button-ai:hover {
-  filter: brightness(1.1);
-}
+        .button-ai {
+            background: linear-gradient(90deg, #8e2de2, #4a00e0);
+            color: #fff;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
 
-/* Tabs bar for output sections */
-.tabs-bar {
-  display: flex;
-  gap: 8px;
-  margin: 24px 0 8px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 6px;
-}
+        .button-ai:hover {
+            filter: brightness(1.1);
+        }
 
-/* Individual tab items */
-.tab-item {
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-weight: 500;
-  color: var(--text);
-  transition: all 0.3s ease;
+        /* Tabs bar for output sections */
+        .tabs-bar {
+            display: flex;
+            gap: 8px;
+            margin: 24px 0 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
 
-}
+        /* Individual tab items */
+        .tab-item {
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            color: var(--text);
+            transition: all 0.3s ease;
 
-.tab-item:hover {
-  background: rgba(52, 152, 219, 0.1); /* Using primary color with opacity for hover */
-}
+        }
 
-.tab-item.active {
-  background: var(--primary);
-  color: white;
-}
+        .tab-item:hover {
+            background: rgba(52, 152, 219, 0.1);
+            /* Using primary color with opacity for hover */
+        }
 
-/* Tab content panels */
-.tab-content {
-  display: none;
-}
+        .tab-item.active {
+            background: var(--primary);
+            color: white;
+        }
 
-.tab-content.active {
-  display: block;
-}
+        /* Tab content panels */
+        .tab-content {
+            display: none;
+        }
 
-/* Natural Language container */
-.nl-container {
-  padding: 8px 0;
-}
+        .tab-content.active {
+            display: block;
+        }
 
-/* Natural Language summary styling */
-.nl-summary {
-  white-space: pre-wrap;
-  line-height: 1.5;
-  font-size: 14px;
-  font-family: 'Inter', sans-serif; /* Matching body font */
-  color: var(--text);
-}
+        /* Natural Language container */
+        .nl-container {
+            padding: 8px 0;
+        }
 
-.nl-summary .rulegroup {
-  margin: 12px 0;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-}
+        /* Natural Language summary styling */
+        .nl-summary {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            /* Matching body font */
+            color: var(--text);
+        }
 
-.nl-summary .rule {
-  margin: 8px 0;
-  padding: 8px;
-  border-left: 3px solid var(--primary);
-  background: rgba(0, 0, 0, 0.02); /* Subtle background for dark/light compatibility */
-}
+        .nl-summary .rulegroup {
+            margin: 12px 0;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+        }
 
-.nl-summary .filters {
-  margin-top: 6px;
-  padding-left: 12px;
-  color: var(--text-light);
-}
+        .nl-summary .rule {
+            margin: 8px 0;
+            padding: 8px;
+            border-left: 3px solid var(--primary);
+            background: rgba(0, 0, 0, 0.02);
+            /* Subtle background for dark/light compatibility */
+        }
+
+        .nl-summary .filters {
+            margin-top: 6px;
+            padding-left: 12px;
+            color: var(--text-light);
+        }
 
 
 
@@ -1443,218 +1529,217 @@ transition: all 0.3s ease;
             }
         }
 
-/* ========== DRAG AND DROP STYLES ========== */
+        /* ========== DRAG AND DROP STYLES ========== */
 
-/* Make rule groups and rules draggable */
-.rule-group[draggable="true"],
-.rule[draggable="true"] {
-    cursor: move;
-    position: relative;
-    transition: all 0.3s ease;
-}
+        /* Make rule groups and rules draggable */
+        .rule-group[draggable="true"],
+        .rule[draggable="true"] {
+            cursor: move;
+            position: relative;
+            transition: all 0.3s ease;
+        }
 
-/* Drag handle styling */
-.drag-handle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background-color: var(--primary);
-    color: white;
-    border-radius: 6px;
-    cursor: grab;
-    font-size: 1.2rem;
-    transition: all var(--transition-speed);
-    flex-shrink: 0;
-    user-select: none;
-    margin-right: 10px;
-}
+        /* Drag handle styling */
+        .drag-handle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 6px;
+            cursor: grab;
+            font-size: 1.2rem;
+            transition: all var(--transition-speed);
+            flex-shrink: 0;
+            user-select: none;
+            margin-right: 10px;
+        }
 
-.drag-handle:hover {
-    background-color: var(--primary-dark);
-    transform: scale(1.05);
-}
+        .drag-handle:hover {
+            background-color: var(--primary-dark);
+            transform: scale(1.05);
+        }
 
-.drag-handle:active {
-    cursor: grabbing;
-}
+        .drag-handle:active {
+            cursor: grabbing;
+        }
 
-/* Visual feedback during dragging */
-.dragging {
-    opacity: 0.5;
-    transform: scale(0.98);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    border: 2px dashed var(--primary);
-}
+        /* Visual feedback during dragging */
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border: 2px dashed var(--primary);
+        }
 
-/* Drop zone indicator */
-.drag-over {
-    border: 3px dashed var(--primary);
-    background-color: rgba(52, 152, 219, 0.1);
-    transform: scale(1.01);
-}
+        /* Drop zone indicator */
+        .drag-over {
+            border: 3px dashed var(--primary);
+            background-color: rgba(52, 152, 219, 0.1);
+            transform: scale(1.01);
+        }
 
-/* Placeholder for drop position */
-.drop-placeholder {
-    height: 60px;
-    border: 2px dashed var(--primary);
-    border-radius: 8px;
-    background: repeating-linear-gradient(
-        45deg,
-        rgba(52, 152, 219, 0.05),
-        rgba(52, 152, 219, 0.05) 10px,
-        rgba(52, 152, 219, 0.1) 10px,
-        rgba(52, 152, 219, 0.1) 20px
-    );
-    margin-bottom: 15px;
-    animation: pulse 1.5s ease-in-out infinite;
-}
+        /* Placeholder for drop position */
+        .drop-placeholder {
+            height: 60px;
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            background: repeating-linear-gradient(45deg,
+                    rgba(52, 152, 219, 0.05),
+                    rgba(52, 152, 219, 0.05) 10px,
+                    rgba(52, 152, 219, 0.1) 10px,
+                    rgba(52, 152, 219, 0.1) 20px);
+            margin-bottom: 15px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 1;
-    }
-}
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.6;
+            }
 
-/* Header modifications for drag handles */
-.rule-group-header h3,
-.rule-header h4 {
-    display: flex;
-    align-items: center;
-}
+            50% {
+                opacity: 1;
+            }
+        }
 
-/* Drag instruction tooltip */
-.drag-instruction {
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background-color: var(--surface);
-    border: 2px solid var(--primary);
-    border-radius: 8px;
-    padding: 12px 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    z-index: 999;
-    display: none;
-    animation: slideIn 0.3s ease-out;
-}
+        /* Header modifications for drag handles */
+        .rule-group-header h3,
+        .rule-header h4 {
+            display: flex;
+            align-items: center;
+        }
 
-.drag-instruction.show {
-    display: block;
-}
+        /* Drag instruction tooltip */
+        .drag-instruction {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background-color: var(--surface);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
 
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
+        .drag-instruction.show {
+            display: block;
+        }
 
-.drag-instruction p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--text);
-}
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
 
-/* Accessibility improvements */
-.drag-handle:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px var(--focus-ring);
-}
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
 
-/* Keyboard navigation indicator */
-.keyboard-dragging {
-    border: 3px solid var(--success);
-    box-shadow: 0 0 12px rgba(39, 174, 96, 0.4);
-}
+        .drag-instruction p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
 
-/* Reorder buttons for accessibility */
-.reorder-buttons {
-    display: inline-flex;
-    gap: 4px;
-    margin-left: 8px;
-}
+        /* Accessibility improvements */
+        .drag-handle:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
 
-.reorder-btn {
-    background-color: var(--text-light);
-    color: white;
-    border: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-speed);
-}
+        /* Keyboard navigation indicator */
+        .keyboard-dragging {
+            border: 3px solid var(--success);
+            box-shadow: 0 0 12px rgba(39, 174, 96, 0.4);
+        }
 
-.reorder-btn:hover {
-    background-color: var(--primary);
-    transform: translateY(-2px);
-}
+        /* Reorder buttons for accessibility */
+        .reorder-buttons {
+            display: inline-flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
 
-.reorder-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px var(--focus-ring);
-}
+        .reorder-btn {
+            background-color: var(--text-light);
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed);
+        }
 
-.reorder-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
+        .reorder-btn:hover {
+            background-color: var(--primary);
+            transform: translateY(-2px);
+        }
 
-.reorder-btn:disabled:hover {
-    transform: none;
-    background-color: var(--text-light);
-}
+        .reorder-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
 
-/* Dark mode adjustments for drag elements */
-[data-theme="dark"] .drag-handle {
-    background-color: var(--primary);
-}
+        .reorder-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
 
-[data-theme="dark"] .drag-instruction {
-    background-color: var(--surface);
-    border-color: var(--primary);
-}
+        .reorder-btn:disabled:hover {
+            transform: none;
+            background-color: var(--text-light);
+        }
 
-[data-theme="dark"] .dragging {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-}
+        /* Dark mode adjustments for drag elements */
+        [data-theme="dark"] .drag-handle {
+            background-color: var(--primary);
+        }
 
-/* Responsive adjustments for drag handles */
-@media (max-width: 768px) {
-    .drag-handle {
-        width: 28px;
-        height: 28px;
-        font-size: 1rem;
-        margin-right: 8px;
-    }
-    
-    .reorder-btn {
-        width: 24px;
-        height: 24px;
-        font-size: 0.8rem;
-    }
-    
-    .drag-instruction {
-        bottom: 70px;
-        right: 10px;
-        padding: 10px 12px;
-        max-width: calc(100% - 20px);
-    }
-    
-    .drag-instruction p {
-        font-size: 0.8rem;
-    }
-}
+        [data-theme="dark"] .drag-instruction {
+            background-color: var(--surface);
+            border-color: var(--primary);
+        }
 
+        [data-theme="dark"] .dragging {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Responsive adjustments for drag handles */
+        @media (max-width: 768px) {
+            .drag-handle {
+                width: 28px;
+                height: 28px;
+                font-size: 1rem;
+                margin-right: 8px;
+            }
+
+            .reorder-btn {
+                width: 24px;
+                height: 24px;
+                font-size: 0.8rem;
+            }
+
+            .drag-instruction {
+                bottom: 70px;
+                right: 10px;
+                padding: 10px 12px;
+                max-width: calc(100% - 20px);
+            }
+
+            .drag-instruction p {
+                font-size: 0.8rem;
+            }
+        }
