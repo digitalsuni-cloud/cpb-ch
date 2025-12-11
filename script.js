@@ -2007,7 +2007,6 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
                 existingProducts.forEach(p => p.remove());
 
                 // Add each product from XML
-                // Add each product from XML
                 Array.from(products).forEach(productEl => {
                     addProduct(currentRule.id);
 
