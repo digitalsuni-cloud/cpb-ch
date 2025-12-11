@@ -883,9 +883,9 @@ function updatePropertyStatusForProduct(propertyType, element, productId) {
 // Update active tags for a product (CORRECTED selector)
 function updateActiveTagsForProduct(product) {
     const productId = product.id;
-    const container = product.querySelector(`#activeTags-${productId}`);  // Added # prefix
+    const container = product.querySelector(`#activeTags-${productId}`);  // ADDED # prefix
     if (!container) {
-        console.warn(`Tag container not found for product ${productId}`);
+        console.warn(`activeTags container not found for ${productId}`);
         return;
     }
 
@@ -2022,6 +2022,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 }
 
 // Import ALL properties for a specific product (corrected version)
+// Import properties for a specific product (FIXED - no extra blank rows)
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2036,12 +2037,12 @@ function importPropertiesForProduct(productEl, productDiv) {
     importPropertyForProduct(productEl, productDiv, 'RecordType', 'recordType');
     importPropertyForProduct(productEl, productDiv, 'SavingsPlanOfferingType', 'savingsPlanOfferingType');
 
-    // Instance Properties
+    // Import Instance Properties
     const instanceProps = productEl.getElementsByTagName('InstanceProperties');
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
 
-        // Create section if not exists
+        // Create section WITHOUT calling addSelectedPropertyToProduct
         if (!productDiv.addedProperties.has(propertyType)) {
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
@@ -2070,7 +2071,7 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
 
-        // Create section if not exists
+        // Create section WITHOUT calling addSelectedPropertyToProduct
         if (!productDiv.addedProperties.has(propertyType)) {
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
@@ -2097,11 +2098,12 @@ function importPropertiesForProduct(productEl, productDiv) {
         }
     }
 
-    // Rebuild tags for this product AFTER all properties are imported
+    // Rebuild tags AFTER all properties are imported
     updateActiveTagsForProduct(productDiv);
 }
 
 // Import a standard property for a specific product (corrected version)
+// Import a standard property for a specific product (FIXED - no extra blank rows)
 function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
     const elements = productEl.getElementsByTagName(xmlTag);
     if (elements.length === 0) return;
@@ -2112,7 +2114,7 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         productDiv.addedProperties = new Set();
     }
 
-    // Create section if not exists (WITHOUT calling addSelectedPropertyToProduct)
+    // Create section WITHOUT calling addSelectedPropertyToProduct
     if (!productDiv.addedProperties.has(propertyType)) {
         addPropertySectionToProduct(propertyType, productDiv);
         productDiv.addedProperties.add(propertyType);
