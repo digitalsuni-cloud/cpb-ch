@@ -549,7 +549,7 @@ function addProduct(ruleId) {
 
     productDiv.innerHTML = `
         <div class="product-header">
-            <h5 class="product-title">Product: <span class="product-name-display">(Unnamed)</span></h5>
+            <h5 class="product-title">Product: <span class="product-name-display">ANY</span></h5>
             <button type="button" class="collapse-button" onclick="toggleProductCollapse(this)">▼</button>
         </div>
         <div class="product-content">
@@ -616,7 +616,7 @@ function addProduct(ruleId) {
 
     productNameInput.addEventListener('input', function () {
         const name = this.value.trim();
-        productNameDisplay.textContent = name || '(Unnamed)';
+        productNameDisplay.textContent = name || 'ANY';
     });
 
     // Remove existing "Add Product" button if any
@@ -2013,15 +2013,15 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
                     if (currentProduct) {
                         // Set product name and flags
                         const productNameInput = currentProduct.querySelector('.productName');
+                        const productName = productEl.getAttribute('productName') || '';
                         if (productNameInput) {
-                            productNameInput.value = productEl.getAttribute('productName') || '';
-                        }
-                        const productNameDisplay = currentProduct.querySelector('.product-name-display');
-                        if (productNameDisplay) {
-                            const pName = productEl.getAttribute('productName') || '';
-                            productNameDisplay.textContent = pName || '(Unnamed)';
+                            productNameInput.value = productName;
                         }
 
+                        const productNameDisplay = currentProduct.querySelector('.product-name-display');
+                        if (productNameDisplay) {
+                            productNameDisplay.textContent = productName || 'ANY';
+                        }
                         const productDT = currentProduct.querySelector('.productIncludeDataTransfer');
                         if (productDT) {
                             productDT.value = productEl.getAttribute('includeDataTransfer') || '';
