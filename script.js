@@ -290,62 +290,62 @@ function removeRuleGroup(button) {
 }
 
 //Add Billing Rule
-function addRule(button) {
+function addRule(button, addInitialProduct = true) {
     const rulesContainer = button.closest('.rule-group').querySelector('.rules');
     const div = document.createElement('div');
     div.className = 'rule';
     const ruleId = 'rule-' + Date.now();
     div.id = ruleId;
     div.innerHTML = `
-    <div class="rule-header">
-        <h4>Billing Rule</h4>
-        <div class="input-group always-visible">
-            <label>Billing Rule Name</label>
-            <div class="input-with-button">
-                <input type="text" class="ruleName" placeholder="Enter Billing Rule name" />
-                <button class="collapse-button" onclick="toggleBillingRuleCollapse(this)">▼</button>
+        <div class="rule-header">
+            <h4>Billing Rule</h4>
+            <div class="input-group always-visible">
+                <label>Billing Rule Name</label>
+                <div class="input-with-button">
+                    <input type="text" class="ruleName" placeholder="Enter Billing Rule name" />
+                    <button class="collapse-button" onclick="toggleBillingRuleCollapse(this)">▼</button>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="rule-content">
-        <div class="billing-rule-inline">
-            <div class="input-group">
-                <label>Billing Adjustment</label>
-                <input type="number" class="billingAdjustment" placeholder="e.g. 0.00" />
+        <div class="rule-content">
+            <div class="billing-rule-inline">
+                <div class="input-group">
+                    <label>Billing Adjustment</label>
+                    <input type="number" class="billingAdjustment" placeholder="e.g. 0.00"/>
+                </div>
+                <div class="input-group">
+                    <label>Billing Rule Type</label>
+                    <select class="billingRuleType">
+                        <option value="percentDiscount">percentDiscount</option>
+                        <option value="percentIncrease">percentIncrease</option>
+                        <option value="fixedRate">fixedRate</option>
+                    </select>
+                </div>
+                <div class="input-group compact">
+                    <label>Include Data Transfer</label>
+                    <select class="includeDataTransfer">
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                    </select>
+                </div>
+                <div class="input-group compact">
+                    <label>Include RI Purchases</label>
+                    <select class="includeRIPurchases">
+                        <option value="true">true</option>
+                        <option value="false" selected>false</option>
+                    </select>
+                </div>
             </div>
-            <div class="input-group">
-                <label>Billing Rule Type</label>
-                <select class="billingRuleType">
-                    <option value="percentDiscount">percentDiscount</option>
-                    <option value="percentIncrease">percentIncrease</option>
-                    <option value="fixedRate">fixedRate</option>
-                </select>
-            </div>
-            <div class="input-group compact">
-                <label>Include Data Transfer</label>
-                <select class="includeDataTransfer">
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                </select>
-            </div>
-            <div class="input-group compact">
-                <label>Include RI Purchases</label>
-                <select class="includeRIPurchases">
-                    <option value="true">true</option>
-                    <option value="false" selected>false</option>
-                </select>
-            </div>
-        </div>
-    
-        <!-- Products Section -->
-        <div class="products-section">
-            <div class="products-header">
-                <h3>Products</h3>
-                <button type="button" class="button add-product-button"
-                    onclick="addProduct('${ruleId}')">
-                    <span class="button-icon">➕</span>Add Product </button>
-            </div>
-            <div class="products-list">
+
+            <!-- Products Section -->
+            <div class="products-section">
+                <div class="products-header">
+                    <h3>Products</h3>
+                    <button type="button" class="button add-product-button" onclick="addProduct('${ruleId}')">
+                        <span class="button-icon">➕</span>Add Product
+                    </button>
+                </div>
+                <div class="products-list">
                 <!-- Products added here -->
             </div>
             <datalist id="productList">
@@ -521,8 +521,10 @@ function addRule(button) {
     `;
     rulesContainer.appendChild(div);
 
-    // Add initial product
-    setTimeout(() => addProduct(ruleId), 0);
+    // CHANGE: Only add initial product if flag is true
+    if (addInitialProduct) {
+        setTimeout(() => addProduct(ruleId), 0);
+    }
 
     // Update navigation after adding the rule
     setTimeout(updateNavigation, 0);
@@ -645,7 +647,8 @@ function toggleProductCollapse(button) {
 }
 
 // Add selected property to a specific product
-function addSelectedPropertyToProduct(productId) {
+// CHANGE: Add 'autoExpand = true' parameter
+function addSelectedPropertyToProduct(productId, autoExpand = true) {
     const product = document.getElementById(productId);
     if (!product) return;
 
@@ -670,10 +673,12 @@ function addSelectedPropertyToProduct(productId) {
         product.addedProperties.add(propertyType);
         addValueToProduct(propertyType, product);
 
-        // Expand the newly added property section
-        const newContent = product.querySelector(`#${propertyType}Content-${productId}`);
-        if (newContent) {
-            newContent.classList.add('expanded');
+        // CHANGE: Only expand if autoExpand is true
+        if (autoExpand) {
+            const newContent = product.querySelector(`#${propertyType}Content-${productId}`);
+            if (newContent) {
+                newContent.classList.add('expanded');
+            }
         }
     }
     updatePropertySelectForProduct(select, product);
@@ -1879,10 +1884,11 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
             }
 
             const addRuleButton = currentGroup.querySelector('.button-group button');
-            addRule(addRuleButton);
+            
+            // CHANGE: Pass 'false' to prevent empty product creation
+            addRule(addRuleButton, false);
 
             const currentRule = currentGroup.querySelector('.rule:last-child');
-
             currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name') || '';
             const basicBillingRule = billingRule.getElementsByTagName('BasicBillingRule')[0];
             currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment') || '';
@@ -1936,6 +1942,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 }
 
 // NEW: Import properties for a specific product
+// NEW: Import properties for a specific product
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -1951,7 +1958,9 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (instanceProps.length > 0) {
         const select = productDiv.querySelector('.propertySelect');
         select.value = 'instanceProperty';
-        addSelectedPropertyToProduct(productId);
+        
+        // CHANGE: Pass false to keep collapsed
+        addSelectedPropertyToProduct(productId, false);
 
         Array.from(instanceProps).forEach(instanceProp => {
             addValueToProduct('instanceProperty', productDiv);
@@ -1977,7 +1986,9 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const select = productDiv.querySelector('.propertySelect');
         select.value = 'lineItemDescription';
-        addSelectedPropertyToProduct(productId);
+        
+        // CHANGE: Pass false to keep collapsed
+        addSelectedPropertyToProduct(productId, false);
 
         Array.from(lineItems).forEach(lineItem => {
             addValueToProduct('lineItemDescription', productDiv);
@@ -1999,17 +2010,18 @@ function importPropertiesForProduct(productEl, productDiv) {
             productDiv.querySelector(`#lineItemDescriptionValues-${productId}`),
             productId
         );
-    }
-}
-
-    // NEW: Import a standard property for a specific product
+    } // Don't forget the closing brace you added earlier!
+    
+    // Also update the helper function inside here:
     function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         const elements = productEl.getElementsByTagName(xmlTag);
         if (elements.length > 0) {
             const productId = productDiv.id;
             const select = productDiv.querySelector('.propertySelect');
             select.value = propertyType;
-            addSelectedPropertyToProduct(productId);
+            
+            // CHANGE: Pass false to keep collapsed
+            addSelectedPropertyToProduct(productId, false);
 
             Array.from(elements).forEach(element => {
                 addValueToProduct(propertyType, productDiv);
@@ -2022,6 +2034,7 @@ function importPropertiesForProduct(productEl, productDiv) {
             updatePropertyStatusForProduct(propertyType, productDiv.querySelector(`#${propertyType}Values-${productId}`), productId);
         }
     }
+}
 
     function collapseAllProperties() {
         const products = document.querySelectorAll('.product-block');
