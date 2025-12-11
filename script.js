@@ -2250,6 +2250,34 @@ function collapseAllProperties() {
         // CRITICAL: Rebuild tags after collapsing
         updateActiveTagsForProduct(product);
     });
+
+    // Collapse all Billing Rules
+    const billingRules = document.querySelectorAll('.rule');
+    billingRules.forEach(rule => {
+        const header = rule.querySelector('.rule-header .collapse-button');
+        const content = rule.querySelector('.rule-content');
+
+        if (header && content) {
+            // Set to collapsed state
+            header.classList.add('collapsed');
+            content.classList.add('collapsed');
+            header.textContent = '▶';
+        }
+    });
+
+    // Collapse all Rule Groups
+    const ruleGroups = document.querySelectorAll('.rule-group');
+    ruleGroups.forEach(group => {
+        const header = group.querySelector('.rule-group-header .collapse-button');
+        const content = group.querySelector('.rule-group-content');
+
+        if (header && content) {
+            // Set to collapsed state
+            header.classList.add('collapsed');
+            content.classList.add('collapsed');
+            header.textContent = '▶';
+        }
+    });
 }
 
 function toggleRuleGroupCollapse(button) {
