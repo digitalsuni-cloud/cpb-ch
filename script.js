@@ -1769,7 +1769,10 @@ function closeModal() {
     document.getElementById('helpModal').style.display = 'none';
 }
 
+
+
 // Import Price Book function
+
 document.getElementById('importButton').addEventListener('click', function () {
     const mainFields = ['bookName', 'createdBy', 'comment', 'cxAPIId', 'cxPayerId'];
     const allFieldsEmpty = mainFields.every(fieldId => document.getElementById(fieldId).value.trim() === '');
@@ -1898,7 +1901,7 @@ function extractXMLFromMalformedJSON(raw) {
             i++;
         }
         xml = xml
-            .replace(/\\"/g, '"')
+            .replace(/\"/g, '"')
             .replace(/\\n/g, '\n')
             .replace(/\\r/g, '\r')
             .replace(/\\t/g, '\t')
@@ -2053,8 +2056,15 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     }, 100);
 }
 
-// Import ALL properties for a specific product (corrected version)
-// Import ALL properties for a specific product (fully corrected)
+/**
+ * CORRECTED IMPORT FUNCTION - Imports ALL properties for a product
+ * Key fixes:
+ * 1. Ensures all property sections exist BEFORE adding values
+ * 2. Adds all values to containers
+ * 3. Updates property status for EACH property type
+ * 4. After all updates complete, updates the active tags display
+ * 5. Uses increased timeout to ensure DOM is fully updated
+ */
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2062,9 +2072,12 @@ function importPropertiesForProduct(productEl, productDiv) {
         productDiv.addedProperties = new Set();
     }
 
+    console.log(`[Import] Starting import for product: ${productId}`);
+
     // Helper to ensure a property section exists
     function ensureProperty(propertyType) {
         if (!productDiv.addedProperties.has(propertyType)) {
+            console.log(`[Import] Creating section for ${propertyType}`);
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
         }
@@ -2072,7 +2085,7 @@ function importPropertiesForProduct(productEl, productDiv) {
     }
 
     //
-    // 1. STANDARD PROPERTIES
+    // 1. STANDARD PROPERTIES (Region, UsageType, Operation, RecordType, SavingsPlanOfferingType)
     //
     const stdProps = [
         ['Region', 'region'],
@@ -2087,12 +2100,14 @@ function importPropertiesForProduct(productEl, productDiv) {
         if (elements.length === 0) return;
 
         const container = ensureProperty(propertyType);
+        console.log(`[Import] Adding ${elements.length} values for ${propertyType}`);
 
         Array.from(elements).forEach(el => {
             addValueToProduct(propertyType, productDiv);
             const lastInput = container.querySelector('.property-value:last-child input');
             if (lastInput) {
                 lastInput.value = el.getAttribute('name') || '';
+                console.log(`[Import]   - Added value: ${lastInput.value}`);
             }
         });
     });
@@ -2104,6 +2119,7 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
         const container = ensureProperty(propertyType);
+        console.log(`[Import] Adding ${instanceProps.length} instance properties`);
 
         Array.from(instanceProps).forEach(inst => {
             addValueToProduct(propertyType, productDiv);
@@ -2116,6 +2132,8 @@ function importPropertiesForProduct(productEl, productDiv) {
                 if (inputs[0]) inputs[0].value = inst.getAttribute('instanceType') || '';
                 if (inputs[1]) inputs[1].value = inst.getAttribute('instanceSize') || '';
                 if (sel) sel.value = inst.getAttribute('reserved') === 'true' ? 'true' : 'false';
+
+                console.log(`[Import]   - Added instance: ${inputs[0]?.value} / ${inputs[1]?.value}`);
             }
         });
     }
@@ -2127,6 +2145,7 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
         const container = ensureProperty(propertyType);
+        console.log(`[Import] Adding ${lineItems.length} line item descriptions`);
 
         Array.from(lineItems).forEach(ld => {
             addValueToProduct(propertyType, productDiv);
@@ -2140,6 +2159,7 @@ function importPropertiesForProduct(productEl, productDiv) {
                     if (ld.hasAttribute(op)) {
                         if (selectEl) selectEl.value = op;
                         if (input) input.value = ld.getAttribute(op) || '';
+                        console.log(`[Import]   - Added lineItem [${op}]: ${input?.value}`);
                     }
                 });
             }
@@ -2147,51 +2167,96 @@ function importPropertiesForProduct(productEl, productDiv) {
     }
 
     //
-    // 4. FINAL — update statuses + tags AFTER import is fully complete
+    // 4. FINAL — Update all property statuses + rebuild active tags display
+    // This MUST happen in a setTimeout to ensure all DOM values are committed
     //
     setTimeout(() => {
+        console.log(`[Import] Updating status for all properties in ${productId}`);
+
         productDiv.addedProperties.forEach(propertyType => {
             const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-            updatePropertyStatusForProduct(propertyType, container, productId);
+            if (container) {
+                console.log(`[Import]   - Updating status for ${propertyType}`);
+                updatePropertyStatusForProduct(propertyType, container, productId);
+            }
         });
 
+        // Force DOM reflow to ensure all updates are rendered
+        void productDiv.offsetHeight;
+
+        console.log(`[Import] Rebuilding active tags for ${productId}`);
         updateActiveTagsForProduct(productDiv);
-    }, 50);
+        console.log(`[Import] Complete for ${productId}`);
+    }, 150);  // INCREASED timeout to 150ms
 }
 
-// Import a standard property for a specific product (final corrected version)
-function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
-    const elements = productEl.getElementsByTagName(xmlTag);
-    if (elements.length === 0) return;
+/**
+ * CORRECTED UPDATE ACTIVE TAGS FUNCTION
+ * This properly counts active property values and creates clickable tags
+ */
+function updateActiveTagsForProduct(product) {
+    const productId = product.id;
+    console.log(`[Tags] Processing product: ${productId}, addedProperties:`, Array.from(product.addedProperties || []));
 
-    const productId = productDiv.id;
-
-    if (!productDiv.addedProperties) {
-        productDiv.addedProperties = new Set();
+    const container = product.querySelector(`#activeTags-${productId}`);
+    if (!container) {
+        console.warn(`[Tags] Container NOT found for ${productId}`);
+        return;
     }
 
-    // Ensure section is created BEFORE adding values
-    if (!productDiv.addedProperties.has(propertyType)) {
-        addPropertySectionToProduct(propertyType, productDiv);
-        productDiv.addedProperties.add(propertyType);
+    console.log(`[Tags] Container found, clearing...`);
+    container.innerHTML = '';
+
+    if (!product.addedProperties || product.addedProperties.size === 0) {
+        console.log(`[Tags] No addedProperties for ${productId}`);
+        return;
     }
 
-    const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-    if (!container) return;
+    product.addedProperties.forEach(propertyType => {
+        const valueContainer = product.querySelector(`#${propertyType}Values-${productId}`);
+        if (!valueContainer) {
+            console.warn(`[Tags] Values container not found for ${propertyType}-${productId}`);
+            return;
+        }
 
-    // Add values (NO status updates here)
-    Array.from(elements).forEach(element => {
-        addValueToProduct(propertyType, productDiv);
-        const lastInput = container.querySelector('.property-value:last-child input');
-        if (lastInput) {
-            lastInput.value = element.getAttribute('name') || '';
+        let activeCount = 0;
+
+        if (propertyTypes[propertyType].type === 'instance') {
+            const instanceSets = valueContainer.querySelectorAll('.instance-property-value');
+            instanceSets.forEach(set => {
+                const inputs = set.querySelectorAll('input');
+                if (Array.from(inputs).some(input => input.value.trim() !== '')) {
+                    activeCount++;
+                }
+            });
+        } else {
+            const inputs = valueContainer.querySelectorAll('input');
+            activeCount = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+        }
+
+        console.log(`[Tags] ${propertyType}: ${activeCount} active values`);
+
+        if (activeCount > 0) {
+            const tag = document.createElement('div');
+            tag.className = 'property-tag';
+            tag.onclick = () => {
+                const content = product.querySelector(`#${propertyType}Content-${productId}`);
+                if (content) {
+                    content.classList.toggle('expanded');
+                    console.log(`[Tags] Toggled ${propertyType} section`);
+                }
+            };
+            tag.innerHTML = `${propertyTypes[propertyType].name}<span class="count">${activeCount}</span>`;
+            container.appendChild(tag);
+            console.log(`[Tags] Created tag for ${propertyType} with count ${activeCount}`);
         }
     });
 }
 
-
 function collapseAllProperties() {
     const products = document.querySelectorAll('.product-block');
+    console.log(`[Collapse] Collapsing properties for ${products.length} products`);
+
     products.forEach(product => {
         const propertyContents = product.querySelectorAll('.property-content');
         propertyContents.forEach(content => {
@@ -2203,6 +2268,7 @@ function collapseAllProperties() {
         }
         product.expandedSections.clear();
 
+        // CRITICAL: Rebuild tags after collapsing
         updateActiveTagsForProduct(product);
     });
 }
@@ -2674,54 +2740,36 @@ function setupDragContainers() {
         });
     }
 
-    // ✅ ADD DEBUGGING TO RULES CONTAINERS
     document.querySelectorAll('.rules').forEach(rulesContainer => {
         if (rulesContainer.getAttribute('data-drop-init') === '1') return;
         rulesContainer.setAttribute('data-drop-init', '1');
 
-        console.log('🔧 Setting up drag container for:', rulesContainer); // ✅ DEBUG
-
         rulesContainer.addEventListener('dragover', function (e) {
-            console.log('🟡 DRAGOVER EVENT FIRED'); // ✅ DEBUG
-            console.log('draggedElement:', draggedElement); // ✅ DEBUG
-            console.log('draggedType:', draggedType); // ✅ DEBUG
-            console.log('draggedSourceContainer:', draggedSourceContainer); // ✅ DEBUG
-            console.log('this (target container):', this); // ✅ DEBUG
 
             if (!draggedElement || draggedType !== 'rule') {
-                console.log('❌ Early return: draggedElement or draggedType check failed'); // ✅ DEBUG
                 return;
             }
 
             const targetContainer = this;
 
             if (draggedSourceContainer !== targetContainer) {
-                console.log('❌ Early return: container mismatch'); // ✅ DEBUG
-                console.log('Source:', draggedSourceContainer); // ✅ DEBUG
-                console.log('Target:', targetContainer); // ✅ DEBUG
                 return;
             }
-
-            console.log('✅ Passed all checks, proceeding with drag'); // ✅ DEBUG
 
             e.preventDefault();
             e.stopPropagation();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
 
             const afterEl = getDragAfterElement(targetContainer, e.clientY, '.rule');
-            console.log('afterEl:', afterEl); // ✅ DEBUG
 
             if (!afterEl) {
                 targetContainer.appendChild(draggedElement);
-                console.log('📍 Appended to end'); // ✅ DEBUG
             } else {
                 targetContainer.insertBefore(draggedElement, afterEl);
-                console.log('📍 Inserted before:', afterEl); // ✅ DEBUG
             }
         });
 
         rulesContainer.addEventListener('drop', function (e) {
-            console.log('🟢 DROP EVENT FIRED'); // ✅ DEBUG
             if (!draggedElement || draggedType !== 'rule') return;
             if (draggedSourceContainer !== this) return;
             e.preventDefault();
