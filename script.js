@@ -1997,10 +1997,11 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
             currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
 
             // Import products
+            // Import products
             const products = billingRule.getElementsByTagName('Product');
             const productsList = currentRule.querySelector('.products-list');
 
-            if (products.length > 0 && productsList) {
+            if (products.length > 0) {
                 // Remove auto-created first product
                 const existingProducts = productsList.querySelectorAll('.product-block');
                 existingProducts.forEach(p => p.remove());
@@ -2011,17 +2012,20 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
                     const currentProduct = productsList.querySelector('.product-block:last-child');
 
                     if (currentProduct) {
-                        // Set product name and flags
-                        const productNameInput = currentProduct.querySelector('.productName');
+                        // Set product name
                         const productName = productEl.getAttribute('productName') || '';
+                        const productNameInput = currentProduct.querySelector('.productName');
                         if (productNameInput) {
                             productNameInput.value = productName;
                         }
 
+                        // Update display header
                         const productNameDisplay = currentProduct.querySelector('.product-name-display');
                         if (productNameDisplay) {
                             productNameDisplay.textContent = productName || 'ANY';
                         }
+
+                        // Set product flags
                         const productDT = currentProduct.querySelector('.productIncludeDataTransfer');
                         if (productDT) {
                             productDT.value = productEl.getAttribute('includeDataTransfer') || '';
@@ -2037,6 +2041,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
                     }
                 });
             }
+
         });
     });
 
@@ -2047,7 +2052,6 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 }
 
 // Import ALL properties for a specific product (corrected version)
-// Import properties for a specific product (FIXED - no extra blank rows)
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2128,7 +2132,6 @@ function importPropertiesForProduct(productEl, productDiv) {
 }
 
 // Import a standard property for a specific product (corrected version)
-// Import a standard property for a specific product (FIXED - no extra blank rows)
 function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
     const elements = productEl.getElementsByTagName(xmlTag);
     if (elements.length === 0) return;
