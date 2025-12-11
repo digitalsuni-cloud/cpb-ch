@@ -1390,7 +1390,6 @@ function generateAndThenSummarize() {
 }
 
 // XML Generator
-// XML Generator
 function generateXML() {
     // Helper function to escape XML special characters
     function escapeXml(unsafe) {
@@ -1426,21 +1425,11 @@ function generateXML() {
         const payerAccounts = payerAccountsInput ? payerAccountsInput.value.trim() : '';
         const enabled = enabledInput ? enabledInput.value : 'true';
 
-        // Build RuleGroup open tag with optional attributes
         let rgOpen = '  <RuleGroup';
-        if (startDate) {
-            rgOpen += ` startDate="${startDate}"`;
-        }
-        if (endDate) {
-            rgOpen += ` endDate="${endDate}"`;
-        }
-        if (payerAccounts) {
-            rgOpen += ` payerAccounts="${escapeXml(payerAccounts)}"`;
-        }
-        // Only emit enabled when explicitly false
-        if (enabled === 'false') {
-            rgOpen += ' enabled="false"';
-        }
+        if (startDate) rgOpen += ` startDate="${startDate}"`;
+        if (endDate) rgOpen += ` endDate="${endDate}"`;
+        if (payerAccounts) rgOpen += ` payerAccounts="${escapeXml(payerAccounts)}"`;
+        if (enabled === 'false') rgOpen += ' enabled="false"';
         rgOpen += '>\n';
         xml += rgOpen;
 
@@ -1456,12 +1445,8 @@ function generateXML() {
             const includeRIPurchases = includeRIPurchasesInput ? includeRIPurchasesInput.value : '';
 
             let brOpen = `    <BillingRule name="${escapeXml(ruleName)}"`;
-            if (includeDataTransfer) {
-                brOpen += ` includeDataTransfer="${includeDataTransfer}"`;
-            }
-            if (includeRIPurchases) {
-                brOpen += ` includeRIPurchases="${includeRIPurchases}"`;
-            }
+            if (includeDataTransfer) brOpen += ` includeDataTransfer="${includeDataTransfer}"`;
+            if (includeRIPurchases) brOpen += ` includeRIPurchases="${includeRIPurchases}"`;
             brOpen += '>\n';
             xml += brOpen;
 
@@ -1551,12 +1536,7 @@ function generateXML() {
                     (productIncludeDataTransfer && productIncludeDataTransfer !== 'inherit') ||
                     (productIncludeRIPurchases && productIncludeRIPurchases !== 'inherit');
 
-                // Skip completely empty products
-                if (!rawProductName && !hasLocalFlags && !propertiesXML) {
-                    return;
-                }
-
-                // If name is empty but product is used, emit ANY
+                // EFFECTIVE NAME: empty means ANY
                 const effectiveProductName = rawProductName || 'ANY';
 
                 // Build Product open tag
@@ -1571,6 +1551,7 @@ function generateXML() {
                     prodOpen += ` includeRIPurchases="${productIncludeRIPurchases}"`;
                 }
 
+                // Even if there are no filters or local flags, we still emit Product (ANY)
                 if (propertiesXML) {
                     prodOpen += '>\n';
                     productsXML += prodOpen + propertiesXML + '      </Product>\n';
