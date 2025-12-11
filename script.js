@@ -535,7 +535,6 @@ function addRule(button, addInitialProduct = true) {
 }
 
 // Add a new product block
-// Add a new product block
 function addProduct(ruleId) {
     const rule = document.getElementById(ruleId);
     if (!rule) return;
@@ -633,10 +632,6 @@ function addProduct(ruleId) {
     addProductBtn.onclick = () => addProduct(ruleId);
     addProductBtn.innerHTML = '<span class="button-icon">➕</span>Add Product';
     productsList.appendChild(addProductBtn);
-    // Initialize property selector for this product
-    const product = document.getElementById(productId);
-    product.addedProperties = new Set();
-    initializePropertySelector(product.querySelector('.propertySelect'));
 }
 
 // Remove a product
