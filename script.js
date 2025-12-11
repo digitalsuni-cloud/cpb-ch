@@ -2018,7 +2018,6 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 }
 
 // NEW: Import properties for a specific product
-// NEW: Import properties for a specific product (no extra blank rows)
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
@@ -2026,19 +2025,18 @@ function importPropertiesForProduct(productEl, productDiv) {
         productDiv.addedProperties = new Set();
     }
 
-    // Import standard properties (Region, UsageType, Operation, RecordType, SavingsPlanOfferingType)
+    // Standard properties
     importPropertyForProduct(productEl, productDiv, 'Region', 'region');
     importPropertyForProduct(productEl, productDiv, 'UsageType', 'usageType');
     importPropertyForProduct(productEl, productDiv, 'Operation', 'operation');
     importPropertyForProduct(productEl, productDiv, 'RecordType', 'recordType');
     importPropertyForProduct(productEl, productDiv, 'SavingsPlanOfferingType', 'savingsPlanOfferingType');
 
-    // Import Instance Properties
+    // Instance Properties
     const instanceProps = productEl.getElementsByTagName('InstanceProperties');
     if (instanceProps.length > 0) {
         const propertyType = 'instanceProperty';
 
-        // Ensure section exists, but DO NOT add a value yet
         if (!productDiv.addedProperties.has(propertyType)) {
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
@@ -2051,23 +2049,14 @@ function importPropertiesForProduct(productEl, productDiv) {
             if (lastSet) {
                 const inputs = lastSet.querySelectorAll('input');
                 const sel = lastSet.querySelector('select');
-                if (inputs[0]) {
-                    inputs[0].value = instanceProp.getAttribute('instanceType') || '';
-                }
-                if (inputs[1]) {
-                    inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
-                }
-                if (sel) {
-                    sel.value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
-                }
+                if (inputs[0]) inputs[0].value = instanceProp.getAttribute('instanceType') || '';
+                if (inputs[1]) inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
+                if (sel) sel.value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
             }
         });
 
-        updatePropertyStatusForProduct(
-            propertyType,
-            container,
-            productId
-        );
+        // CRITICAL: status + tags for this product's instanceProperty
+        updatePropertyStatusForProduct(propertyType, container, productId);
     }
 
     // LineItemDescription
@@ -2075,7 +2064,6 @@ function importPropertiesForProduct(productEl, productDiv) {
     if (lineItems.length > 0) {
         const propertyType = 'lineItemDescription';
 
-        // Ensure section exists, but DO NOT add a value yet
         if (!productDiv.addedProperties.has(propertyType)) {
             addPropertySectionToProduct(propertyType, productDiv);
             productDiv.addedProperties.add(propertyType);
@@ -2097,18 +2085,15 @@ function importPropertiesForProduct(productEl, productDiv) {
             }
         });
 
-        updatePropertyStatusForProduct(
-            propertyType,
-            container,
-            productId
-        );
+        // CRITICAL: status + tags for this product's lineItemDescription
+        updatePropertyStatusForProduct(propertyType, container, productId);
     }
 
-    // After importing all properties for this product, rebuild its active tags
+    // Rebuild tags for this product
     updateActiveTagsForProduct(productDiv);
 }
 
-// NEW: Import a standard property for a specific product (no extra blank rows)
+// Import a standard property for a specific product (Region, UsageType, etc.)
 function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
     const elements = productEl.getElementsByTagName(xmlTag);
     if (elements.length === 0) return;
@@ -2119,7 +2104,6 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         productDiv.addedProperties = new Set();
     }
 
-    // Ensure section exists, but DO NOT add a value yet
     if (!productDiv.addedProperties.has(propertyType)) {
         addPropertySectionToProduct(propertyType, productDiv);
         productDiv.addedProperties.add(propertyType);
@@ -2134,12 +2118,10 @@ function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
         }
     });
 
-    updatePropertyStatusForProduct(
-        propertyType,
-        container,
-        productId
-    );
+    // CRITICAL: sets "In use" / "Not in use" pill correctly per product
+    updatePropertyStatusForProduct(propertyType, container, productId);
 }
+
 
 function collapseAllProperties() {
     const products = document.querySelectorAll('.product-block');
