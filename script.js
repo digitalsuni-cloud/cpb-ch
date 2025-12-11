@@ -709,12 +709,14 @@ function addSelectedPropertyToProduct(productId, autoExpand = true) {
 function removeUnusedPropertiesFromProduct(product) {
     if (!product.addedProperties) return;
 
+    const productId = product.id;  // ← ADD THIS
+
     product.addedProperties.forEach(propertyType => {
-        const status = product.querySelector(`#${propertyType}Status-${product.id}`);
+        const status = product.querySelector(`#${propertyType}Status-${productId}`);  // ← USE productId
         
         // Only remove if NOT in use
         if (status && status.textContent.includes('Not in use')) {
-            const section = product.querySelector(`#${propertyType}Section-${product.id}`);
+            const section = product.querySelector(`#${propertyType}Section-${productId}`);  // ← USE productId
             if (section) {
                 section.remove();
             }
@@ -722,7 +724,7 @@ function removeUnusedPropertiesFromProduct(product) {
         }
     });
 
-    // After cleanup, rebuild tags one more time (in case any were removed)
+    // After cleanup, rebuild tags one more time
     updateActiveTagsForProduct(product);
 
     updatePropertySelectForProduct(product.querySelector('.propertySelect'), product);
