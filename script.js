@@ -887,8 +887,7 @@ function updateActiveTagsForProduct(product) {
     if (!container) return;
 
     container.innerHTML = '';
-
-    if (!product.addedProperties) return;
+    if (!product.addedProperties || product.addedProperties.size === 0) return;
 
     product.addedProperties.forEach(propertyType => {
         const valueContainer = product.querySelector(`#${propertyType}Values-${productId}`);
@@ -914,18 +913,15 @@ function updateActiveTagsForProduct(product) {
             tag.className = 'property-tag';
             tag.onclick = () => {
                 const content = product.querySelector(`#${propertyType}Content-${productId}`);
-                if (content) {
-                    content.classList.toggle('expanded');
-                }
+                if (!content) return;
+                content.classList.toggle('expanded');
             };
-            tag.innerHTML = `
-                ${propertyTypes[propertyType].name}
-                <span class="count">${activeCount}</span>
-            `;
+            tag.innerHTML = `${propertyTypes[propertyType].name}<span class="count">${activeCount}</span>`;
             container.appendChild(tag);
         }
     });
 }
+
 function removeRule(button) {
     const rule = button.closest('.rule');
     if (rule) {
@@ -2041,10 +2037,15 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 }
 
 // NEW: Import properties for a specific product
+// NEW: Import properties for a specific product (no extra blank rows)
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
-    // Import standard properties
+    if (!productDiv.addedProperties) {
+        productDiv.addedProperties = new Set();
+    }
+
+    // Import standard properties (Region, UsageType, Operation, RecordType, SavingsPlanOfferingType)
     importPropertyForProduct(productEl, productDiv, 'Region', 'region');
     importPropertyForProduct(productEl, productDiv, 'UsageType', 'usageType');
     importPropertyForProduct(productEl, productDiv, 'Operation', 'operation');
@@ -2054,27 +2055,36 @@ function importPropertiesForProduct(productEl, productDiv) {
     // Import Instance Properties
     const instanceProps = productEl.getElementsByTagName('InstanceProperties');
     if (instanceProps.length > 0) {
-        const select = productDiv.querySelector('.propertySelect');
-        select.value = 'instanceProperty';
+        const propertyType = 'instanceProperty';
 
-        // CHANGE: Pass false to keep collapsed
-        addSelectedPropertyToProduct(productId, false);
+        // Ensure section exists, but DO NOT add a value yet
+        if (!productDiv.addedProperties.has(propertyType)) {
+            addPropertySectionToProduct(propertyType, productDiv);
+            productDiv.addedProperties.add(propertyType);
+        }
 
+        const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
         Array.from(instanceProps).forEach(instanceProp => {
-            addValueToProduct('instanceProperty', productDiv);
-            const container = productDiv.querySelector(`#instancePropertyValues-${productId}`);
+            addValueToProduct(propertyType, productDiv);
             const lastSet = container.querySelector('.instance-property-value:last-child');
             if (lastSet) {
                 const inputs = lastSet.querySelectorAll('input');
-                inputs[0].value = instanceProp.getAttribute('instanceType') || '';
-                inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
-                lastSet.querySelector('select').value =
-                    instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
+                const sel = lastSet.querySelector('select');
+                if (inputs[0]) {
+                    inputs[0].value = instanceProp.getAttribute('instanceType') || '';
+                }
+                if (inputs[1]) {
+                    inputs[1].value = instanceProp.getAttribute('instanceSize') || '';
+                }
+                if (sel) {
+                    sel.value = instanceProp.getAttribute('reserved') === 'true' ? 'true' : 'false';
+                }
             }
         });
+
         updatePropertyStatusForProduct(
-            'instanceProperty',
-            productDiv.querySelector(`#instancePropertyValues-${productId}`),
+            propertyType,
+            container,
             productId
         );
     }
@@ -2082,56 +2092,72 @@ function importPropertiesForProduct(productEl, productDiv) {
     // LineItemDescription
     const lineItems = productEl.getElementsByTagName('LineItemDescription');
     if (lineItems.length > 0) {
-        const select = productDiv.querySelector('.propertySelect');
-        select.value = 'lineItemDescription';
+        const propertyType = 'lineItemDescription';
 
-        // CHANGE: Pass false to keep collapsed
-        addSelectedPropertyToProduct(productId, false);
+        // Ensure section exists, but DO NOT add a value yet
+        if (!productDiv.addedProperties.has(propertyType)) {
+            addPropertySectionToProduct(propertyType, productDiv);
+            productDiv.addedProperties.add(propertyType);
+        }
 
+        const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
         Array.from(lineItems).forEach(lineItem => {
-            addValueToProduct('lineItemDescription', productDiv);
-            const container = productDiv.querySelector(`#lineItemDescriptionValues-${productId}`);
+            addValueToProduct(propertyType, productDiv);
             const lastSet = container.querySelector('.line-item-description-value:last-child');
             if (lastSet) {
                 const selectEl = lastSet.querySelector('select');
                 const input = lastSet.querySelector('input');
                 ['contains', 'startsWith', 'matchesRegex'].forEach(type => {
                     if (lineItem.hasAttribute(type)) {
-                        selectEl.value = type;
-                        input.value = lineItem.getAttribute(type) || '';
+                        if (selectEl) selectEl.value = type;
+                        if (input) input.value = lineItem.getAttribute(type) || '';
                     }
                 });
             }
         });
+
         updatePropertyStatusForProduct(
-            'lineItemDescription',
-            productDiv.querySelector(`#lineItemDescriptionValues-${productId}`),
+            propertyType,
+            container,
             productId
         );
-    } // Don't forget the closing brace you added earlier!
-
-    // Also update the helper function inside here:
-    function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
-        const elements = productEl.getElementsByTagName(xmlTag);
-        if (elements.length > 0) {
-            const productId = productDiv.id;
-            const select = productDiv.querySelector('.propertySelect');
-            select.value = propertyType;
-
-            // CHANGE: Pass false to keep collapsed
-            addSelectedPropertyToProduct(productId, false);
-
-            Array.from(elements).forEach(element => {
-                addValueToProduct(propertyType, productDiv);
-                const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-                const lastInput = container.querySelector('.property-value:last-child input');
-                if (lastInput) {
-                    lastInput.value = element.getAttribute('name') || '';
-                }
-            });
-            updatePropertyStatusForProduct(propertyType, productDiv.querySelector(`#${propertyType}Values-${productId}`), productId);
-        }
     }
+
+    // After importing all properties for this product, rebuild its active tags
+    updateActiveTagsForProduct(productDiv);
+}
+
+// NEW: Import a standard property for a specific product (no extra blank rows)
+function importPropertyForProduct(productEl, productDiv, xmlTag, propertyType) {
+    const elements = productEl.getElementsByTagName(xmlTag);
+    if (elements.length === 0) return;
+
+    const productId = productDiv.id;
+
+    if (!productDiv.addedProperties) {
+        productDiv.addedProperties = new Set();
+    }
+
+    // Ensure section exists, but DO NOT add a value yet
+    if (!productDiv.addedProperties.has(propertyType)) {
+        addPropertySectionToProduct(propertyType, productDiv);
+        productDiv.addedProperties.add(propertyType);
+    }
+
+    const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
+    Array.from(elements).forEach(element => {
+        addValueToProduct(propertyType, productDiv);
+        const lastInput = container.querySelector('.property-value:last-child input');
+        if (lastInput) {
+            lastInput.value = element.getAttribute('name') || '';
+        }
+    });
+
+    updatePropertyStatusForProduct(
+        propertyType,
+        container,
+        productId
+    );
 }
 
 function collapseAllProperties() {
