@@ -1951,20 +1951,24 @@ function handleXMLImport(result) {
 function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+    const root = xmlDoc.documentElement;
 
-    const bookNameValue = jsonContent ? jsonContent.book_name : xmlDoc.documentElement.getAttribute('bookName');
+    const bookNameValue = jsonContent ? jsonContent.book_name : root.getAttribute('bookName') || root.getAttribute('name');
     document.getElementById('bookName').value = bookNameValue || '';
 
-    const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
+    const createdByValue = root.getAttribute('createdBy');
     document.getElementById('createdBy').value = createdByValue || '';
 
-    const commentValue = xmlDoc.documentElement.getAttribute('comment') || '';
-    document.getElementById('comment').value = commentValue;
+    // FIX ISSUE A: Check both attribute and child tag for Comment
+    const commentAttr = root.getAttribute('comment');
+    const commentTag = xmlDoc.getElementsByTagName('Comment')[0];
+    const commentValue = commentAttr || (commentTag ? commentTag.textContent : '');
+    document.getElementById('comment').value = commentValue || '';
 
-    const cxAPIIdValue = xmlDoc.documentElement.getAttribute('cxAPIId');
+    const cxAPIIdValue = root.getAttribute('cxAPIId');
     document.getElementById('cxAPIId').value = cxAPIIdValue || '';
 
-    const cxPayerIdValue = xmlDoc.documentElement.getAttribute('cxPayerId');
+    const cxPayerIdValue = root.getAttribute('cxPayerId');
     document.getElementById('cxPayerId').value = cxPayerIdValue || '';
 
     document.getElementById('groupsContainer').innerHTML = '';
@@ -1981,24 +1985,24 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 
         const billingRules = ruleGroup.getElementsByTagName('BillingRule');
         Array.from(billingRules).forEach((billingRule, brIndex) => {
+            // Remove the auto-created rule for the first billing rule to avoid duplicates
             if (brIndex === 0) {
-                // Remove the auto-created rule for the first billing rule
                 const existingRules = currentGroup.querySelectorAll('.rule');
-                if (existingRules.length > 0) {
-                    existingRules[0].remove();
-                }
+                existingRules.forEach(r => r.remove());
             }
 
             const addRuleButton = currentGroup.querySelector('.button-group button');
-
-            // CHANGE: Pass 'false' to prevent empty product creation
-            addRule(addRuleButton, false);
+            addRule(addRuleButton, false); // Pass false to prevent default product creation
 
             const currentRule = currentGroup.querySelector('.rule:last-child');
             currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name') || '';
+            
             const basicBillingRule = billingRule.getElementsByTagName('BasicBillingRule')[0];
-            currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment') || '';
-            currentRule.querySelector('.billingRuleType').value = basicBillingRule.getAttribute('billingRuleType') || 'percentDiscount';
+            if (basicBillingRule) {
+                currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment') || '';
+                currentRule.querySelector('.billingRuleType').value = basicBillingRule.getAttribute('billingRuleType') || 'percentDiscount';
+            }
+            
             currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer') || 'true';
             currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
 
@@ -2006,50 +2010,32 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
             const products = billingRule.getElementsByTagName('Product');
             const productsList = currentRule.querySelector('.products-list');
 
-            if (products.length > 0) {
-                // Remove auto-created first product
-                const existingProducts = productsList.querySelectorAll('.product-block');
-                existingProducts.forEach(p => p.remove());
+            // FIX ISSUE B: Clear the list entirely before adding imported products
+            productsList.innerHTML = ''; 
 
-                // Add each product from XML
-                Array.from(products).forEach(productEl => {
-                    addProduct(currentRule.id);
+            Array.from(products).forEach(productEl => {
+                addProduct(currentRule.id);
 
-                    // Get all product blocks and select the last one (excluding the button)
-                    const allProducts = productsList.querySelectorAll('.product-block');
-                    const currentProduct = allProducts[allProducts.length - 1];
+                const allProducts = productsList.querySelectorAll('.product-block');
+                const currentProduct = allProducts[allProducts.length - 1];
 
-                    if (currentProduct) {
-                        // Set product name
-                        const productName = productEl.getAttribute('productName') || '';
-                        const productNameInput = currentProduct.querySelector('.productName');
-                        if (productNameInput) {
-                            productNameInput.value = productName;
-                        }
+                if (currentProduct) {
+                    const productName = productEl.getAttribute('productName') || '';
+                    const productNameInput = currentProduct.querySelector('.productName');
+                    if (productNameInput) productNameInput.value = productName;
 
-                        // Update display header
-                        const productNameDisplay = currentProduct.querySelector('.product-name-display');
-                        if (productNameDisplay) {
-                            productNameDisplay.textContent = productName || 'ANY';
-                        }
+                    const productNameDisplay = currentProduct.querySelector('.product-name-display');
+                    if (productNameDisplay) productNameDisplay.textContent = productName || 'ANY';
 
-                        // Set product flags
-                        const productDT = currentProduct.querySelector('.productIncludeDataTransfer');
-                        if (productDT) {
-                            productDT.value = productEl.getAttribute('includeDataTransfer') || '';
-                        }
+                    const productDT = currentProduct.querySelector('.productIncludeDataTransfer');
+                    if (productDT) productDT.value = productEl.getAttribute('includeDataTransfer') || '';
 
-                        const productRI = currentProduct.querySelector('.productIncludeRIPurchases');
-                        if (productRI) {
-                            productRI.value = productEl.getAttribute('includeRIPurchases') || '';
-                        }
+                    const productRI = currentProduct.querySelector('.productIncludeRIPurchases');
+                    if (productRI) productRI.value = productEl.getAttribute('includeRIPurchases') || '';
 
-                        // Import properties for this product
-                        importPropertiesForProduct(productEl, currentProduct);
-                    }
-                });
-            }
-
+                    importPropertiesForProduct(productEl, currentProduct);
+                }
+            });
         });
     });
 
