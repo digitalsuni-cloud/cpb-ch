@@ -1958,8 +1958,8 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
     document.getElementById('createdBy').value = createdByValue || '';
 
-    const comment = xmlDoc.querySelector('Comment')?.textContent || '';
-    document.getElementById('comment').value = comment;
+    const commentValue = xmlDoc.documentElement.getAttribute('comment') || '';
+    document.getElementById('comment').value = commentValue;
 
     const cxAPIIdValue = xmlDoc.documentElement.getAttribute('cxAPIId');
     document.getElementById('cxAPIId').value = cxAPIIdValue || '';
@@ -2059,15 +2059,8 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     }, 100);
 }
 
-/**
- * CORRECTED IMPORT FUNCTION - Imports ALL properties for a product
- * Key fixes:
- * 1. Ensures all property sections exist BEFORE adding values
- * 2. Adds all values to containers
- * 3. Updates property status for EACH property type
- * 4. After all updates complete, updates the active tags display
- * 5. Uses increased timeout to ensure DOM is fully updated
- */
+// IMPORT FUNCTION - Imports ALL properties for a product
+
 function importPropertiesForProduct(productEl, productDiv) {
     const productId = productDiv.id;
 
