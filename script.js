@@ -1434,13 +1434,11 @@ function generateXML() {
         });
     }
 
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-
     // Book Level Info
     const bookName = document.getElementById('bookName').value;
     const createdBy = document.getElementById('createdBy').value;
     const comment = document.getElementById('comment').value;
-    xml += `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
+    let xml =  `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
 
     // Rule Groups
     document.querySelectorAll('.rule-group').forEach(groupElement => {
@@ -1960,8 +1958,8 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
     document.getElementById('createdBy').value = createdByValue || '';
 
-    const commentValue = xmlDoc.documentElement.getAttribute('comment');
-    document.getElementById('comment').value = commentValue || '';
+    const commentValue = xmlDoc.querySelector('Comment')?.textContent || '';
+    document.getElementById('comment').value = commentValue;
 
     const cxAPIIdValue = xmlDoc.documentElement.getAttribute('cxAPIId');
     document.getElementById('cxAPIId').value = cxAPIIdValue || '';
