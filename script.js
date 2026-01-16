@@ -1595,7 +1595,7 @@ function generateXML() {
         xml += '  </RuleGroup>\n';
     });
 
-    xml += '</PriceBook>';
+   xml += `</CHTBillingRules>`;
     return xml;
 }
 
@@ -1958,8 +1958,8 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const createdByValue = xmlDoc.documentElement.getAttribute('createdBy');
     document.getElementById('createdBy').value = createdByValue || '';
 
-    const commentValue = xmlDoc.querySelector('Comment')?.textContent || '';
-    document.getElementById('comment').value = commentValue;
+    const comment = xmlDoc.querySelector('Comment')?.textContent || '';
+    document.getElementById('comment').value = comment;
 
     const cxAPIIdValue = xmlDoc.documentElement.getAttribute('cxAPIId');
     document.getElementById('cxAPIId').value = cxAPIIdValue || '';
@@ -2506,8 +2506,8 @@ function renderNaturalLanguageSummary() {
     const createdBy = root.getAttribute('createdBy') || 'Unknown';
 
     // Comment: prefer XML attribute, fall back to form field
-    const commentAttr = root.getAttribute('comment');
-    const commentField = document.getElementById('comment')?.value?.trim();
+    const commentAttr = root.getAttribute('Comment');
+    const commentField = document.getElementById('Comment')?.value?.trim();
     const comment = (commentAttr && commentAttr.trim()) || commentField || '';
 
     lines.push(`📖 Price Book Name is "${bookName}" and Created By "${createdBy}".`);
