@@ -1440,7 +1440,7 @@ function generateXML() {
     const bookName = document.getElementById('bookName').value;
     const createdBy = document.getElementById('createdBy').value;
     const comment = document.getElementById('comment').value;
-    xml += `<PriceBook name="${escapeXml(bookName)}" createdBy="${escapeXml(createdBy)}" comment="${escapeXml(comment)}">\n`;
+    xml += `<?xml version="1.0" encoding="UTF-8"?>\n<CHTBillingRules createdBy="${createdBy}" date="${new Date().toISOString().split('T')[0]}">\n\t<Comment>${comment}</Comment>\n`;
 
     // Rule Groups
     document.querySelectorAll('.rule-group').forEach(groupElement => {
