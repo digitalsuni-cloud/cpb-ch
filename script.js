@@ -2087,6 +2087,8 @@ function importPropertiesForProduct(productEl, productDiv) {
                 lastInput.value = el.getAttribute('name') || '';
             }
         });
+        // FORCE STATUS UPDATE
+        updatePropertyStatusForProduct(propertyType, container, productId);
     });
 
     // 2. INSTANCE PROPERTIES
@@ -2108,6 +2110,8 @@ function importPropertiesForProduct(productEl, productDiv) {
                 if (sel) sel.value = inst.getAttribute('reserved') === 'true' ? 'true' : 'false';
             }
         });
+        // FORCE STATUS UPDATE
+        updatePropertyStatusForProduct(propertyType, container, productId);
     }
 
     // 3. LINE ITEM DESCRIPTION
@@ -2132,31 +2136,18 @@ function importPropertiesForProduct(productEl, productDiv) {
                 });
             }
         });
+        // FORCE STATUS UPDATE
+        updatePropertyStatusForProduct(propertyType, container, productId);
     }
 
-    // 4. FINAL — Update statuses THEN tags with proper sequencing
-    // CRITICAL: Use 200ms timeout to ensure all DOM updates have completed
-    setTimeout(() => {
-        // First update status for each property
-        productDiv.addedProperties.forEach(propertyType => {
-            const container = productDiv.querySelector(`#${propertyType}Values-${productId}`);
-            if (container) {
-                updatePropertyStatusForProduct(propertyType, container, productId);
-            }
-        });
-
-        // Force DOM reflow
-        void productDiv.offsetHeight;
-
-        // NOW update tags after statuses are set
+    // 4. FINAL TAG REFRESH
+    // We use requestAnimationFrame to ensure the DOM has painted before updating tags
+    window.requestAnimationFrame(() => {
         updateActiveTagsForProduct(productDiv);
-    }, 200);  // INCREASED to 200ms for safety
+    });
 }
 
-/**
- * CORRECTED UPDATE ACTIVE TAGS FUNCTION
- * This properly counts active property values and creates clickable tags
- */
+//CORRECTED UPDATE ACTIVE TAGS FUNCTION
 function updateActiveTagsForProduct(product) {
     const productId = product.id;
     const container = product.querySelector(`#activeTags-${productId}`);
