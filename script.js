@@ -1953,24 +1953,19 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
     const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
     const root = xmlDoc.documentElement;
 
-    const bookNameValue = jsonContent ? jsonContent.book_name : root.getAttribute('bookName') || root.getAttribute('name');
+    // 1. Root Level Attributes
+    const bookNameValue = jsonContent ? jsonContent.book_name : (root.getAttribute('bookName') || root.getAttribute('name'));
     document.getElementById('bookName').value = bookNameValue || '';
+    document.getElementById('createdBy').value = root.getAttribute('createdBy') || '';
+    document.getElementById('cxAPIId').value = root.getAttribute('cxAPIId') || '';
+    document.getElementById('cxPayerId').value = root.getAttribute('cxPayerId') || '';
 
-    const createdByValue = root.getAttribute('createdBy');
-    document.getElementById('createdBy').value = createdByValue || '';
-
-    // FIX ISSUE A: Check both attribute and child tag for Comment
-    const commentAttr = root.getAttribute('comment');
+    // 2. Fix Issue A: Handle <Comment> child tag vs comment attribute
     const commentTag = xmlDoc.getElementsByTagName('Comment')[0];
-    const commentValue = commentAttr || (commentTag ? commentTag.textContent : '');
+    const commentValue = commentTag ? commentTag.textContent : root.getAttribute('comment');
     document.getElementById('comment').value = commentValue || '';
 
-    const cxAPIIdValue = root.getAttribute('cxAPIId');
-    document.getElementById('cxAPIId').value = cxAPIIdValue || '';
-
-    const cxPayerIdValue = root.getAttribute('cxPayerId');
-    document.getElementById('cxPayerId').value = cxPayerIdValue || '';
-
+    // 3. Clear existing UI groups
     document.getElementById('groupsContainer').innerHTML = '';
 
     const ruleGroups = xmlDoc.getElementsByTagName('RuleGroup');
@@ -1978,6 +1973,7 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
         addRuleGroup();
         const currentGroup = document.querySelector('.rule-group:last-child');
 
+        // Populate Group Dates/Settings
         currentGroup.querySelector('[id^="startDate-"]').value = ruleGroup.getAttribute('startDate') || '';
         currentGroup.querySelector('[id^="endDate-"]').value = ruleGroup.getAttribute('endDate') || '';
         currentGroup.querySelector('[id^="payerAccounts-"]').value = ruleGroup.getAttribute('payerAccounts') || '';
@@ -1985,60 +1981,57 @@ function populateFieldsFromXMLString(xmlString, jsonContent = null) {
 
         const billingRules = ruleGroup.getElementsByTagName('BillingRule');
         Array.from(billingRules).forEach((billingRule, brIndex) => {
-            // Remove the auto-created rule for the first billing rule to avoid duplicates
+            // Remove the auto-created rule for the first rule in a group to prevent duplicates
             if (brIndex === 0) {
-                const existingRules = currentGroup.querySelectorAll('.rule');
-                existingRules.forEach(r => r.remove());
+                currentGroup.querySelectorAll('.rule').forEach(r => r.remove());
             }
 
             const addRuleButton = currentGroup.querySelector('.button-group button');
-            addRule(addRuleButton, false); // Pass false to prevent default product creation
+            // Pass 'false' to addRule to stop it from automatically adding a default product
+            addRule(addRuleButton, false);
 
             const currentRule = currentGroup.querySelector('.rule:last-child');
             currentRule.querySelector('.ruleName').value = billingRule.getAttribute('name') || '';
             
-            const basicBillingRule = billingRule.getElementsByTagName('BasicBillingRule')[0];
-            if (basicBillingRule) {
-                currentRule.querySelector('.billingAdjustment').value = basicBillingRule.getAttribute('billingAdjustment') || '';
-                currentRule.querySelector('.billingRuleType').value = basicBillingRule.getAttribute('billingRuleType') || 'percentDiscount';
+            const basicBR = billingRule.getElementsByTagName('BasicBillingRule')[0];
+            if (basicBR) {
+                currentRule.querySelector('.billingAdjustment').value = basicBR.getAttribute('billingAdjustment') || '';
+                currentRule.querySelector('.billingRuleType').value = basicBR.getAttribute('billingRuleType') || 'percentDiscount';
             }
             
             currentRule.querySelector('.includeDataTransfer').value = billingRule.getAttribute('includeDataTransfer') || 'true';
             currentRule.querySelector('.includeRIPurchases').value = billingRule.getAttribute('includeRIPurchases') || 'false';
 
-            // Import products
-            const products = billingRule.getElementsByTagName('Product');
+            // 4. Fix Issue B: Clear product list and import XML products
             const productsList = currentRule.querySelector('.products-list');
+            productsList.innerHTML = ''; // Ensure list is empty before importing
 
-            // FIX ISSUE B: Clear the list entirely before adding imported products
-            productsList.innerHTML = ''; 
-
+            const products = billingRule.getElementsByTagName('Product');
             Array.from(products).forEach(productEl => {
                 addProduct(currentRule.id);
 
-                const allProducts = productsList.querySelectorAll('.product-block');
-                const currentProduct = allProducts[allProducts.length - 1];
+                const allProductsInRule = productsList.querySelectorAll('.product-block');
+                const currentProductDiv = allProductsInRule[allProductsInRule.length - 1];
 
-                if (currentProduct) {
-                    const productName = productEl.getAttribute('productName') || '';
-                    const productNameInput = currentProduct.querySelector('.productName');
-                    if (productNameInput) productNameInput.value = productName;
+                if (currentProductDiv) {
+                    const pname = productEl.getAttribute('productName') || '';
+                    currentProductDiv.querySelector('.productName').value = pname;
+                    currentProductDiv.querySelector('.product-name-display').textContent = pname || 'ANY';
+                    
+                    // Flags
+                    const dt = productEl.getAttribute('includeDataTransfer');
+                    const ri = productEl.getAttribute('includeRIPurchases');
+                    if (dt) currentProductDiv.querySelector('.productIncludeDataTransfer').value = dt;
+                    if (ri) currentProductDiv.querySelector('.productIncludeRIPurchases').value = ri;
 
-                    const productNameDisplay = currentProduct.querySelector('.product-name-display');
-                    if (productNameDisplay) productNameDisplay.textContent = productName || 'ANY';
-
-                    const productDT = currentProduct.querySelector('.productIncludeDataTransfer');
-                    if (productDT) productDT.value = productEl.getAttribute('includeDataTransfer') || '';
-
-                    const productRI = currentProduct.querySelector('.productIncludeRIPurchases');
-                    if (productRI) productRI.value = productEl.getAttribute('includeRIPurchases') || '';
-
-                    importPropertiesForProduct(productEl, currentProduct);
+                    // Properties
+                    importPropertiesForProduct(productEl, currentProductDiv);
                 }
             });
         });
     });
 
+    // Refresh UI Components
     setTimeout(() => {
         updateNavigation();
         collapseAllProperties();
