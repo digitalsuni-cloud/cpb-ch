@@ -50,12 +50,16 @@ const RuleSearch = () => {
             {...innerProps}
             title={children}
             style={{
-                ...innerProps?.style,
                 color: 'var(--text-main)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '95%'
+                maxWidth: '95%',
+                background: 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+                padding: 0,
+                margin: 0
             }}
         >
             {children}
@@ -98,14 +102,17 @@ const RuleSearch = () => {
     };
 
     const customStyles = {
-        control: (provided) => ({
+        control: (provided, state) => ({
             ...provided,
             backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
+            border: state.isFocused ? '1px solid var(--primary)' : '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
-            boxShadow: 'none',
+            boxShadow: state.isFocused ? '0 0 0 1px var(--primary)' : 'none',
             color: 'var(--text-main)',
-            minHeight: '40px'
+            minHeight: '40px',
+            '&:hover': {
+                borderColor: state.isFocused ? 'var(--primary)' : 'var(--text-muted)'
+            }
         }),
         menu: (provided) => ({
             ...provided,
@@ -134,13 +141,20 @@ const RuleSearch = () => {
             color: 'var(--text-main)',
             fontSize: '0.85rem',
             margin: 0,
-            padding: 0
+            padding: 0,
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none'
         }),
         input: (provided) => ({
             ...provided,
             color: 'var(--text-main)',
             margin: 0,
-            padding: 0
+            padding: 0,
+            outline: 'none',
+            border: 'none !important',
+            boxShadow: 'none !important',
+            background: 'transparent !important'
         }),
         placeholder: (provided) => ({
             ...provided,
@@ -149,9 +163,10 @@ const RuleSearch = () => {
         }),
         valueContainer: (provided) => ({
             ...provided,
-            padding: '0 8px',
-            display: 'flex',
-            alignItems: 'center'
+            padding: '2px 8px'
+        }),
+        indicatorSeparator: () => ({
+            display: 'none'
         })
     };
 
@@ -172,7 +187,7 @@ const RuleSearch = () => {
                 options={options}
                 onChange={handleChange}
                 styles={customStyles}
-                components={{ Option: CustomOption, SingleValue: CustomSingleValue }}
+                components={{ Option: CustomOption, SingleValue: CustomSingleValue, IndicatorSeparator: () => null }}
                 placeholder="Search for a rule..."
                 isClearable
                 isSearchable

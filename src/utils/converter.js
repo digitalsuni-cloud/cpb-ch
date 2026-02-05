@@ -57,7 +57,7 @@ export const generateXML = (priceBook) => {
                 // Only include if value is NOT 'inherit'
                 if (prod.includeDataTransfer && prod.includeDataTransfer !== 'inherit') prodTag += ` includeDataTransfer="${prod.includeDataTransfer}"`;
                 if (prod.includeRIPurchases && prod.includeRIPurchases !== 'inherit') prodTag += ` includeRIPurchases="${prod.includeRIPurchases}"`;
-                groupXml += prodTag + `>`;
+                groupXml += prodTag;
 
                 let subTags = '';
                 if (prod.properties) {
@@ -102,9 +102,9 @@ export const generateXML = (priceBook) => {
                 }
 
                 if (subTags) {
-                    groupXml += `${subTags}\n\t\t\t</Product>\n`;
+                    groupXml += `>${subTags}\n\t\t\t</Product>\n`;
                 } else {
-                    groupXml += `</Product>\n`;
+                    groupXml += ` />\n`;
                 }
             });
             groupXml += `\t\t</BillingRule>\n`;
