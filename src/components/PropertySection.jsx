@@ -108,7 +108,7 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                     <motion.button
                         className="button-ghost"
                         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                        whileHover={{ scale: 1.05, color: '#f43f5e', borderColor: '#f43f5e', background: 'rgba(244, 63, 94, 0.1)' }}
+                        whileHover={{ scale: 1.1, color: '#f43f5e', borderColor: '#f43f5e', background: 'rgba(244, 63, 94, 0.1)' }}
                         whileTap={{ scale: 0.95 }}
                         style={{
                             width: '24px',
@@ -122,7 +122,8 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                             border: '1px solid rgba(239, 68, 68, 0.3)',
                             borderRadius: '4px',
                             cursor: 'pointer',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
                         }}
                         title="Remove Filter"
                     >
@@ -131,7 +132,7 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                     <motion.button
                         className="button-ghost"
                         onClick={(e) => { e.stopPropagation(); handleToggle(); }}
-                        whileHover={{ scale: 1.05, color: 'var(--primary)', borderColor: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)' }}
+                        whileHover={{ scale: 1.1, rotate: isExpanded ? 5 : 0, color: 'var(--primary)', borderColor: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)' }}
                         whileTap={{ scale: 0.95 }}
                         style={{
                             width: '24px',
@@ -144,7 +145,8 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                             background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
                             border: '1px solid var(--border-glow)',
                             borderRadius: '4px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            boxSizing: 'border-box'
                         }}
                         title={isExpanded ? "Collapse" : "Expand"}
                     >
