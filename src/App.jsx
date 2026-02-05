@@ -1,0 +1,252 @@
+import React, { useState } from 'react';
+import { usePriceBook } from './context/PriceBookContext';
+import DashboardLayout from './layouts/DashboardLayout';
+import HelpSection from './components/HelpSection';
+
+// Views
+import PriceBookForm from './components/PriceBookForm';
+import RuleSearch from './components/RuleSearch';
+import ImportSection from './components/ImportSection';
+import RuleGroupList from './components/RuleGroupList';
+import NaturalLanguageSummary from './components/NaturalLanguageSummary';
+import ExportSection from './components/ExportSection';
+import { AWSProducts } from './constants/products';
+
+function App() {
+  const { state, dispatch } = usePriceBook();
+  const [activeView, setActiveView] = useState('dashboard');
+  const [showHelp, setShowHelp] = useState(false);
+
+  return (
+    <DashboardLayout
+      activeView={activeView}
+      setActiveView={setActiveView}
+      showHelp={showHelp}
+      setShowHelp={setShowHelp}
+    >
+      <HelpSection isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
+      {/* Hidden Datalist for autocomplete */}
+      <datalist id="productList">
+        {AWSProducts.map(p => <option key={p} value={p} />)}
+      </datalist>
+
+      {/* VIEW: DASHBOARD */}
+      {activeView === 'dashboard' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', minHeight: 'calc(100vh - 120px)' }}>
+          {/* Stats Cards Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Rule Groups</h3>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>
+                {state.priceBook.ruleGroups.filter(g => g.startDate).length}
+              </div>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.85rem' }}>
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--danger)' }}>
+                    {state.priceBook.ruleGroups.filter(g => g.enabled === 'false').length}
+                  </span> Disabled
+                </div>
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: '#eab308' }}>
+                    {state.priceBook.ruleGroups.filter(g => {
+                      if (!g.endDate) return false;
+                      const end = new Date(g.endDate);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      end.setHours(0, 0, 0, 0);
+                      if (end >= today) return false; // Not ended yet
+                      const monthsDiff = (today.getFullYear() - end.getFullYear()) * 12 + (today.getMonth() - end.getMonth());
+                      return monthsDiff < 13; // Ended but less than 13 months ago
+                    }).length}
+                  </span> Inactive
+                </div>
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: '#f59e0b' }}>
+                    {state.priceBook.ruleGroups.filter(g => {
+                      if (!g.endDate) return false;
+                      const end = new Date(g.endDate);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      end.setHours(0, 0, 0, 0);
+                      if (end >= today) return false; // Not ended yet
+                      const monthsDiff = (today.getFullYear() - end.getFullYear()) * 12 + (today.getMonth() - end.getMonth());
+                      return monthsDiff >= 13;
+                    }).length}
+                  </span> Expired
+                </div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Rules</h3>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--secondary)' }}>
+                {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false').reduce((acc, g) => acc + g.rules.filter(r => r.adjustment).length, 0)}
+              </div>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.85rem' }}>
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--success)' }}>
+                    {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
+                      .reduce((acc, g) => acc + g.rules.filter(r => r.type === 'percentDiscount' && r.adjustment).length, 0)}
+                  </span> Discounts
+                </div>
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: '#ec4899' }}>
+                    {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
+                      .reduce((acc, g) => acc + g.rules.filter(r => r.type === 'percentIncrease' && r.adjustment).length, 0)}
+                  </span> Markups
+                </div>
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                    {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
+                      .reduce((acc, g) => acc + g.rules.filter(r => r.type === 'fixedRate' && r.adjustment).length, 0)}
+                  </span> Fixed
+                </div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '24px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Last Updated</h3>
+              {(() => {
+                const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
+                if (!hasData) {
+                  return <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-secondary)' }}>Pricebook Empty</div>;
+                }
+                const dateText = !state.priceBook.lastUpdated ? 'Not Set' : new Date(state.priceBook.lastUpdated).toLocaleDateString();
+                return <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-secondary)' }}>{dateText}</div>;
+              })()}
+            </div>
+          </div>
+
+          <div className="card">
+            <h2 style={{ marginBottom: '20px' }}>Price Book Metadata</h2>
+            <PriceBookForm />
+          </div>
+
+          <ImportSection />
+
+          <div style={{
+            marginTop: 'auto',
+            paddingTop: '20px',
+            borderTop: '1px solid var(--border)',
+            position: 'sticky',
+            bottom: 0,
+            background: 'var(--bg-deep)',
+            zIndex: 10,
+            paddingBottom: '0' // Let parent padding handle the bottom spacing (32px vs 30px sidebar)
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Reset Price Book</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Permanently delete all rules and configurations to start fresh.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
+                  if (!hasData || confirm("⚠️ This will permanently delete all your rules and configurations. Are you absolutely sure?"))
+                    dispatch({ type: 'RESET_ALL' });
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--danger)',
+                  color: 'var(--danger)',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                Start Over
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: BUILDER */}
+      {activeView === 'builder' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <RuleSearch />
+          </div>
+
+          <RuleGroupList />
+
+          {state.priceBook.ruleGroups.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px',
+              border: '2px dashed var(--border)',
+              borderRadius: '16px',
+              background: 'rgba(0,0,0,0.02)'
+            }}>
+              <h3 style={{ color: 'var(--text-muted)' }}>No rules yet?</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>Click the button above to start building your price book logic.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW: PREVIEW */}
+      {activeView === 'preview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <NaturalLanguageSummary />
+        </div>
+      )}
+
+
+      {/* VIEW: EXPORT */}
+      {activeView === 'export' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', minHeight: 'calc(100vh - 120px)' }}>
+          <ExportSection />
+
+          <div style={{ marginTop: 'auto', marginBottom: '12px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Reset Price Book</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Permanently delete all rules and configurations to start fresh.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
+                  if (!hasData || confirm("⚠️ This will permanently delete all your rules and configurations. Are you absolutely sure?"))
+                    dispatch({ type: 'RESET_ALL' });
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--danger)',
+                  color: 'var(--danger)',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                Start Over
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </DashboardLayout>
+  );
+}
+
+export default App;

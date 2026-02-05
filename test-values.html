@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: monospace;
+            padding: 20px;
+            line-height: 2;
+        }
+
+        /* Base classes */
+        .hl-string {
+            color: #fbbf24;
+        }
+
+        /* Value classes with !important */
+        .hl-value-creator {
+            color: #6ee7b7 !important;
+            font-style: italic;
+            font-weight: 700;
+        }
+
+        .hl-value-date {
+            color: #fcd34d !important;
+            font-weight: 700;
+        }
+
+        .hl-value-name {
+            color: #93c5fd !important;
+            font-weight: 700;
+        }
+
+        .hl-value-number {
+            color: #f9a8d4 !important;
+            font-weight: 700;
+        }
+
+        .hl-value-type {
+            color: #fda4af !important;
+            font-style: italic;
+            font-weight: 700;
+        }
+
+        .hl-value-boolean {
+            color: #a5b4fc !important;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Testing Value Colors</h3>
+    <div>
+        createdBy=<span class="hl-value-creator">"Sunil"</span> (should be light emerald green)<br>
+        date=<span class="hl-value-date">"2026-01-31"</span> (should be bright yellow)<br>
+        name=<span class="hl-value-name">"RG 1 - BR1"</span> (should be light blue)<br>
+        billingAdjustment=<span class="hl-value-number">"10"</span> (should be bright pink)<br>
+        billingRuleType=<span class="hl-value-type">"percentDiscount"</span> (should be light rose)<br>
+        includeDataTransfer=<span class="hl-value-boolean">"true"</span> (should be light indigo)<br>
+        <br>
+        Default string: <span class="hl-string">"test"</span> (should be amber/yellow)
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: monospace;
+            padding: 20px;
+        }
+
+        .hl-key {
+            color: #2dd4bf;
+        }
+
+        .hl-string {
+            color: #fbbf24;
+        }
+
+        .hl-tag {
+            color: #60a5fa;
+        }
+
+        .hl-tag-group {
+            color: #e879f9 !important;
+            font-weight: 600;
+        }
+
+        .hl-tag-rule {
+            color: #fb923c !important;
+            font-weight: 600;
+        }
+
+        .hl-tag-product {
+            color: #a78bfa !important;
+            font-weight: 600;
+        }
+
+        .hl-tag-prop {
+            color: #22d3ee !important;
+        }
+
+        .hl-tag-meta {
+            color: #94a3b8 !important;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Test Semantic Coloring</h3>
+    <div>
+        <span class="hl-tag-group">&lt;RuleGroup</span><span class="hl-key"> startDate</span>=<span
+            class="hl-string">"2025-11-01"</span><span class="hl-tag-group">&gt;</span><br>
+        &nbsp;&nbsp;<span class="hl-tag-rule">&lt;BillingRule</span><span class="hl-key"> name</span>=<span
+            class="hl-string">"Test"</span><span class="hl-tag-rule">&gt;</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="hl-tag-product">&lt;Product</span><span class="hl-key">
+            productName</span>=<span class="hl-string">"ANY"</span><span class="hl-tag-product">&gt;</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl-tag-prop">&lt;UsageType</span><span class="hl-key">
+            name</span>=<span class="hl-string">"UT1"</span><span class="hl-tag-prop"> /&gt;</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="hl-tag-product">&lt;/Product&gt;</span><br>
+        &nbsp;&nbsp;<span class="hl-tag-rule">&lt;/BillingRule&gt;</span><br>
+        <span class="hl-tag-group">&lt;/RuleGroup&gt;</span>
+    </div>
+</body>
+
+</html>
