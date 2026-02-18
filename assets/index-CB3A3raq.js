@@ -85,7 +85,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
 `:h+=` />
 `}),h+=`		</BillingRule>
 `}),h+=`	</RuleGroup>
-`,a+=h}),a+="</CHTBillingRules>",a},GF=r=>{const n=NF(r).replace(/\t/g,"    "),a={book_name:r.bookName||"",specification:n};return JSON.stringify(a,null,2)},Ke1=r=>`curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\
+`,a+=h}),a+="</CHTBillingRules>",a.replace(/\t/g,"  ")},GF=r=>{const n=NF(r),a={book_name:r.bookName||"",specification:n};return JSON.stringify(a,null,2)},Ke1=r=>`curl -X POST https://chapi.cloudhealthtech.com/v1/price_books \\
   -H "Authorization: Bearer <YOUR_API_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '${GF(r).replace(/'/g,"'\\''")}'`,Qe1=r=>{const n=r.cxAPIId||"<CUSTOMER_API_ID>",a=r.cxPayerId?r.cxPayerId.split(",").map(l=>l.trim()).filter(l=>l):[],t={step1:GF(r),step2:JSON.stringify({price_book_id:"<PRICE_BOOK_ID>",client_api_id:n},null,2),step3:JSON.stringify({price_book_assignment_id:"<ASSIGNMENT_ID>",billing_account_owner_id:a.length>0?a:["<PAYER_ACCOUNT_ID_1>","<PAYER_ACCOUNT_ID_2>"],target_client_api_id:n},null,2)},e={step1:Ke1(r),step2:`curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_assignments \\
