@@ -115,12 +115,12 @@ export const generateXML = (priceBook) => {
         xml += groupXml;
     });
     xml += `</CHTBillingRules>`;
-    return xml;
+    // Convert tabs to 2 spaces for compact indentation
+    return xml.replace(/\t/g, '  ');
 };
 
 export const generateJSON = (priceBook) => {
-    // Replace tabs with 4 spaces for better readability in the JSON string
-    const xml = generateXML(priceBook).replace(/\t/g, '    ');
+    const xml = generateXML(priceBook);
 
     const jsonObj = {
         book_name: priceBook.bookName || '',
