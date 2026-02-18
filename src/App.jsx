@@ -41,10 +41,11 @@ function App() {
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>
                 {state.priceBook.ruleGroups.filter(g => g.startDate).length}
               </div>
-              <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.85rem' }}>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--success)' }}>
+              <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--success)' }}>
                     {state.priceBook.ruleGroups.filter(g => {
+                      if (!g.startDate) return false;
                       if (g.enabled === 'false') return false;
                       if (!g.endDate) return true;
                       const end = new Date(g.endDate);
@@ -53,15 +54,17 @@ function App() {
                       end.setHours(0, 0, 0, 0);
                       return end >= today;
                     }).length}
-                  </span> Active
+                  </span>
+                  <span>Active</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--danger)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--danger)' }}>
                     {state.priceBook.ruleGroups.filter(g => g.enabled === 'false').length}
-                  </span> Disabled
+                  </span>
+                  <span>Disabled</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: '#eab308' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#eab308' }}>
                     {state.priceBook.ruleGroups.filter(g => {
                       if (!g.endDate) return false;
                       const end = new Date(g.endDate);
@@ -72,10 +75,11 @@ function App() {
                       const monthsDiff = (today.getFullYear() - end.getFullYear()) * 12 + (today.getMonth() - end.getMonth());
                       return monthsDiff < 13; // Ended but less than 13 months ago
                     }).length}
-                  </span> Inactive
+                  </span>
+                  <span>Inactive</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: '#f59e0b' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#f59e0b' }}>
                     {state.priceBook.ruleGroups.filter(g => {
                       if (!g.endDate) return false;
                       const end = new Date(g.endDate);
@@ -86,7 +90,8 @@ function App() {
                       const monthsDiff = (today.getFullYear() - end.getFullYear()) * 12 + (today.getMonth() - end.getMonth());
                       return monthsDiff >= 13;
                     }).length}
-                  </span> Expired
+                  </span>
+                  <span>Expired</span>
                 </div>
               </div>
             </div>
@@ -95,24 +100,27 @@ function App() {
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--secondary)' }}>
                 {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false').reduce((acc, g) => acc + g.rules.filter(r => r.adjustment).length, 0)}
               </div>
-              <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.85rem' }}>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--success)' }}>
+              <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--success)' }}>
                     {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
                       .reduce((acc, g) => acc + g.rules.filter(r => r.type === 'percentDiscount' && r.adjustment).length, 0)}
-                  </span> Discounts
+                  </span>
+                  <span>Discounts</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: '#ec4899' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#ec4899' }}>
                     {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
                       .reduce((acc, g) => acc + g.rules.filter(r => r.type === 'percentIncrease' && r.adjustment).length, 0)}
-                  </span> Markups
+                  </span>
+                  <span>Markups</span>
                 </div>
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--primary)' }}>
                     {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
                       .reduce((acc, g) => acc + g.rules.filter(r => r.type === 'fixedRate' && r.adjustment).length, 0)}
-                  </span> Fixed
+                  </span>
+                  <span>Fixed</span>
                 </div>
               </div>
             </div>

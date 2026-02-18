@@ -307,8 +307,27 @@ function priceBookReducer(state, action) {
     }
 }
 
+const STORAGE_KEY = 'cpb_app_state';
+
+const init = (defaultState) => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Failed to load state from localStorage:', error);
+    }
+    return defaultState;
+};
+
 export const PriceBookProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(priceBookReducer, initialState);
+    const [state, dispatch] = useReducer(priceBookReducer, initialState, init);
+
+    // Persist state changes to localStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }, [state]);
     const initialized = React.useRef(false);
 
     // Initial load: 1 rule group
