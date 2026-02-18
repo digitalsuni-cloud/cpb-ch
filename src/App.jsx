@@ -43,6 +43,19 @@ function App() {
               </div>
               <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.85rem' }}>
                 <div style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--success)' }}>
+                    {state.priceBook.ruleGroups.filter(g => {
+                      if (g.enabled === 'false') return false;
+                      if (!g.endDate) return true;
+                      const end = new Date(g.endDate);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      end.setHours(0, 0, 0, 0);
+                      return end >= today;
+                    }).length}
+                  </span> Active
+                </div>
+                <div style={{ color: 'var(--text-muted)' }}>
                   <span style={{ fontWeight: 700, color: 'var(--danger)' }}>
                     {state.priceBook.ruleGroups.filter(g => g.enabled === 'false').length}
                   </span> Disabled
