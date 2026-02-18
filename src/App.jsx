@@ -58,12 +58,6 @@ function App() {
                   <span>Active</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
-                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--danger)' }}>
-                    {state.priceBook.ruleGroups.filter(g => g.enabled === 'false').length}
-                  </span>
-                  <span>Disabled</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
                   <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#eab308' }}>
                     {state.priceBook.ruleGroups.filter(g => {
                       if (!g.endDate) return false;
@@ -92,6 +86,12 @@ function App() {
                     }).length}
                   </span>
                   <span>Expired</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--danger)' }}>
+                    {state.priceBook.ruleGroups.filter(g => g.enabled === 'false').length}
+                  </span>
+                  <span>Disabled</span>
                 </div>
               </div>
             </div>
