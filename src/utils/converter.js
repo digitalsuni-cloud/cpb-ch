@@ -119,13 +119,15 @@ export const generateXML = (priceBook) => {
 };
 
 export const generateJSON = (priceBook) => {
-    const xml = generateXML(priceBook);
-    // Escape ONLY double quotes for the JSON string value wrapper
-    // We want to KEEP actual newlines and tabs for readability in the textarea
-    const escapedXML = xml.replace(/"/g, '\\"');
+    // Replace tabs with 4 spaces for better readability in the JSON string
+    const xml = generateXML(priceBook).replace(/\t/g, '    ');
 
-    // Manual JSON construction to preserve formatting
-    return `{"book_name":"${priceBook.bookName || ''}","specification":"${escapedXML}"}`;
+    const jsonObj = {
+        book_name: priceBook.bookName || '',
+        specification: xml
+    };
+
+    return JSON.stringify(jsonObj, null, 2);
 };
 
 export const generateCURL = (priceBook) => {
