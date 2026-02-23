@@ -191,7 +191,7 @@ export const parseXMLToState = (xmlString, fallbackJson = {}) => {
             const rule = createBillingRule();
             rule.name = ruleEl.getAttribute('name') || '';
             rule.includeDataTransfer = ruleEl.getAttribute('includeDataTransfer') || 'false';
-            rule.includeRIPurchases = ruleEl.getAttribute('includeRIPurchases') || 'false';
+            rule.includeRIPurchases = ruleEl.getAttribute('includeRIPurchases') || 'true';
             rule.collapsed = true;
 
             const basic = ruleEl.getElementsByTagName('BasicBillingRule')[0];
@@ -206,7 +206,7 @@ export const parseXMLToState = (xmlString, fallbackJson = {}) => {
                     const prod = createProduct();
                     prod.productName = product.getAttribute('productName') || '';
                     prod.includeDataTransfer = product.getAttribute('includeDataTransfer') || '';
-                    prod.includeRIPurchases = product.getAttribute('includeRIPurchases') || '';
+                    prod.includeRIPurchases = product.getAttribute('includeRIPurchases') || 'inherit';
 
                     Object.keys(propertyTypes).forEach(key => {
                         const tag = getXmlTag(key);

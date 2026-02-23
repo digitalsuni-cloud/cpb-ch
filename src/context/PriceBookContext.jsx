@@ -228,10 +228,7 @@ function priceBookReducer(state, action) {
                                 ...g,
                                 rules: g.rules.map(r => {
                                     if (r.id === action.ruleId) {
-                                        const newProduct = createProduct({
-                                            includeDataTransfer: r.includeDataTransfer,
-                                            includeRIPurchases: r.includeRIPurchases
-                                        });
+                                        const newProduct = createProduct();
 
                                         if (action.afterId) {
                                             const index = (r.products || []).findIndex(p => p.id === action.afterId);
