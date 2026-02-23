@@ -59,7 +59,10 @@ const customStyles = {
     }),
 };
 
-const productOptions = AWSProducts.map(p => ({ value: p, label: p }));
+const productOptions = [
+    { value: 'ANY', label: 'ANY' },
+    ...AWSProducts.map(p => ({ value: p, label: p }))
+];
 
 const ProductItem = ({ product, index, groupId, ruleId }) => {
     const { dispatch } = usePriceBook();
@@ -333,7 +336,7 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                                         value={product.productName ? { label: product.productName, value: product.productName } : null}
                                         onChange={(val) => handleChange('productName', val ? val.value : '')}
                                         styles={customStyles}
-                                        placeholder="Select or type product..."
+                                        placeholder="Select or type product or leave it empty for ANY"
                                         formatCreateLabel={(inputValue) => `Use "${inputValue}"`}
                                         formatOptionLabel={({ label }) => (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
