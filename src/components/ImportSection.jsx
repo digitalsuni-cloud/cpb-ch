@@ -135,15 +135,23 @@ const ImportSection = () => {
             boxShadow: 'none',
             border: 'none',
             padding: 0,
-            width: '100%'
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
         }}>
             <div
                 className="card"
                 style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
                     width: '100%',
                     maxWidth: '100%',
                     padding: 0,
                     overflow: 'hidden',
+                    boxSizing: 'border-box',
+                    margin: 0,
                     borderColor: 'var(--border)',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                     background: 'var(--bg-card)'
@@ -152,7 +160,8 @@ const ImportSection = () => {
                 {/* Header */}
                 <div
                     style={{
-                        padding: '12px 24px',
+                        flex: '0 0 auto',
+                        padding: '10px 24px',
                         background: 'rgba(139, 92, 246, 0.05)',
                         display: 'flex',
                         alignItems: 'center',
@@ -169,14 +178,14 @@ const ImportSection = () => {
                 </div>
 
                 {/* Body */}
-                <div style={{ overflow: 'hidden' }}>
-                    <div style={{ padding: '24px' }}>
-                        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', padding: '4px', background: 'var(--bg-deep)', borderRadius: '12px' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 24px' }}>
+                        <div style={{ flex: '0 0 auto', display: 'flex', gap: '16px', marginBottom: '24px', padding: '4px', background: 'var(--bg-deep)', borderRadius: '12px' }}>
                             <button
                                 onClick={() => setActiveTab('file')}
                                 style={{
                                     flex: 1,
-                                    padding: '10px',
+                                    padding: '8px 12px',
                                     background: activeTab === 'file' ? 'var(--bg-card)' : 'transparent',
                                     color: activeTab === 'file' ? 'var(--primary)' : 'var(--text-muted)',
                                     border: 'none',
@@ -193,7 +202,7 @@ const ImportSection = () => {
                                 onClick={() => setActiveTab('text')}
                                 style={{
                                     flex: 1,
-                                    padding: '10px',
+                                    padding: '8px 12px',
                                     background: activeTab === 'text' ? 'var(--bg-card)' : 'transparent',
                                     color: activeTab === 'text' ? 'var(--primary)' : 'var(--text-muted)',
                                     border: 'none',
@@ -216,6 +225,7 @@ const ImportSection = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 10 }}
                                     transition={{ duration: 0.2 }}
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100px' }}
                                 >
                                     <div
                                         className={`drop-zone ${isDragging ? 'active' : ''}`}
@@ -227,7 +237,12 @@ const ImportSection = () => {
                                         style={{
                                             border: `2px dashed ${isDragging ? 'var(--primary)' : 'var(--border)'}`,
                                             borderRadius: '12px',
-                                            padding: '40px',
+                                            flex: 1,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            padding: '16px',
                                             textAlign: 'center',
                                             cursor: 'pointer',
                                             background: isDragging ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
@@ -241,7 +256,7 @@ const ImportSection = () => {
                                             style={{ display: 'none' }}
                                             accept=".json,.xml,.txt"
                                         />
-                                        <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.8 }}>📂</div>
+                                        <div style={{ fontSize: '2.5rem', marginBottom: '12px', opacity: 0.8 }}>📂</div>
                                         <h3 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: 'var(--text-main)' }}>Click or Drag File to Upload</h3>
                                         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Supports .json, .xml, .txt</p>
                                     </div>
@@ -253,14 +268,15 @@ const ImportSection = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -10 }}
                                     transition={{ duration: 0.2 }}
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
                                 >
                                     <textarea
                                         value={textInput}
                                         onChange={(e) => setTextInput(e.target.value)}
                                         placeholder="Paste your JSON or XML content here..."
                                         style={{
+                                            flex: 1,
                                             width: '100%',
-                                            height: '200px',
                                             padding: '16px',
                                             background: 'var(--bg-deep)',
                                             border: '1px solid var(--border)',
@@ -272,7 +288,7 @@ const ImportSection = () => {
                                             fontSize: '0.9rem'
                                         }}
                                     />
-                                    <div style={{ textAlign: 'center' }}>
+                                    <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
                                         <button
                                             className="button"
                                             onClick={() => processContent(textInput)}

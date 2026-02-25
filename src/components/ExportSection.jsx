@@ -280,7 +280,9 @@ const ExportSection = () => {
         );
     };
 
-    const renderOutputBox = (content, id, title, filename, showEmojiToggle = true, flexShare = 1, rowLimit = null) => {
+    const renderOutputBox = (content, id, title, filename, showEmojiToggle = true, flexShare = 1, minLines = 3) => {
+        const outerMinHeight = `${65 + minLines * 20}px`;
+        const innerMinHeight = `${32 + minLines * 16}px`;
         if (!content) return null;
 
         const buttonStyle = {
@@ -308,7 +310,7 @@ const ExportSection = () => {
         };
 
         return (
-            <div key={id} style={{ display: 'flex', flexDirection: 'column', flex: rowLimit ? 'none' : flexShare, minHeight: 0 }}>
+            <div key={id} style={{ display: 'flex', flexDirection: 'column', flexGrow: flexShare, flexShrink: 0, flexBasis: outerMinHeight, padding: '2px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexShrink: 0 }}>
                     <h5 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         {title}
@@ -385,13 +387,15 @@ const ExportSection = () => {
                         fontFamily: "'JetBrains Mono', 'Courier New', monospace",
                         fontSize: '0.85rem',
                         lineHeight: '1.6',
-                        flex: rowLimit ? 'none' : 1,
-                        height: rowLimit ? `calc(${rowLimit} * 1.4rem + 34px)` : undefined,
+                        flexGrow: 1,
+                        flexShrink: 0,
+                        flexBasis: innerMinHeight,
+                        minHeight: innerMinHeight,
                         overflow: 'auto',
                         whiteSpace: 'pre-wrap',
                         boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.15)',
                         color: 'var(--text-main)',
-                        resize: 'vertical'
+                        resize: 'none' // disabled resize to prevent breaking flex layout
                     }}
                 >
                     {renderHighlightedContent(content, activeTab)}
@@ -424,7 +428,7 @@ const ExportSection = () => {
         const safeBookName = state.priceBook.bookName ? state.priceBook.bookName.replace(/[^a-z0-9-_]/gi, '_') : 'pricebook';
 
         if (activeTab === 'xml') {
-            return renderOutputBox(outputs.xml, 'xml', 'Specification XML', `${safeBookName}_${dateStr}_specification.xml`, true, 1, 33);
+            return renderOutputBox(outputs.xml, 'xml', 'Specification XML', `${safeBookName}_${dateStr}_specification.xml`, true, 1, 10);
         }
 
         if (activeTab === 'curl') {
@@ -435,10 +439,10 @@ const ExportSection = () => {
                 "Step 3: Assign Price Book to Payer Account(s)"
             ];
             return (
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '24px', overflow: 'auto', padding: '4px' }}>
-                    {renderOutputBox(currentSteps.step1, `curl-s1`, stepTitles[0], `${safeBookName}_${dateStr}_step1_create.txt`, false, 65, 15)}
-                    {renderOutputBox(currentSteps.step2, `curl-s2`, stepTitles[1], `${safeBookName}_${dateStr}_step2_assign_customer.txt`, false, 15)}
-                    {renderOutputBox(currentSteps.step3, `curl-s3`, stepTitles[2], `${safeBookName}_${dateStr}_step3_assign_payer.txt`, false, 20)}
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '12px', overflow: 'auto', padding: '4px' }}>
+                    {renderOutputBox(currentSteps.step1, `curl-s1`, stepTitles[0], `${safeBookName}_${dateStr}_step1_create.txt`, false, 10, 3)}
+                    {renderOutputBox(currentSteps.step2, `curl-s2`, stepTitles[1], `${safeBookName}_${dateStr}_step2_assign_customer.txt`, false, 1, 2)}
+                    {renderOutputBox(currentSteps.step3, `curl-s3`, stepTitles[2], `${safeBookName}_${dateStr}_step3_assign_payer.txt`, false, 1, 2)}
                 </div>
             );
         }
@@ -451,16 +455,16 @@ const ExportSection = () => {
         ];
 
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '24px', overflow: 'auto', padding: '4px' }}>
-                {renderOutputBox(currentSteps.step1, `json-s1`, stepTitles[0], `${safeBookName}_${dateStr}_step1_create.json`, true, 65, 15)}
-                {renderOutputBox(currentSteps.step2, `json-s2`, stepTitles[1], `${safeBookName}_${dateStr}_step2_assign_customer.json`, false, 15)}
-                {renderOutputBox(currentSteps.step3, `json-s3`, stepTitles[2], `${safeBookName}_${dateStr}_step3_assign_payer.json`, false, 20)}
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '12px', overflow: 'auto', padding: '4px' }}>
+                {renderOutputBox(currentSteps.step1, `json-s1`, stepTitles[0], `${safeBookName}_${dateStr}_step1_create.json`, true, 10, 3)}
+                {renderOutputBox(currentSteps.step2, `json-s2`, stepTitles[1], `${safeBookName}_${dateStr}_step2_assign_customer.json`, false, 1, 2)}
+                {renderOutputBox(currentSteps.step3, `json-s3`, stepTitles[2], `${safeBookName}_${dateStr}_step3_assign_payer.json`, false, 1, 2)}
             </div>
         );
     };
 
     return (
-        <div className="output-section card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div className="output-section card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, marginTop: '2px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexShrink: 0 }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '1.2rem' }}>📤</span> Deployment Center

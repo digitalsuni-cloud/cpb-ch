@@ -66,7 +66,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                 </header>
 
                 {/* Content Area */}
-                <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+                <div style={{ padding: 'clamp(16px, 3vh, 32px)', maxWidth: '1200px', margin: '0 auto' }}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeView}

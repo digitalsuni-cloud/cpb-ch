@@ -43,6 +43,48 @@ const BillingRule = ({ rule, groupId }) => {
         }
         setSelectedProp('');
     };
+    const renderAdjustmentTag = () => {
+        if (!rule.adjustment || isNaN(parseFloat(rule.adjustment))) return null;
+        let label = '';
+        let color = '';
+        let bgColor = '';
+        switch (rule.type) {
+            case 'percentDiscount':
+                label = `-${rule.adjustment}%`;
+                color = 'var(--success)';
+                bgColor = 'rgba(16, 185, 129, 0.1)';
+                break;
+            case 'percentIncrease':
+                label = `+${rule.adjustment}%`;
+                color = 'var(--danger)';
+                bgColor = 'rgba(239, 68, 68, 0.1)';
+                break;
+            case 'fixedRate':
+                label = `$${rule.adjustment} Fixed`;
+                color = 'var(--secondary)';
+                bgColor = 'rgba(6, 182, 212, 0.1)';
+                break;
+            default: return null;
+        }
+
+        return (
+            <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: bgColor,
+                color: color,
+                border: `1px solid ${color}40`,
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                flexShrink: 0
+            }}>
+                {label}
+            </span>
+        );
+    };
 
     return (
         <div ref={setNodeRef} style={style} id={rule.id}>
@@ -53,7 +95,7 @@ const BillingRule = ({ rule, groupId }) => {
                             ⋮⋮
                         </span>
 
-                        <div style={{ flexGrow: 1, minWidth: 0 }}>
+                        <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {rule.collapsed ? (
                                 <div
                                     style={{
@@ -63,7 +105,6 @@ const BillingRule = ({ rule, groupId }) => {
                                         whiteSpace: 'nowrap',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
-                                        maxWidth: '100%',
                                         padding: '8px 0',
                                         cursor: 'pointer'
                                     }}
@@ -81,10 +122,11 @@ const BillingRule = ({ rule, groupId }) => {
                                     placeholder="Billing Rule Name"
                                     title="Enter a name for this billing rule (e.g. Service Discount)"
                                     className="ruleName"
-                                    style={{ width: '100%' }}
+                                    style={{ flex: 1, minWidth: 0 }}
                                     startFocus={true}
                                 />
                             )}
+                            {renderAdjustmentTag()}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <motion.button

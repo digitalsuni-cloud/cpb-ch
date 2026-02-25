@@ -66,7 +66,8 @@ const productOptions = [
 
 const ProductItem = ({ product, index, groupId, ruleId }) => {
     const { dispatch } = usePriceBook();
-    const [expanded, setExpanded] = useState(true); // Expanded by default
+    // Auto-expand only if the product has zero properties configured (ie brand new)
+    const [expanded, setExpanded] = useState(() => Object.keys(product.properties || {}).length === 0);
     const [expandedSections, setExpandedSections] = useState({});
     const [isHovered, setIsHovered] = useState(false);
 

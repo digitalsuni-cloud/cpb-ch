@@ -33,12 +33,21 @@ function App() {
 
       {/* VIEW: DASHBOARD */}
       {activeView === 'dashboard' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', minHeight: 'calc(100vh - 120px)' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(12px, 2vh, 20px)',
+          height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '2px',
+          margin: '-2px'
+        }}>
           {/* Stats Cards Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-            <div className="card" style={{ padding: '24px' }}>
+          <div style={{ flex: '0 0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'clamp(12px, 2vw, 20px)' }}>
+            <div className="card" style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 2vw, 24px)' }}>
               <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Rule Groups</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>
+              <div style={{ fontSize: 'clamp(2rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--primary)' }}>
                 {state.priceBook.ruleGroups.filter(g => g.startDate).length}
               </div>
               <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '0.85rem' }}>
@@ -95,9 +104,9 @@ function App() {
                 </div>
               </div>
             </div>
-            <div className="card" style={{ padding: '24px' }}>
+            <div className="card" style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 2vw, 24px)' }}>
               <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Rules</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--secondary)' }}>
+              <div style={{ fontSize: 'clamp(2rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--secondary)' }}>
                 {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false').reduce((acc, g) => acc + g.rules.filter(r => r.adjustment).length, 0)}
               </div>
               <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '0.85rem' }}>
@@ -124,7 +133,7 @@ function App() {
                 </div>
               </div>
             </div>
-            <div className="card" style={{ padding: '24px' }}>
+            <div className="card" style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 2vw, 24px)' }}>
               <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Last Updated</h3>
               {(() => {
                 const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
@@ -132,27 +141,29 @@ function App() {
                   return <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-secondary)' }}>Pricebook Empty</div>;
                 }
                 const dateText = !state.priceBook.lastUpdated ? 'Not Set' : new Date(state.priceBook.lastUpdated).toLocaleDateString();
-                return <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-secondary)' }}>{dateText}</div>;
+                return <div style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 800, color: 'var(--text-secondary)' }}>{dateText}</div>;
               })()}
             </div>
           </div>
 
-          <div className="card">
-            <h2 style={{ marginBottom: '20px' }}>Price Book Metadata</h2>
+          <div className="card" style={{ flex: '0 0 auto', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem' }}>📝</span> Price Book Metadata
+            </h3>
             <PriceBookForm />
           </div>
 
-          <ImportSection />
+          <div style={{ flex: '1 1 auto', minHeight: '350px', display: 'flex', flexDirection: 'column' }}>
+            <ImportSection />
+          </div>
 
           <div style={{
+            flex: '0 0 auto',
             marginTop: 'auto',
-            paddingTop: '20px',
+            paddingTop: '16px',
             borderTop: '1px solid var(--border)',
-            position: 'sticky',
-            bottom: 0,
             background: 'var(--bg-deep)',
-            zIndex: 10,
-            paddingBottom: '0' // Let parent padding handle the bottom spacing (32px vs 30px sidebar)
+            paddingBottom: '0'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -225,10 +236,27 @@ function App() {
 
       {/* VIEW: EXPORT */}
       {activeView === 'export' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', minHeight: 'calc(100vh - 120px)' }}>
-          <ExportSection />
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(12px, 2vh, 20px)',
+          height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '2px',
+          margin: '-2px'
+        }}>
+          <div style={{ flex: '1 1 auto', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
+            <ExportSection />
+          </div>
 
-          <div style={{ marginTop: 'auto', marginBottom: '12px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+          <div style={{
+            flex: '0 0 auto',
+            marginTop: 'auto',
+            marginBottom: '12px',
+            paddingTop: '20px',
+            borderTop: '1px solid var(--border)'
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Reset Price Book</h3>
