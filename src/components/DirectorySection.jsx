@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft } from 'react-icons/fa';
+import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress } from 'react-icons/fa';
 import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
 
+let directoryCache = { customers: [], books: [], assignments: [] };
+
 const DirectorySection = ({ setActiveView, setDeployHint }) => {
     const { dispatch, state } = usePriceBook();
-    const [apiData, setApiData] = useState({ customers: [], books: [], assignments: [] });
+    const [apiData, setApiData] = useState(directoryCache);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showUnassigned, setShowUnassigned] = useState(false);
@@ -26,6 +28,7 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
     // Modal state for viewing XML
     const [viewingXml, setViewingXml] = useState(null);
     const [viewingXmlTitle, setViewingXmlTitle] = useState('');
+    const [xmlExpanded, setXmlExpanded] = useState(false);
 
     // Overlay state for destructive actions
     const [actionProgress, setActionProgress] = useState({ active: false, title: '', status: '', logs: [], done: false, error: false });
@@ -56,11 +59,14 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                 }
             });
 
-            setApiData({
+            const newCacheState = {
                 assignments: data,
                 customers: Array.from(customersMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
                 books: Array.from(booksMap.values()).sort((a, b) => a.name.localeCompare(b.name))
-            });
+            };
+            
+            directoryCache = newCacheState;
+            setApiData(newCacheState);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -69,9 +75,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
     };
 
     useEffect(() => {
-        // Only auto-load on first mount — if data is already cached, keep it
-        if (apiData.assignments.length === 0) {
+        // Only auto-load on first mount — if data is already cached in memory, keep it
+        if (directoryCache.assignments.length === 0) {
             loadDirectory();
+        } else {
+            setApiData(directoryCache);
         }
     }, []);
 
@@ -212,7 +220,7 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
         try {
             const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
             setViewingXml(xml);
-            setViewingXmlTitle(`Raw Specification: ${bookName}`);
+            setViewingXmlTitle(`Specification: ${bookName}`);
         } catch (err) {
             alert(`Failed to view XML: ${err.message}`);
         }
@@ -365,8 +373,18 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                                         {item.target_client_api_id && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>API ID: {item.target_client_api_id}</div>}
                                     </td>
                                     <td style={{ padding: '16px' }}>
-                                        <div style={{ fontWeight: 600, color: 'var(--primary)' }}>{item.book_name}</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>ID: {item.id}</div>
+                                        <div
+                                            onClick={() => handleViewXml(item.id, item.book_name)}
+                                            style={{ fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', display: 'inline-block' }}
+                                            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                                            title="Click to Read Raw XML Specification"
+                                        >
+                                            {item.book_name} ( {item.id} )
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', whiteSpace: 'nowrap' }}>
+                                            Created: {item.created_at} &nbsp; LastUpdated: {item.updated_at}
+                                        </div>
                                     </td>
                                     <td style={{ padding: '16px', color: (item.billing_account_owner_id === 'ALL' || item.billing_account_owner_id === 'N/A' || !item.is_assigned) ? 'var(--text-secondary)' : 'var(--accent)' }}>
                                         <div style={{ fontWeight: 600 }}>
@@ -487,19 +505,26 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                         {viewingXml && (
                             <motion.div
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '10vh 24px', overflowY: 'auto' }}
+                                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: xmlExpanded ? '2vh 2vw' : '10vh 24px', overflowY: 'auto' }}
                                 onClick={() => setViewingXml(null)}
                             >
                                 <motion.div
                                     initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-                                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: xmlExpanded ? '100%' : '800px', height: xmlExpanded ? '100%' : 'auto', maxHeight: xmlExpanded ? '100%' : '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.3s ease-in-out' }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-deep)' }}>
                                         <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 600 }}>{viewingXmlTitle}</h3>
-                                        <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s', ':hover': { color: 'var(--text-main)', background: 'var(--border)' } }}><FaTimes /></button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button onClick={() => setXmlExpanded(!xmlExpanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title={xmlExpanded ? "Restore" : "Maximize"}>
+                                                {xmlExpanded ? <FaCompress /> : <FaExpand />}
+                                            </button>
+                                            <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s', ':hover': { color: 'var(--text-main)', background: 'var(--border)' } }} title="Close">
+                                                <FaTimes />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div style={{ padding: '24px', overflowX: 'auto', background: 'var(--bg-code)' }}>
+                                    <div style={{ padding: '24px', overflowX: 'auto', overflowY: 'auto', flexGrow: 1, background: 'var(--bg-code)' }}>
                                         <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: highlightXml(viewingXml) }} />
                                     </div>
                                 </motion.div>

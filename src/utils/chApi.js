@@ -161,18 +161,34 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
         }
     };
 
-    // Helper: exhaust all pages of a paginated CloudHealth endpoint
+    // Helper: exhaust all pages rapidly using Promise.all for speed
     const fetchAllPages = async (basePath, resultKey) => {
         const perPage = 100;
-        let page = 1;
-        let allItems = [];
-        while (true) {
-            const data = await safeFetch(`${basePath}?per_page=${perPage}&page=${page}`);
-            if (!data) break;
-            const items = data[resultKey] || [];
-            allItems = allItems.concat(items);
-            if (items.length < perPage) break;
-            page++;
+        const firstData = await safeFetch(`${basePath}?per_page=${perPage}&page=1`);
+        if (!firstData) return [];
+
+        let allItems = firstData[resultKey] || [];
+        const totalPages = firstData.total_pages;
+
+        if (totalPages && totalPages > 1) {
+            const promises = [];
+            for (let p = 2; p <= totalPages; p++) {
+                promises.push(safeFetch(`${basePath}?per_page=${perPage}&page=${p}`));
+            }
+            const subsequentPages = await Promise.all(promises);
+            subsequentPages.forEach(data => {
+                if (data && data[resultKey]) allItems = allItems.concat(data[resultKey]);
+            });
+        } else {
+            let page = 2;
+            let items = firstData[resultKey] || [];
+            while (items.length === perPage) {
+                const data = await safeFetch(`${basePath}?per_page=${perPage}&page=${page}`);
+                if (!data) break;
+                items = data[resultKey] || [];
+                allItems = allItems.concat(items);
+                page++;
+            }
         }
         return allItems;
     };
@@ -222,6 +238,11 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
         extra.forEach(r => { if (r.data) bookMap[r.id] = r.data.price_book || r.data; });
     }
 
+    const safeDate = (d) => {
+        try { return d ? new Date(d).toISOString().split('T')[0] : 'N/A'; }
+        catch (_) { return 'N/A'; }
+    };
+
     // 2. Assemble one row per BASE assignment
     //    If a payer account assignment exists for it, use its billing_account_owner_id; otherwise N/A
     const mappedAssignments = baseAssignments.map(a => {
@@ -236,7 +257,8 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
                 ? `${customerMap[a.target_client_api_id].name} (${a.target_client_api_id})`
                 : `Unknown Customer (${a.target_client_api_id})`,
             billing_account_owner_id: acct ? normalizePayer(acct.billing_account_owner_id) : 'N/A',
-            updated_at: bookMap[a.price_book_id]?.updated_at,
+            created_at: safeDate(bookMap[a.price_book_id]?.created_at),
+            updated_at: safeDate(bookMap[a.price_book_id]?.updated_at),
             is_assigned: true
         };
     });
@@ -253,7 +275,8 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
             book_name: b.book_name || `Price Book (ID: ${b.id})`,
             customer_name: 'Unassigned',
             billing_account_owner_id: 'N/A',
-            updated_at: b.updated_at,
+            created_at: safeDate(b.created_at),
+            updated_at: safeDate(b.updated_at),
             is_assigned: false
         }));
 
