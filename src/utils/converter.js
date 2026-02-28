@@ -247,8 +247,9 @@ export const parseXMLToState = (xmlString, fallbackJson = {}) => {
         createdBy,
         lastUpdated: date,
         comment,
-        cxAPIId: fallbackJson.client_api_id || '',
-        cxPayerId: '',
+        cxAPIId: fallbackJson.cxAPIId || fallbackJson.client_api_id || '',
+        customerApiId: fallbackJson.customerApiId || '',
+        cxPayerId: fallbackJson.cxPayerId || '',
         ruleGroups
     };
 };

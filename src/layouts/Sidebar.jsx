@@ -9,8 +9,11 @@ import {
     FaHome,
     FaMagic,
     FaRocket,
-    FaQuestionCircle
+    FaQuestionCircle,
+    FaDownload,
+    FaFolderOpen
 } from 'react-icons/fa';
+import { isElectronApp } from '../utils/env';
 
 const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
 
@@ -18,7 +21,11 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
         { id: 'dashboard', label: 'Dashboard', icon: <FaHome /> },
         { id: 'builder', label: 'Rule Builder', icon: <FaLayerGroup /> },
         { id: 'preview', label: 'Price Book Summary', icon: <FaCode /> },
-        { id: 'export', label: 'Export & Deploy', icon: <FaRocket /> },
+        { id: 'export', label: 'Export', icon: <FaFileExport /> },
+        ...(isElectronApp() ? [
+            { id: 'deploy', label: 'Deploy', icon: <FaRocket /> },
+            { id: 'directory', label: 'Price Book Directory', icon: <FaFolderOpen /> }
+        ] : [])
     ];
 
     return (
@@ -137,6 +144,35 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                 flexDirection: 'column',
                 gap: '8px'
             }}>
+                {!isElectronApp() && (
+                    <motion.a
+                        href="https://github.com/digitalsuni-cloud/cpb-ch/releases/latest"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Download the standalone app for an integrated local API experience without CORS or proxy limits!"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            background: 'linear-gradient(90deg, var(--primary), #a855f7)',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            textDecoration: 'none',
+                            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
+                        }}
+                    >
+                        <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download App
+                    </motion.a>
+                )}
+
                 <motion.button
                     onClick={() => setShowHelp(true)}
                     whileHover={{ scale: 1.02 }}

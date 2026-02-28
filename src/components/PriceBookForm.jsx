@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { motion } from 'framer-motion';
+import { isElectronApp } from '../utils/env';
 
 const PriceBookForm = () => {
     const { state, dispatch } = usePriceBook();
@@ -80,31 +81,45 @@ const PriceBookForm = () => {
                 </div>
             </div>
 
-            <div className="input-row" style={{ display: 'flex', gap: '16px' }}>
-                <div className="input-group" style={{ flex: '0 0 35%' }}>
-                    <label htmlFor="cxAPIId">Customer API ID</label>
-                    <input
-                        type="text"
-                        id="cxAPIId"
-                        name="cxAPIId"
-                        value={priceBook.cxAPIId}
-                        onChange={handleChange}
-                        placeholder="Enter Customer API ID"
-                    />
-                </div>
+            {isElectronApp() && (
+                <div className="input-row" style={{ display: 'flex', gap: '16px' }}>
+                    <div className="input-group" style={{ flex: '0 0 30%' }}>
+                        <label htmlFor="cxAPIId">Price Book ID</label>
+                        <input
+                            type="text"
+                            id="cxAPIId"
+                            name="cxAPIId"
+                            value={priceBook.cxAPIId}
+                            onChange={handleChange}
+                            placeholder="e.g. 1374389"
+                        />
+                    </div>
 
-                <div className="input-group" style={{ flex: 1 }}>
-                    <label htmlFor="cxPayerId">Customer Payer ID(s)</label>
-                    <input
-                        type="text"
-                        id="cxPayerId"
-                        name="cxPayerId"
-                        value={priceBook.cxPayerId}
-                        onChange={handleChange}
-                        placeholder="Comma separated IDs or empty for ALL"
-                    />
+                    <div className="input-group" style={{ flex: '0 0 30%' }}>
+                        <label htmlFor="customerApiId">Customer API ID</label>
+                        <input
+                            type="text"
+                            id="customerApiId"
+                            name="customerApiId"
+                            value={priceBook.customerApiId || ''}
+                            onChange={handleChange}
+                            placeholder="e.g. 42346"
+                        />
+                    </div>
+
+                    <div className="input-group" style={{ flex: 1 }}>
+                        <label htmlFor="cxPayerId">Customer Payer ID(s)</label>
+                        <input
+                            type="text"
+                            id="cxPayerId"
+                            name="cxPayerId"
+                            value={priceBook.cxPayerId}
+                            onChange={handleChange}
+                            placeholder="Comma separated or 'ALL'"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
         </motion.div>
     );
 };

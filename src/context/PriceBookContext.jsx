@@ -41,6 +41,7 @@ const initialPriceBook = {
     comment: '',
     cxAPIId: '',
     cxPayerId: '',
+    customerApiId: '',
     ruleGroups: [createRuleGroup()]
 };
 

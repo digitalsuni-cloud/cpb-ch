@@ -5,6 +5,7 @@ import { FaDownload, FaCopy, FaCheck, FaRocket, FaSmile, FaSlash } from 'react-i
 import { productIconMapping } from '../utils/awsIconMapping';
 import { getIconForProduct } from '../utils/awsIcons';
 import CalendarIcon from './CalendarIcon';
+import { createPriceBook, updatePriceBook } from '../utils/chApi';
 
 const ExportSection = () => {
     const { state } = usePriceBook();
@@ -12,6 +13,7 @@ const ExportSection = () => {
     const [activeTab, setActiveTab] = useState('xml');
     const [copyStatus, setCopyStatus] = useState({});
     const [showEmojis, setShowEmojis] = useState(false);
+
 
     // Auto-generate outputs whenever relevant state changes
     React.useEffect(() => {
@@ -467,7 +469,7 @@ const ExportSection = () => {
         <div className="output-section card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, marginTop: '2px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexShrink: 0 }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '1.2rem' }}>📤</span> Deployment Center
+                    <span style={{ fontSize: '1.2rem' }}>📤</span> Export Center
                 </h3>
             </div>
 

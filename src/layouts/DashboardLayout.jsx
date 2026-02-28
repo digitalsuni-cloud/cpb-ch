@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
+import SettingsModal from '../components/SettingsModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FaCog } from 'react-icons/fa';
+import { isElectronApp } from '../utils/env';
 
 const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setShowHelp }) => {
+    const [showSettings, setShowSettings] = useState(false);
+
     return (
         <div style={{
             display: 'flex',
@@ -47,6 +52,8 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                             {activeView === 'builder' && 'Rules Builder'}
                             {activeView === 'preview' && 'Price Book Summary'}
                             {activeView === 'export' && 'Export Configuration'}
+                            {activeView === 'deploy' && 'Deployment Center'}
+                            {activeView === 'directory' && 'Pricebook Directory'}
                         </h1>
                         <p style={{
                             margin: '4px 0 0 0',
@@ -57,16 +64,40 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                             {activeView === 'builder' && 'Define custom rates, discounts logic, and product scopes.'}
                             {activeView === 'preview' && 'Review your configuration in a readable natural language format.'}
                             {activeView === 'export' && 'Download and deploy your price book.'}
+                            {activeView === 'deploy' && 'Deploy live updates to CloudHealth.'}
+                            {activeView === 'directory' && 'View, edit, unassign, and delete your existing CloudHealth Pricebooks.'}
                         </p>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'absolute', right: '32px' }}>
+                        {isElectronApp() && (
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="button-ghost"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    padding: '8px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '1.2rem',
+                                    transition: 'color 0.2s'
+                                }}
+                                title="API Settings"
+                            >
+                                <FaCog />
+                            </button>
+                        )}
                         <ThemeToggle />
                     </div>
                 </header>
 
                 {/* Content Area */}
-                <div style={{ padding: 'clamp(16px, 3vh, 32px)', maxWidth: '1200px', margin: '0 auto' }}>
+                <div style={{ padding: 'clamp(16px, 3vh, 32px)', maxWidth: activeView === 'directory' ? '100%' : '1200px', margin: '0 auto', transition: 'max-width 0.3s ease' }}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeView}
@@ -80,6 +111,11 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                     </AnimatePresence>
                 </div>
             </main>
+
+            <SettingsModal
+                isOpen={showSettings}
+                onClose={() => setShowSettings(false)}
+            />
         </div>
     );
 };
