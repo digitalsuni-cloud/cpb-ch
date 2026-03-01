@@ -6,6 +6,8 @@ import { productIconMapping } from '../utils/awsIconMapping';
 import { getIconForProduct } from '../utils/awsIcons';
 import CalendarIcon from './CalendarIcon';
 import { createPriceBook, updatePriceBook } from '../utils/chApi';
+import { isElectronApp } from '../utils/env';
+import { FaWindows, FaApple, FaLinux } from 'react-icons/fa';
 
 const ExportSection = () => {
     const { state } = usePriceBook();
@@ -500,6 +502,86 @@ const ExportSection = () => {
             <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 {renderContent()}
             </div>
+
+            {/* GH-Pages Standalone Promotion Block */}
+            {!isElectronApp() && (
+                <div style={{
+                    marginTop: '32px',
+                    padding: '24px',
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            background: 'var(--primary)',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '1.5rem',
+                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
+                        }}>
+                            <FaRocket />
+                        </div>
+                        <div>
+                            <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>Install Standalone App</h4>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                Download the desktop version for 1-click deployments and local API integration.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                        {[
+                            { os: 'Windows', icon: <FaWindows />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio.4.0.0.exe' },
+                            { os: 'macOS (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0.dmg' },
+                            { os: 'macOS (Silicon)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0-arm64.dmg' },
+                            { os: 'Linux', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0.AppImage' }
+                        ].map((btn) => (
+                            <a
+                                key={btn.os}
+                                href={btn.url}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '10px',
+                                    padding: '12px',
+                                    background: 'var(--bg-card)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '10px',
+                                    color: 'var(--text-main)',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    textDecoration: 'none',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.borderColor = 'var(--primary)';
+                                    e.currentTarget.style.background = 'var(--bg-hover)';
+                                    e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.borderColor = 'var(--border)';
+                                    e.currentTarget.style.background = 'var(--bg-card)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <span style={{ fontSize: '1.1rem' }}>{btn.icon}</span>
+                                {btn.os}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
