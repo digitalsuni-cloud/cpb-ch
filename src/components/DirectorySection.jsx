@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress } from 'react-icons/fa';
+import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch } from 'react-icons/fa';
 import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
 
 let directoryCache = { customers: [], books: [], assignments: [] };
+let specCache = new Map(); // bookId → xml string
 
 const DirectorySection = ({ setActiveView, setDeployHint }) => {
     const { dispatch, state } = usePriceBook();
@@ -28,7 +29,12 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
     // Modal state for viewing XML
     const [viewingXml, setViewingXml] = useState(null);
     const [viewingXmlTitle, setViewingXmlTitle] = useState('');
+    const [viewingXmlBookId, setViewingXmlBookId] = useState(null);
     const [xmlExpanded, setXmlExpanded] = useState(false);
+    const [xmlCopied, setXmlCopied] = useState(false);
+    const [xmlRefreshing, setXmlRefreshing] = useState(false);
+    const [legendOpen, setLegendOpen] = useState(false);
+    const [openFilter, setOpenFilter] = useState(null); // 'customer' | 'book' | 'payer'
 
     // Overlay state for destructive actions
     const [actionProgress, setActionProgress] = useState({ active: false, title: '', status: '', logs: [], done: false, error: false });
@@ -44,6 +50,7 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
 
         setIsLoading(true);
         setError(null);
+        specCache.clear(); // Invalidate spec cache on directory refresh
         try {
             const data = await getAssignedPriceBooks(apiKey, proxyUrl);
 
@@ -64,7 +71,7 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                 customers: Array.from(customersMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
                 books: Array.from(booksMap.values()).sort((a, b) => a.name.localeCompare(b.name))
             };
-            
+
             directoryCache = newCacheState;
             setApiData(newCacheState);
         } catch (err) {
@@ -72,6 +79,16 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Fetch XML spec — returns from cache if already loaded, fetches otherwise
+    const getSpec = async (bookId) => {
+        if (specCache.has(bookId)) return specCache.get(bookId);
+        const apiKey = localStorage.getItem('ch_api_key');
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
+        specCache.set(bookId, xml);
+        return xml;
     };
 
     useEffect(() => {
@@ -149,7 +166,7 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
         const apiKey = localStorage.getItem('ch_api_key');
         const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
         try {
-            const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
+            const xml = await getSpec(bookId);
             const syntheticJsonPayload = {
                 book_name: bookName,
                 specification: xml,
@@ -170,10 +187,8 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
         const hasExistingData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
         if (hasExistingData && !window.confirm(`You have unsaved configuration in the builder.\n\nLoading "${bookName}" into Deploy will overwrite it. Continue?`)) return;
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
         try {
-            const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
+            const xml = await getSpec(bookId);
             const syntheticJsonPayload = {
                 book_name: bookName,
                 specification: xml,
@@ -195,10 +210,8 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
         const hasExistingData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
         if (hasExistingData && !window.confirm(`You have unsaved configuration in the builder.\n\nLoading "${bookName}" will overwrite it. Continue?`)) return;
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
         try {
-            const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
+            const xml = await getSpec(bookId);
             const syntheticJsonPayload = {
                 book_name: bookName,
                 specification: xml,
@@ -215,14 +228,27 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
     };
 
     const handleViewXml = async (bookId, bookName) => {
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
         try {
-            const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
+            const xml = await getSpec(bookId);
             setViewingXml(xml);
             setViewingXmlTitle(`Specification: ${bookName}`);
+            setViewingXmlBookId(bookId);
         } catch (err) {
             alert(`Failed to view XML: ${err.message}`);
+        }
+    };
+
+    const handleRefreshXml = async () => {
+        if (!viewingXmlBookId) return;
+        setXmlRefreshing(true);
+        try {
+            specCache.delete(viewingXmlBookId); // bust only this entry
+            const xml = await getSpec(viewingXmlBookId);
+            setViewingXml(xml);
+        } catch (err) {
+            alert(`Failed to refresh XML: ${err.message}`);
+        } finally {
+            setXmlRefreshing(false);
         }
     };
 
@@ -268,6 +294,15 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+
+            {/* Live Tenant Warning */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', borderRadius: '10px', backdropFilter: 'blur(4px)' }}>
+                <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>⚠️</span>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#f5c518', lineHeight: '1.5' }}>
+                    <strong>Live Tenant — Be Cautious:</strong> All actions in this section run directly on your CloudHealth tenant and take effect immediately. Please review your selections carefully before confirming.
+                </p>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: 'var(--bg-card)', padding: '16px 24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <ToggleSwitch
@@ -294,66 +329,74 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                 </div>
             )}
 
-            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', flex: 1 }}>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'visible', flex: 1 }}>
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                         <thead>
-                            <tr style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
-                                <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        Assigned Customer
-                                        <input
-                                            type="text"
-                                            placeholder="Filter Customer..."
-                                            value={filterCustomer}
-                                            onChange={(e) => setFilterCustomer(e.target.value)}
-                                            style={{ width: '100%', marginTop: '4px', padding: '6px 12px', boxSizing: 'border-box' }}
-                                        />
+                            <tr style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)', borderRadius: '12px 12px 0 0' }}>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            Assigned Customer
+                                            <button onClick={() => { setOpenFilter(f => f === 'customer' ? null : 'customer'); if (openFilter === 'customer') setFilterCustomer(''); }} style={{ background: 'none', border: 'none', color: filterCustomer ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Filter customer"><FaSearch size={11} /></button>
+                                        </div>
+                                        {openFilter === 'customer' && (
+                                            <input autoFocus type="text" placeholder="Search..." value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)} style={{ width: '100%', padding: '4px 8px', fontSize: '0.8rem', boxSizing: 'border-box', borderRadius: '6px' }} />
+                                        )}
                                     </div>
                                 </th>
-                                <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        Pricebook Name
-                                        <input
-                                            type="text"
-                                            placeholder="Filter Pricebook..."
-                                            value={filterBook}
-                                            onChange={(e) => setFilterBook(e.target.value)}
-                                            style={{ width: '100%', marginTop: '4px', padding: '6px 12px', boxSizing: 'border-box' }}
-                                        />
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            Pricebook Name
+                                            <button onClick={() => { setOpenFilter(f => f === 'book' ? null : 'book'); if (openFilter === 'book') setFilterBook(''); }} style={{ background: 'none', border: 'none', color: filterBook ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Filter pricebook"><FaSearch size={11} /></button>
+                                        </div>
+                                        {openFilter === 'book' && (
+                                            <input autoFocus type="text" placeholder="Search..." value={filterBook} onChange={e => setFilterBook(e.target.value)} style={{ width: '100%', padding: '4px 8px', fontSize: '0.8rem', boxSizing: 'border-box', borderRadius: '6px' }} />
+                                        )}
                                     </div>
                                 </th>
-                                <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        Payer Mapping
-                                        <input
-                                            type="text"
-                                            placeholder="Filter Payer Account..."
-                                            value={filterPayer}
-                                            onChange={(e) => setFilterPayer(e.target.value)}
-                                            style={{ width: '100%', marginTop: '4px', padding: '6px 12px', boxSizing: 'border-box' }}
-                                        />
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            Payer Mapping
+                                            <button onClick={() => { setOpenFilter(f => f === 'payer' ? null : 'payer'); if (openFilter === 'payer') setFilterPayer(''); }} style={{ background: 'none', border: 'none', color: filterPayer ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Filter payer"><FaSearch size={11} /></button>
+                                        </div>
+                                        {openFilter === 'payer' && (
+                                            <input autoFocus type="text" placeholder="Search..." value={filterPayer} onChange={e => setFilterPayer(e.target.value)} style={{ width: '100%', padding: '4px 8px', fontSize: '0.8rem', boxSizing: 'border-box', borderRadius: '6px' }} />
+                                        )}
                                     </div>
                                 </th>
-                                <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '220px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        <div>Actions</div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontWeight: 'normal', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                                            {[
-                                                { icon: <FaEye size={10} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)', label: 'View XML Spec' },
-                                                { icon: <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '12px' }}><FaBookOpen size={10} style={{ position: 'absolute' }} /><FaPen size={6} style={{ position: 'absolute', bottom: '-1px', right: '-2px', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.5))' }} /></span>, color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', label: 'Edit Pricebook Rules' },
-                                                { icon: <FaAlignLeft size={10} />, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)', label: 'View Summary' },
-                                                { icon: <FaUserEdit size={10} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)', label: 'Edit Assignment' },
-                                                { icon: <FaTimes size={10} />, color: '#eab308', bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.3)', label: 'Unassign from Customer' },
-                                                { icon: <FaTrash size={10} />, color: 'var(--danger)', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', label: 'Delete Global Pricebook' },
-                                            ].map(({ icon, color, bg, border, label }) => (
-                                                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                                                    <span style={{ width: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: bg, border: `1px solid ${border}`, borderRadius: '4px', color, flexShrink: 0 }}>
-                                                        {icon}
-                                                    </span>
-                                                    {label}
-                                                </span>
-                                            ))}
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '180px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>Actions</span>
+                                        <div style={{ position: 'relative', display: 'inline-block' }}
+                                            onMouseEnter={() => setLegendOpen(true)}
+                                            onMouseLeave={() => setLegendOpen(false)}
+                                        >
+                                            <button
+                                                onClick={() => setLegendOpen(v => !v)}
+                                                style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#a78bfa', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1, padding: 0 }}
+                                                title="Action Legend"
+                                            >?</button>
+                                            {legendOpen && (
+                                                <div style={{ position: 'absolute', top: '24px', right: 0, zIndex: 9999, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 16px 40px rgba(0,0,0,0.55)', minWidth: '215px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '2px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Action Legend</div>
+                                                    {[
+                                                        { icon: <FaEye size={10} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)', label: 'View XML Spec' },
+                                                        { icon: <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '12px' }}><FaBookOpen size={10} style={{ position: 'absolute' }} /><FaPen size={6} style={{ position: 'absolute', bottom: '-1px', right: '-2px' }} /></span>, color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', label: 'Edit Pricebook Rules' },
+                                                        { icon: <FaAlignLeft size={10} />, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)', label: 'View Summary' },
+                                                        { icon: <FaUserEdit size={10} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)', label: 'Edit Assignment' },
+                                                        { icon: <FaTimes size={10} />, color: '#eab308', bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.3)', label: 'Unassign from Customer' },
+                                                        { icon: <FaTrash size={10} />, color: 'var(--danger)', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', label: 'Delete Assignment & Pricebook' },
+                                                    ].map(({ icon, color, bg, border, label }) => (
+                                                        <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                                                            <span style={{ width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: bg, border: `1px solid ${border}`, borderRadius: '5px', color, flexShrink: 0 }}>{icon}</span>
+                                                            {label}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </th>
@@ -396,53 +439,53 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                                         {item.assignment_id && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Assignment ID: {item.assignment_id}</div>}
                                     </td>
                                     <td style={{ padding: '12px 16px' }}>
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: 'clamp(3px, 0.5vw, 6px)', flexWrap: 'wrap', alignItems: 'center' }}>
                                             <button
                                                 onClick={() => handleViewXml(item.id, item.book_name)}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
                                                 title="View Raw XML Specification"
                                             >
-                                                <FaEye size={13} />
+                                                <FaEye size={11} />
                                             </button>
                                             <button
                                                 onClick={() => handleModify(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', borderRadius: '6px', cursor: 'pointer', flexShrink: 0, position: 'relative', overflow: 'visible' }}
+                                                style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', borderRadius: '6px', cursor: 'pointer', flexShrink: 0, position: 'relative', overflow: 'visible' }}
                                                 title="Edit Pricebook Rules"
                                             >
-                                                <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px' }}>
-                                                    <FaBookOpen size={14} style={{ position: 'absolute' }} />
-                                                    <FaPen size={7} style={{ position: 'absolute', bottom: '-2px', right: '-4px', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />
+                                                <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px' }}>
+                                                    <FaBookOpen size={12} style={{ position: 'absolute' }} />
+                                                    <FaPen size={6} style={{ position: 'absolute', bottom: '-2px', right: '-4px', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />
                                                 </span>
                                             </button>
                                             <button
                                                 onClick={() => handleViewSummary(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
                                                 title="View Pricebook Summary"
                                             >
-                                                <FaAlignLeft size={13} />
+                                                <FaAlignLeft size={11} />
                                             </button>
                                             <button
                                                 onClick={() => handleEditAssignment(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
                                                 title="Edit Assignment (Customer / Payer Account)"
                                             >
-                                                <FaUserEdit size={13} />
+                                                <FaUserEdit size={11} />
                                             </button>
                                             {item.is_assigned && (
                                                 <button
                                                     onClick={() => handleUnassign(item.assignment_id, item.customer_name, item.book_name)}
-                                                    style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', color: '#eab308', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                    style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', color: '#eab308', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
                                                     title="Unassign from Customer"
                                                 >
-                                                    <FaTimes size={13} />
+                                                    <FaTimes size={11} />
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => handleDeleteBook(item.id, item.book_name)}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'var(--danger)', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                title="Delete Global Pricebook Permanently"
+                                                style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'var(--danger)', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                title="Delete Assignment &amp; Pricebook"
                                             >
-                                                <FaTrash size={13} />
+                                                <FaTrash size={11} />
                                             </button>
                                         </div>
                                     </td>
@@ -516,10 +559,33 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                                     <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-deep)' }}>
                                         <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 600 }}>{viewingXmlTitle}</h3>
                                         <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button onClick={() => {
+                                                const blob = new Blob([viewingXml], { type: 'application/xml' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `${viewingXmlTitle.replace('Specification: ', '')}.xml`;
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                document.body.removeChild(a);
+                                                URL.revokeObjectURL(url);
+                                            }} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title="Download XML">
+                                                <FaDownload />
+                                            </button>
+                                            <button onClick={() => {
+                                                navigator.clipboard.writeText(viewingXml);
+                                                setXmlCopied(true);
+                                                setTimeout(() => setXmlCopied(false), 2000);
+                                            }} style={{ background: xmlCopied ? 'rgba(16,185,129,0.2)' : 'var(--bg-card)', border: `1px solid ${xmlCopied ? 'rgba(16,185,129,0.5)' : 'var(--border)'}`, color: xmlCopied ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title={xmlCopied ? "Copied!" : "Copy XML"}>
+                                                {xmlCopied ? <FaCheck /> : <FaCopy />}
+                                            </button>
+                                            <button onClick={handleRefreshXml} disabled={xmlRefreshing} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: xmlRefreshing ? 'not-allowed' : 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s', opacity: xmlRefreshing ? 0.6 : 1 }} title="Refresh (re-fetch from API)">
+                                                <FaSyncAlt style={{ animation: xmlRefreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+                                            </button>
                                             <button onClick={() => setXmlExpanded(!xmlExpanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title={xmlExpanded ? "Restore" : "Maximize"}>
                                                 {xmlExpanded ? <FaCompress /> : <FaExpand />}
                                             </button>
-                                            <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s', ':hover': { color: 'var(--text-main)', background: 'var(--border)' } }} title="Close">
+                                            <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title="Close">
                                                 <FaTimes />
                                             </button>
                                         </div>

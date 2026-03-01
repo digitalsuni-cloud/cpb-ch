@@ -543,7 +543,8 @@ const ImportSection = () => {
                                             fontFamily: 'monospace',
                                             resize: 'vertical',
                                             marginBottom: '16px',
-                                            fontSize: '0.9rem'
+                                            fontSize: '0.9rem',
+                                            colorScheme: 'dark'
                                         }}
                                     />
                                     <div style={{ flex: '0 0 auto', textAlign: 'center' }}>

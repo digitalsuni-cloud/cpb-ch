@@ -138,25 +138,34 @@ export const generateCURL = (priceBook) => {
 
 // New deployment-focused output generators
 export const getDeploymentSteps = (priceBook) => {
-    const customerId = priceBook.cxAPIId || '<CUSTOMER_API_ID>';
-    const payerIds = priceBook.cxPayerId ? priceBook.cxPayerId.split(',').map(id => id.trim()).filter(id => id) : [];
+    const customerId = priceBook.customerApiId || '<CUSTOMER_API_ID>';
+    const priceBookId = priceBook.cxAPIId || '<PRICE_BOOK_ID>';
+    const rawPayer = priceBook.cxPayerId ? priceBook.cxPayerId.trim() : '';
+    const payerIds = rawPayer ? rawPayer.split(',').map(id => id.trim()).filter(id => id) : [];
+
+    // Resolve billing_account_owner_id:
+    // - empty / "ALL" → use string "ALL"
+    // - actual IDs → use array of IDs
+    const billingOwner = (payerIds.length === 0 || (payerIds.length === 1 && payerIds[0].toUpperCase() === 'ALL'))
+        ? 'ALL'
+        : payerIds;
 
     const json = {
         step1: generateJSON(priceBook),
-        step2: JSON.stringify({ price_book_id: "<PRICE_BOOK_ID>", client_api_id: customerId }, null, 2),
+        step2: JSON.stringify({ price_book_id: priceBookId, client_api_id: customerId }, null, 2),
         step3: JSON.stringify({
             price_book_assignment_id: "<ASSIGNMENT_ID>",
-            billing_account_owner_id: payerIds.length > 0 ? payerIds : ["<PAYER_ACCOUNT_ID_1>", "<PAYER_ACCOUNT_ID_2>"],
+            billing_account_owner_id: billingOwner,
             target_client_api_id: customerId
         }, null, 2)
     };
 
     const curl = {
         step1: generateCURL(priceBook),
-        step2: `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_assignments \\\n  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n  -H "Content-Type: application/json" \\\n  -d '{"price_book_id": "<PRICE_BOOK_ID>", "client_api_id": "${customerId}"}'`,
+        step2: `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_assignments \\\n  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n  -H "Content-Type: application/json" \\\n  -d '{"price_book_id": "${priceBookId}", "client_api_id": "${customerId}"}'`,
         step3: `curl -X POST https://chapi.cloudhealthtech.com/v1/price_book_account_assignments \\\n  -H "Authorization: Bearer <YOUR_API_TOKEN>" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify({
             price_book_assignment_id: "<ASSIGNMENT_ID>",
-            billing_account_owner_id: payerIds.length > 0 ? payerIds : ["<PAYER_ACCOUNT_ID_1>", "<PAYER_ACCOUNT_ID_2>"],
+            billing_account_owner_id: billingOwner,
             target_client_api_id: customerId
         })}'`
     };
@@ -165,8 +174,11 @@ export const getDeploymentSteps = (priceBook) => {
 };
 
 export const parseXMLToState = (xmlString, fallbackJson = {}) => {
+    // Sanitize common XML errors before parsing (like unescaped ampersands)
+    const sanitizedXml = xmlString.replace(/&(?!amp;|lt;|gt;|apos;|quot;|#x?[0-9a-fA-F]+;|#\d+;)/g, '&amp;');
+
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+    const xmlDoc = parser.parseFromString(sanitizedXml, 'application/xml');
 
     if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
         throw new Error('Invalid XML');

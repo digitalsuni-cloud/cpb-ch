@@ -11,7 +11,8 @@ import {
     FaRocket,
     FaQuestionCircle,
     FaDownload,
-    FaFolderOpen
+    FaFolderOpen,
+    FaAlignLeft
 } from 'react-icons/fa';
 import { isElectronApp } from '../utils/env';
 
@@ -20,7 +21,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <FaHome /> },
         { id: 'builder', label: 'Rule Builder', icon: <FaLayerGroup /> },
-        { id: 'preview', label: 'Price Book Summary', icon: <FaCode /> },
+        { id: 'preview', label: 'Price Book Summary', icon: <FaAlignLeft /> },
         { id: 'export', label: 'Export', icon: <FaFileExport /> },
         ...(isElectronApp() ? [
             { id: 'deploy', label: 'Deploy', icon: <FaRocket /> },

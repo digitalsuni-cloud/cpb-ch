@@ -191,33 +191,15 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed }) => {
 
     return (
         <div className="output-section card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', padding: '24px', flex: 1, minHeight: 0, marginTop: '2px', boxSizing: 'border-box' }}>
-            {isBrowser && (
-                <div style={{ padding: '20px', marginBottom: '24px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--danger)' }}>
-                            <FaDownload size={16} />
-                        </div>
-                        <h4 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.05rem', fontWeight: 600 }}>Action Required: Install Standalone App</h4>
-                    </div>
-                    <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                        Standard web browsers enforce strict CORS policies that block direct API calls from the CloudHealth backend. To directly deploy your XML payloads instantly from your local device, you must download a standalone desktop companion app.
-                    </p>
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a href="https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.PriceBook.Setup.4.0.0.exe" style={{ padding: '8px 16px', background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-main)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', transition: 'all 0.2s', fontWeight: 500 }} onMouseOver={(e) => e.currentTarget.style.borderColor = '#0ea5e9'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
-                            <FaWindows style={{ color: '#00a4ef' }} /> Windows
-                        </a>
-                        <a href="https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth-PriceBook-4.0.0-arm64.dmg" style={{ padding: '8px 16px', background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-main)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', transition: 'all 0.2s', fontWeight: 500 }} onMouseOver={(e) => e.currentTarget.style.borderColor = '#0ea5e9'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
-                            <FaApple /> Mac (Silicon)
-                        </a>
-                        <a href="https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth-PriceBook-4.0.0.dmg" style={{ padding: '8px 16px', background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-main)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', transition: 'all 0.2s', fontWeight: 500 }} onMouseOver={(e) => e.currentTarget.style.borderColor = '#0ea5e9'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
-                            <FaApple /> Mac (Intel)
-                        </a>
-                        <a href="https://github.com/digitalsuni-cloud/cpb-ch/releases/tag/v4.0.0" target="_blank" rel="noopener noreferrer" style={{ padding: '8px 16px', background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-main)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', transition: 'all 0.2s', fontWeight: 500 }} onMouseOver={(e) => e.currentTarget.style.borderColor = '#0ea5e9'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
-                            <FaLinux style={{ color: '#f5c000' }} /> Linux Binaries
-                        </a>
-                    </div>
-                </div>
-            )}
+
+            {/* Live Tenant Warning */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', marginBottom: '20px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', borderRadius: '10px', backdropFilter: 'blur(4px)' }}>
+                <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>⚠️</span>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#f5c518', lineHeight: '1.5' }}>
+                    <strong>Live Tenant — Be Cautious:</strong> All actions in this section run directly on your CloudHealth tenant and take effect immediately. Please review your selections carefully before confirming.
+                </p>
+            </div>
+
 
             {!localStorage.getItem('ch_api_key') ? (
                 <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)' }}>
