@@ -42,7 +42,7 @@ const NaturalLanguageSummary = () => {
                 }}>
                     <FaSlash size={40} style={{ marginBottom: '20px', opacity: 0.3 }} />
                     <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-main)', fontSize: '1.4rem' }}>Pricing Logic Not Configured</h3>
-                    <p style={{ margin: 0, fontSize: '0.95rem', maxWidth: '400px', margin: '0 auto', lineHeight: 1.6 }}>
+                    <p style={{ margin: '0 auto', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
                         Add at least one <strong>Rule Group with a Start Date</strong> in the Builder to see the execution summary.
                     </p>
                 </div>
