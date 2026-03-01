@@ -15,6 +15,7 @@ import ExportSection from './components/ExportSection';
 import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
+import { isElectronApp } from './utils/env';
 
 function App() {
   const { state, dispatch } = usePriceBook();
@@ -245,7 +246,7 @@ function App() {
 
 
         {/* VIEW: DEPLOY */}
-        {activeView === 'deploy' && (
+        {activeView === 'deploy' && isElectronApp() && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -263,20 +264,22 @@ function App() {
         )}
 
         {/* VIEW: DIRECTORY — kept mounted to preserve loaded data across navigation */}
-        <div style={{
-          display: activeView === 'directory' ? 'flex' : 'none',
-          flexDirection: 'column',
-          gap: 'clamp(12px, 2vh, 20px)',
-          height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: '2px',
-          margin: '-2px'
-        }}>
-          <div className="card" style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
-            <DirectorySection setActiveView={setActiveView} setDeployHint={setDeployHint} showToast={showToast} />
+        {isElectronApp() && (
+          <div style={{
+            display: activeView === 'directory' ? 'flex' : 'none',
+            flexDirection: 'column',
+            gap: 'clamp(12px, 2vh, 20px)',
+            height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            padding: '2px',
+            margin: '-2px'
+          }}>
+            <div className="card" style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
+              <DirectorySection setActiveView={setActiveView} setDeployHint={setDeployHint} showToast={showToast} />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* VIEW: EXPORT */}
         {activeView === 'export' && (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { propertyTypes } from '../constants/propertyTypes';
 import { getIconForProduct } from '../utils/awsIcons';
-import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRight, FaTags, FaLayerGroup } from 'react-icons/fa';
+import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRight, FaTags, FaLayerGroup, FaUserEdit } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NaturalLanguageSummary = () => {
