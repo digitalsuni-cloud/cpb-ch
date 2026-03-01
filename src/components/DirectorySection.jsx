@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch } from 'react-icons/fa';
-import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification } from '../utils/chApi';
+import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
@@ -10,7 +10,7 @@ import ToggleSwitch from './ToggleSwitch';
 let directoryCache = { customers: [], books: [], assignments: [] };
 let specCache = new Map(); // bookId → xml string
 
-const DirectorySection = ({ setActiveView, setDeployHint }) => {
+const DirectorySection = ({ setActiveView, setDeployHint, showToast }) => {
     const { dispatch, state } = usePriceBook();
     const [apiData, setApiData] = useState(directoryCache);
     const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +75,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
             directoryCache = newCacheState;
             setApiData(newCacheState);
         } catch (err) {
-            setError(err.message);
+            if (err instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
+            } else {
+                setError(err.message);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -178,7 +182,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
             dispatch({ type: 'IMPORT_DATA', payload: newState });
             setActiveView('builder');
         } catch (err) {
-            alert(`Failed to fetch and parse pricebook: ${err.message}`);
+            if (err instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
+            } else {
+                alert(`Failed to fetch and parse pricebook: ${err.message}`);
+            }
         }
     };
 
@@ -202,7 +210,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
             if (setDeployHint) setDeployHint(true);
             setActiveView('deploy');
         } catch (err) {
-            alert(`Failed to load assignment into deploy context: ${err.message}`);
+            if (err instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
+            } else {
+                alert(`Failed to load assignment into deploy context: ${err.message}`);
+            }
         }
     };
 
@@ -223,7 +235,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
             dispatch({ type: 'IMPORT_DATA', payload: newState });
             setActiveView('preview');
         } catch (err) {
-            alert(`Failed to load pricebook summary: ${err.message}`);
+            if (err instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
+            } else {
+                alert(`Failed to load pricebook summary: ${err.message}`);
+            }
         }
     };
 
@@ -234,7 +250,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
             setViewingXmlTitle(`Specification: ${bookName}`);
             setViewingXmlBookId(bookId);
         } catch (err) {
-            alert(`Failed to view XML: ${err.message}`);
+            if (err instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
+            } else {
+                alert(`Failed to view XML: ${err.message}`);
+            }
         }
     };
 
@@ -246,7 +266,11 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
             const xml = await getSpec(viewingXmlBookId);
             setViewingXml(xml);
         } catch (err) {
-            alert(`Failed to refresh XML: ${err.message}`);
+            if (err instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
+            } else {
+                alert(`Failed to refresh XML: ${err.message}`);
+            }
         } finally {
             setXmlRefreshing(false);
         }
@@ -329,12 +353,12 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                 </div>
             )}
 
-            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'visible', flex: 1 }}>
-                <div style={{ overflowX: 'auto' }}>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'visible', flex: 1, minHeight: '300px' }}>
+                <div style={{ overflowX: 'auto', borderRadius: '12px 12px 0 0', minHeight: '300px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                         <thead>
-                            <tr style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)', borderRadius: '12px 12px 0 0' }}>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            <tr style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', borderRadius: '12px 0 0 0' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             Assigned Customer
@@ -367,7 +391,7 @@ const DirectorySection = ({ setActiveView, setDeployHint }) => {
                                         )}
                                     </div>
                                 </th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '180px' }}>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '180px', borderRadius: '0 12px 0 0' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <span>Actions</span>
                                         <div style={{ position: 'relative', display: 'inline-block' }}

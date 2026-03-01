@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
-import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun } from '../utils/chApi';
+import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
 import { FaWindows, FaApple, FaLinux, FaDownload } from 'react-icons/fa';
 
-const DeploySection = ({ autoAssign = false, onAutoAssignConsumed }) => {
+const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
     const { state, dispatch } = usePriceBook();
     const [actionType, setActionType] = useState('update'); // 'update' or 'create'
     const [priceBookId, setPriceBookId] = useState(state.priceBook.cxAPIId || '');
@@ -181,7 +181,12 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed }) => {
             setDeployStatus({ success: true, message: 'Deployment completed successfully!', details: detailsLog });
         } catch (error) {
             console.error(error);
-            setDeployStatus({ success: false, message: `Deployment Failed: ${error.message}`, details: detailsLog });
+            if (error instanceof ApiAuthError) {
+                showToast && showToast({ type: 'error', title: 'API Key Error', message: error.message, duration: 10000, dedupeKey: 'api-auth-error' });
+                setDeployStatus({ success: false, message: 'Authentication failed — check your API key in Settings.', details: detailsLog });
+            } else {
+                setDeployStatus({ success: false, message: `Deployment Failed: ${error.message}`, details: detailsLog });
+            }
         } finally {
             setIsDeploying(false);
         }

@@ -1,5 +1,29 @@
 export const CH_API_BASE = 'https://chapi.cloudhealthtech.com/v1';
 
+// Typed error classes — let callers distinguish auth failures from other errors
+export class ApiAuthError extends Error {
+    constructor(status, body = '') {
+        const hint = status === 401
+            ? 'Your API key is invalid or has expired. Please update it in Settings.'
+            : 'Access denied. You may not have permission to perform this action.';
+        super(hint);
+        this.name = 'ApiAuthError';
+        this.status = status;
+        this.body = body;
+    }
+}
+
+// Central response checker — throws typed errors
+const checkResponse = async (response, label) => {
+    if (response.ok) return;
+    let body = '';
+    try { body = await response.text(); } catch (_) { }
+    if (response.status === 401 || response.status === 403) {
+        throw new ApiAuthError(response.status, body);
+    }
+    throw new Error(`${label}: HTTP ${response.status} — ${body || response.statusText}`);
+};
+
 const getUrl = (path, proxyConfig) => {
     // If a specific CORS proxy is configured by user, use it
     if (proxyConfig && proxyConfig.trim().length > 0) {
@@ -30,10 +54,7 @@ export const getPriceBooks = async (apiKey, proxyUrl = '') => {
         headers: getHeaders(apiKey)
     });
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch price books: ${response.status} ${response.statusText}`);
-    }
-
+    await checkResponse(response, 'Fetch price books');
     return await response.json();
 };
 
@@ -44,10 +65,7 @@ export const getPriceBookSpecification = async (id, apiKey, proxyUrl = '') => {
         headers: getHeaders(apiKey)
     });
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch price book specification: ${response.status}`);
-    }
-
+    await checkResponse(response, 'Fetch price book specification');
     const data = await response.json();
     return data.specification;
 };
@@ -66,11 +84,7 @@ export const createPriceBook = async (bookName, xml, apiKey, proxyUrl = '') => {
         body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Failed to create price book: ${err}`);
-    }
-
+    await checkResponse(response, 'Create price book');
     return await response.json();
 };
 
@@ -86,11 +100,7 @@ export const updatePriceBook = async (id, xml, apiKey, proxyUrl = '') => {
         body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Failed to update price book: ${err}`);
-    }
-
+    await checkResponse(response, 'Update price book');
     return await response.json();
 };
 
@@ -118,14 +128,9 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
         body: JSON.stringify(assignPayload)
     });
 
-    if (!response.ok) {
-        const err = await response.text();
-        // If it naturally fails because it's *already* assigned, we need to recover the ID or throw.
-        throw new Error(`Failed to assign price book to customer scope: ${err}`);
-    } else {
-        const assignData = await response.json();
-        assignmentId = assignData.price_book_assignment ? assignData.price_book_assignment.id : assignData.id;
-    }
+    await checkResponse(response, 'Assign price book to customer');
+    const assignData = await response.json();
+    assignmentId = assignData.price_book_assignment ? assignData.price_book_assignment.id : assignData.id;
 
     // 2. Map explicitly required payer accounts by string parsing comma separations
     if (assignmentId) {
@@ -141,10 +146,7 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
             body: JSON.stringify(accPayload)
         });
 
-        if (!accResponse.ok) {
-            const err = await accResponse.text();
-            throw new Error(`Failed to map Payer Account subsets: ${err}`);
-        }
+        await checkResponse(accResponse, 'Map payer account subsets');
         return await accResponse.json();
     }
 };
@@ -155,8 +157,11 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
         try {
             const url = getUrl(endpoint, proxyUrl);
             const res = await fetch(url, { headers: getHeaders(apiKey) });
+            // Surface auth errors immediately rather than silently swallowing them
+            if (res.status === 401 || res.status === 403) throw new ApiAuthError(res.status);
             return res.ok ? await res.json() : null;
         } catch (e) {
+            if (e instanceof ApiAuthError) throw e; // re-throw auth errors
             return null;
         }
     };
@@ -288,7 +293,7 @@ export const searchCustomerByName = async (nameQuery, apiKey, proxyUrl = '') => 
     // CloudHealth provides search functionality via query param
     const url = getUrl(`/customers?name=${encodeURIComponent(nameQuery)}`, proxyUrl);
     const res = await fetch(url, { headers: getHeaders(apiKey) });
-    if (!res.ok) throw new Error("Failed to search customers");
+    await checkResponse(res, 'Search customers');
     const data = await res.json();
     return data.customers || [];
 };
@@ -298,7 +303,7 @@ export const getSingleCustomerAssignment = async (targetClientId, apiKey, proxyU
     // CloudHealth supports converting the JSON body filter into a query param for GET.
     const url = getUrl(`/price_book_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
     const res = await fetch(url, { headers: getHeaders(apiKey) });
-    if (!res.ok) throw new Error("Failed to load assignments for specific customer");
+    await checkResponse(res, 'Load assignments for customer');
 
     const data = await res.json();
     const assignments = data.price_book_account_assignments || [];
@@ -370,11 +375,7 @@ export const performDryRun = async (priceBookId, generatedXml, startMonthDate, t
         body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Failed to initiate dry run: ${err}`);
-    }
-
+    await checkResponse(response, 'Initiate dry run');
     return await response.json();
 };
 
@@ -384,10 +385,7 @@ export const deletePriceBook = async (id, apiKey, proxyUrl = '') => {
         method: 'DELETE',
         headers: getHeaders(apiKey)
     });
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Failed to delete price book: ${err}`);
-    }
+    await checkResponse(response, 'Delete price book');
     return true;
 };
 
@@ -398,10 +396,7 @@ export const deletePriceBookAssignment = async (id, apiKey, proxyUrl = '') => {
         method: 'DELETE',
         headers: getHeaders(apiKey)
     });
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Failed to unassign payer account link: ${err}`);
-    }
+    await checkResponse(response, 'Unassign payer account link');
     return true;
 };
 
@@ -412,9 +407,6 @@ export const deleteBaseAssignment = async (id, apiKey, proxyUrl = '') => {
         method: 'DELETE',
         headers: getHeaders(apiKey)
     });
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Failed to unassign customer link: ${err}`);
-    }
+    await checkResponse(response, 'Unassign customer link');
     return true;
 };
