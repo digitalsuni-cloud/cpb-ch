@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
-import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, ApiAuthError } from '../utils/chApi';
+import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
+import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate } from '../utils/history/historyLogger';
 import { FaWindows, FaApple, FaLinux, FaDownload } from 'react-icons/fa';
 
 const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
@@ -13,8 +14,31 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     const [assignCustomer, setAssignCustomer] = useState(false);
     const [customerId, setCustomerId] = useState(state.priceBook.customerApiId || '');
     const [billingAccountOwnerId, setBillingAccountOwnerId] = useState(state.priceBook.cxPayerId || 'ALL');
+    const [customerOptions, setCustomerOptions] = useState([]);
+    const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
 
-    // Dry Run States
+    // Fetch customers
+    useEffect(() => {
+        let mounted = true;
+        const loadCustomers = async () => {
+            const apiKey = localStorage.getItem('ch_api_key');
+            if (!apiKey) return;
+            setIsLoadingCustomers(true);
+            try {
+                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const customers = await fetchAllCustomers(apiKey, proxyUrl);
+                if (mounted) setCustomerOptions(customers || []);
+            } catch (e) {
+                console.warn('Failed to fetch customers', e);
+            } finally {
+                if (mounted) setIsLoadingCustomers(false);
+            }
+        };
+        loadCustomers();
+        return () => { mounted = false; };
+    }, []);
+
+    // Dry Run Helpers
     const getMonthOptions = () => {
         const options = [];
         const d = new Date();
@@ -29,15 +53,16 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     };
     const monthOptions = getMonthOptions();
 
-    const [isDryRun, setIsDryRun] = useState(false);
-    const [dryRunStartDate, setDryRunStartDate] = useState(monthOptions[0].value);
-
     // Auto-extract first numeric sequence from Context's Payer IDs, otherwise empty.
     const extractPayerId = (str) => {
         if (!str) return '';
         const match = str.match(/\d+/);
         return match ? match[0] : '';
     };
+
+    // States for Dry Run and Deployment
+    const [isDryRun, setIsDryRun] = useState(false);
+    const [dryRunStartDate, setDryRunStartDate] = useState(monthOptions[0].value);
     const [dryRunPayerId, setDryRunPayerId] = useState(() => extractPayerId(state.priceBook.cxPayerId));
     const [dryRunCustomerId, setDryRunCustomerId] = useState(state.priceBook.customerApiId || '');
 
@@ -56,10 +81,20 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         setNewPricebookName(nextName);
     }, [state.priceBook.bookName]);
 
+    // Sync state if global context changes (e.g. from Directory loading)
+    useEffect(() => {
+        if (state.priceBook.cxAPIId) setPriceBookId(state.priceBook.cxAPIId);
+        if (state.priceBook.customerApiId) setCustomerId(state.priceBook.customerApiId);
+    }, [state.priceBook.cxAPIId, state.priceBook.customerApiId]);
+
+    const selectedCustomer = customerOptions && customerOptions.find ? customerOptions.find(c => String(c.id) === String(customerId)) : null;
+    const dryRunCustomer = customerOptions && customerOptions.find ? customerOptions.find(c => String(c.id) === String(dryRunCustomerId)) : null;
+
     // When navigated from Directory's "Edit Assignment" action, auto-open the assign section
     useEffect(() => {
         if (autoAssign) {
             setAssignCustomer(true);
+            setActionType('create'); // Navigate to "Create New Pricebook" section as requested
             if (onAutoAssignConsumed) onAutoAssignConsumed();
         }
     }, [autoAssign]);
@@ -107,12 +142,23 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
             setDeployStatus({ success: false, message: 'Deployment canceled by user.', details: [] });
             return;
         }
+        setIsDeploying(true);
+        setDeployStatus(null);
 
         let deployedBookId = priceBookId;
-        const detailsLog = [];
+        const addLog = (msg) => {
+            setDeployStatus(prev => {
+                const logs = prev?.details || [];
+                return { success: false, inProgress: true, message: 'Deployment in progress...', details: [...logs, msg] };
+            });
+        };
+
+        let pricebookActionDone = false;
+        let assignmentActionDone = false;
 
         try {
             if (isDryRun) {
+                // ... (Dry Run logic)
                 if (actionType === 'update' && !priceBookId) {
                     throw new Error("Price Book ID is requires to bind the Dry Run environment context.");
                 }
@@ -120,7 +166,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                     throw new Error("Customer API ID is required for running a Dry Run on an unprovisioned Pricebook.");
                 }
 
-                detailsLog.push(`Initiating Dry Run Job starting from: ${dryRunStartDate}`);
+                addLog(`Initiating Dry Run Job starting from: ${dryRunStartDate}`);
 
                 if (!dryRunCustomerId || dryRunCustomerId.trim() === '') {
                     throw new Error("Client API ID is required for running a Dry Run Evaluation.");
@@ -140,59 +186,112 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                     proxyUrl
                 );
 
-                detailsLog.push(`✅ Dry Run Queued successfully.`);
+                addLog(`✅ Dry Run Queued successfully.`);
                 if (dryRunResponse && dryRunResponse.id) {
-                    detailsLog.push(`Job ID: ${dryRunResponse.id}`);
+                    addLog(`Job ID: ${dryRunResponse.id}`);
                 }
-                setDeployStatus({ success: true, message: 'Dry Run Submitted successfully!', details: detailsLog });
+                setDeployStatus(prev => ({ success: true, inProgress: false, message: 'Dry Run Submitted successfully!', details: prev.details }));
                 setIsDeploying(false);
                 return;
             }
 
             if (actionType === 'create') {
                 const safeBookName = newPricebookName || 'New Pricebook';
-                detailsLog.push(`Creating new pricebook: ${safeBookName}`);
+                addLog(`Creating new pricebook: ${safeBookName}...`);
                 const response = await createPriceBook(safeBookName, generatedXml, apiKey, proxyUrl);
                 deployedBookId = response.price_book ? response.price_book.id : response.id;
-                detailsLog.push(`✅ Created successfully. New Price Book ID: ${deployedBookId}`);
+                addLog(`✅ Created successfully. New Price Book ID: ${deployedBookId}`);
 
                 // Update local Context API structure
                 dispatch({ type: 'UPDATE_METADATA', payload: { field: 'cxAPIId', value: deployedBookId.toString() } });
                 setPriceBookId(deployedBookId.toString());
 
+                logPricebookCreate(deployedBookId, safeBookName, generatedXml, true);
+                pricebookActionDone = true;
+
             } else {
                 if (!deployedBookId) {
                     throw new Error("Price Book ID is required for updating an existing pricebook.");
                 }
-                detailsLog.push(`Updating existing pricebook ID: ${deployedBookId}`);
-                await updatePriceBook(deployedBookId, generatedXml, apiKey, proxyUrl);
-                detailsLog.push(`✅ Updated successfully.`);
+
+                // Fetch previous XML for diff
+                let previousXml = null;
+                addLog(`Fetching prior specification to generate history diff...`);
+                try { previousXml = await getPriceBookSpecification(deployedBookId, apiKey, proxyUrl); } catch (e) { }
+
+                const isIdentical = previousXml && previousXml.trim() === generatedXml.trim();
+
+                if (isIdentical) {
+                    addLog(`ℹ️ Specification is identical to current version. Skipping API update and history log.`);
+                    pricebookActionDone = true; // Mark as done since we explicitly skipped it
+                } else {
+                    addLog(`Updating existing pricebook ID: ${deployedBookId}...`);
+                    await updatePriceBook(deployedBookId, generatedXml, apiKey, proxyUrl);
+                    addLog(`✅ Updated successfully.`);
+
+                    const safeBookName = state.priceBook.bookName || 'Pricebook';
+                    logPricebookUpdate(deployedBookId, safeBookName, previousXml, generatedXml, true);
+                    pricebookActionDone = true;
+                }
             }
 
             if (assignCustomer) {
                 if (!customerId) {
                     throw new Error("Customer ID is required for assignment.");
                 }
-                detailsLog.push(`Assigning PriceBook ID ${deployedBookId} to Customer ID: ${customerId}`);
-                await assignPriceBook(deployedBookId, customerId, billingAccountOwnerId, apiKey, proxyUrl);
-                detailsLog.push(`✅ Assigned successfully to Payer Account: ${billingAccountOwnerId || 'ALL'}`);
+
+                // Fetch previous assignment (to get assignmentId and payer account)
+                let previousAssignmentAccounts = null;
+                let previousAssignmentId = null;
+                addLog(`Fetching prior assignments to generate history diff...`);
+                try {
+                    const prevAsgn = await getSingleCustomerAssignment(customerId, apiKey, proxyUrl);
+                    if (prevAsgn) {
+                        previousAssignmentAccounts = prevAsgn.billing_account_owner_id;
+                        previousAssignmentId = prevAsgn.assignment_id;
+                    }
+                } catch (e) { }
+
+                addLog(`Assigning PriceBook ID ${deployedBookId} to Customer ID: ${customerId}...`);
+                const assignRes = await assignPriceBook(deployedBookId, customerId, billingAccountOwnerId, apiKey, proxyUrl);
+                const finalAssignmentId = assignRes.assignmentId || previousAssignmentId;
+                addLog(`✅ Assigned successfully to Payer Account: ${billingAccountOwnerId || 'ALL'}`);
+
+                const safeCustomerName = `Customer ${customerId}`;
+                const safeBookName = state.priceBook.bookName || 'Pricebook';
+                logAssignmentUpdate(deployedBookId, safeBookName, customerId, safeCustomerName, finalAssignmentId, billingAccountOwnerId || 'ALL', previousAssignmentAccounts, billingAccountOwnerId || 'ALL', true);
+                assignmentActionDone = true;
             }
 
-            setDeployStatus({ success: true, message: 'Deployment completed successfully!', details: detailsLog });
+            setDeployStatus(prev => ({ success: true, inProgress: false, message: 'Deployment completed successfully!', details: prev.details }));
         } catch (error) {
             console.error(error);
+
+            // Log failures ONLY if they weren't already logged as success
+            if (!pricebookActionDone) {
+                if (actionType === 'update' && priceBookId) {
+                    logPricebookUpdate(priceBookId, state.priceBook.bookName || 'Pricebook', null, generatedXml, false, error.message);
+                } else if (actionType === 'create') {
+                    logPricebookCreate('PENDING', newPricebookName || 'New Pricebook', generatedXml, false, error.message);
+                }
+            }
+
+            if (assignCustomer && customerId && !assignmentActionDone) {
+                logAssignmentUpdate(deployedBookId || 'PENDING', state.priceBook.bookName || 'Pricebook', customerId, `Customer ${customerId}`, null, billingAccountOwnerId || null, null, null, false, error.message);
+            }
+
             if (error instanceof ApiAuthError) {
                 showToast && showToast({ type: 'error', title: 'API Key Error', message: error.message, duration: 10000, dedupeKey: 'api-auth-error' });
-                setDeployStatus({ success: false, message: 'Authentication failed — check your API key in Settings.', details: detailsLog });
+                setDeployStatus(prev => ({ success: false, inProgress: false, message: 'Authentication failed — check your API key in Settings.', details: [...(prev?.details || []), `❌ ERROR: ${error.message}`] }));
             } else {
-                setDeployStatus({ success: false, message: `Deployment Failed: ${error.message}`, details: detailsLog });
+                setDeployStatus(prev => ({ success: false, inProgress: false, message: error.message, details: [...(prev?.details || []), `❌ ERROR: ${error.message}`] }));
             }
         } finally {
             setIsDeploying(false);
         }
     };
 
-    const isBrowser = !navigator.userAgent.toLowerCase().includes('electron');
+    const isBrowser = !navigator.userAgent.toLowerCase().includes('electron') && (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
 
     return (
         <div className="output-section card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', padding: '24px', flex: 1, minHeight: 0, marginTop: '2px', boxSizing: 'border-box' }}>
@@ -314,13 +413,25 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         {assignCustomer && (
                             <div className="input-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', alignItems: 'flex-start' }}>
                                 <div className="input-group">
-                                    <label>Customer API ID <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                    <label>Customer API ID <span style={{ color: 'var(--danger)' }}>*</span> {isLoadingCustomers && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}</label>
                                     <input
                                         type="text"
+                                        list="customer-suggestions"
                                         value={customerId}
                                         onChange={(e) => setCustomerId(e.target.value)}
                                         placeholder="Target Client ID (e.g. 42346)"
+                                        autoComplete="off"
                                     />
+                                    <datalist id="customer-suggestions">
+                                        {customerOptions.map(c => (
+                                            <option key={c.id} value={c.id}>{`${c.name} (${c.id})`}</option>
+                                        ))}
+                                    </datalist>
+                                    {selectedCustomer && (
+                                        <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {selectedCustomer.name}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="input-group">
                                     <label>Payer Account ID</label>
@@ -378,10 +489,17 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         <label>Client API ID <span style={{ color: 'var(--danger)' }}>*</span></label>
                                         <input
                                             type="text"
+                                            list="customer-suggestions"
                                             value={dryRunCustomerId}
                                             onChange={(e) => setDryRunCustomerId(e.target.value)}
                                             placeholder="Target Client ID (e.g. 42346)"
+                                            autoComplete="off"
                                         />
+                                        {dryRunCustomer && (
+                                            <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                {dryRunCustomer.name}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -410,25 +528,26 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         </button>
                     </div>
 
-                    {deployStatus.message && (
+                    {deployStatus && deployStatus.message && (
                         <div style={{
                             marginTop: '8px',
                             padding: '16px',
                             borderRadius: '8px',
-                            background: deployStatus.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            border: `1px solid ${deployStatus.success ? 'var(--success)' : 'var(--danger)'}`
+                            background: deployStatus.inProgress ? 'rgba(245, 158, 11, 0.1)' : (deployStatus.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+                            border: `1px solid ${deployStatus.inProgress ? '#f59e0b' : (deployStatus.success ? 'var(--success)' : 'var(--danger)')}`
                         }}>
-                            <h4 style={{ margin: '0 0 12px 0', color: deployStatus.success ? 'var(--success)' : 'var(--danger)' }}>
+                            <h4 style={{ margin: '0 0 12px 0', color: deployStatus.inProgress ? '#f59e0b' : (deployStatus.success ? 'var(--success)' : 'var(--danger)') }}>
                                 {deployStatus.message}
                             </h4>
-                            {deployStatus.details.length > 0 && (
-                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                                    {deployStatus.details.map((detail, idx) => (
-                                        <li key={idx} style={{ marginBottom: '4px' }}>{detail}</li>
+                            {deployStatus.details && deployStatus.details.length > 0 && (
+                                <div style={{ marginTop: '12px', background: 'var(--bg-code)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '0.8rem', fontFamily: 'monospace', maxHeight: '150px', overflowY: 'auto' }}>
+                                    {deployStatus.details.map((detail, index) => (
+                                        <div key={index} style={{ marginBottom: '4px', color: detail.startsWith('❌') ? 'var(--danger)' : (detail.startsWith('✅') ? 'var(--success)' : 'var(--text-main)') }}>
+                                            {detail}
+                                        </div>
                                     ))}
-                                </ul>
-                            )}
-                        </div>
+                                </div>
+                            )}</div>
                     )}
                 </div>
             )}

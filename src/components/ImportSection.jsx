@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState } from '../utils/converter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAssignedPriceBooks, getPriceBookSpecification, searchCustomerByName, getSingleCustomerAssignment } from '../utils/chApi';
+import { getAssignedPriceBooks, getPriceBookSpecification, searchCustomerByName, getSingleCustomerAssignment, fetchAllCustomers } from '../utils/chApi';
 import { isElectronApp } from '../utils/env';
 import { FaSyncAlt } from 'react-icons/fa';
 
@@ -15,14 +15,7 @@ const ImportSection = () => {
     const [textInput, setTextInput] = useState('');
 
     // API State
-    const [apiData, setApiData] = useState(() => {
-        try {
-            const cached = sessionStorage.getItem('ch_api_data_cache');
-            return cached ? JSON.parse(cached) : { customers: [], books: [], assignments: [] };
-        } catch {
-            return { customers: [], books: [], assignments: [] };
-        }
-    });
+    const [apiData, setApiData] = useState(state.directoryCache || { customers: [], books: [], assignments: [] });
     const [isLoadingBooks, setIsLoadingBooks] = useState(false);
 
     // Selections
@@ -40,11 +33,11 @@ const ImportSection = () => {
     const [isImporting, setIsImporting] = useState(false);
 
     // Disable auto-load effect since we have a button now
-    // useEffect(() => {
-    //     if (activeTab === 'api' && apiData.assignments.length === 0) {
-    //         // loadApiBooks();
-    //     }
-    // }, [activeTab]);
+    useEffect(() => {
+        if (state.directoryCache) {
+            setApiData(state.directoryCache);
+        }
+    }, [state.directoryCache]);
 
     const loadApiBooks = async () => {
         const apiKey = localStorage.getItem('ch_api_key');
@@ -78,12 +71,8 @@ const ImportSection = () => {
                 books: Array.from(booksMap.values()).sort((a, b) => a.name.localeCompare(b.name))
             };
 
+            dispatch({ type: 'SET_DIRECTORY_CACHE', payload: newData });
             setApiData(newData);
-            try {
-                sessionStorage.setItem('ch_api_data_cache', JSON.stringify(newData));
-            } catch (e) {
-                console.warn('Failed to cache API data to sessionStorage', e);
-            }
 
         } catch (err) {
             console.error(err);

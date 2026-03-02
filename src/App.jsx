@@ -12,6 +12,7 @@ import ImportSection from './components/ImportSection';
 import RuleGroupList from './components/RuleGroupList';
 import NaturalLanguageSummary from './components/NaturalLanguageSummary';
 import ExportSection from './components/ExportSection';
+import HistoryLog from './components/HistoryLog';
 import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
@@ -268,15 +269,29 @@ function App() {
           <div style={{
             display: activeView === 'directory' ? 'flex' : 'none',
             flexDirection: 'column',
-            gap: 'clamp(12px, 2vh, 20px)',
             height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
-            overflowY: 'auto',
-            overflowX: 'hidden',
+            overflow: 'hidden',
             padding: '2px',
             margin: '-2px'
           }}>
-            <div className="card" style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
-              <DirectorySection setActiveView={setActiveView} setDeployHint={setDeployHint} showToast={showToast} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <DirectorySection setActiveView={setActiveView} setDeployHint={setDeployHint} showToast={showToast} activeView={activeView} />
+            </div>
+          </div>
+        )}
+
+        {/* VIEW: HISTORY */}
+        {activeView === 'history' && isElectronApp() && (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
+            overflow: 'hidden',
+            padding: '2px',
+            margin: '-2px'
+          }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <HistoryLog />
             </div>
           </div>
         )}

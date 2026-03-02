@@ -24,6 +24,105 @@ const checkResponse = async (response, label) => {
     throw new Error(`${label}: HTTP ${response.status} — ${body || response.statusText}`);
 };
 
+// Customer Cache System with persistence
+let cachedCustomers = [];
+let customerCacheExpiry = 0;
+const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+
+// Re-hydrate from session storage on module load
+try {
+    const saved = sessionStorage.getItem('ch_customer_cache');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.expiry > Date.now()) {
+            cachedCustomers = parsed.data || [];
+            customerCacheExpiry = parsed.expiry;
+        }
+    }
+} catch (e) {
+    console.warn('Failed to restore customer cache from storage', e);
+}
+
+export const getCachedCustomers = () => cachedCustomers;
+export const setCustomerCache = (customers) => {
+    cachedCustomers = customers || [];
+    customerCacheExpiry = Date.now() + CACHE_TTL;
+    try {
+        sessionStorage.setItem('ch_customer_cache', JSON.stringify({
+            data: cachedCustomers,
+            expiry: customerCacheExpiry
+        }));
+    } catch (e) {
+        console.warn('Failed to save customer cache to storage', e);
+    }
+};
+export const isCustomerCacheValid = () => cachedCustomers.length > 0 && Date.now() < customerCacheExpiry;
+
+// Helper: gracefully fetch a single URL, returns JSON or null
+const safeFetch = async (endpoint, apiKey, proxyUrl) => {
+    try {
+        const url = getUrl(endpoint, proxyUrl);
+        const res = await fetch(url, { headers: getHeaders(apiKey) });
+        if (res.status === 401 || res.status === 403) throw new ApiAuthError(res.status);
+        return res.ok ? await res.json() : null;
+    } catch (e) {
+        if (e instanceof ApiAuthError) throw e;
+        return null;
+    }
+};
+
+// Helper: exhaust all pages using Promise.all for speed
+const fetchAllPages = async (basePath, resultKey, apiKey, proxyUrl) => {
+    const perPage = 100;
+    const firstData = await safeFetch(`${basePath}?per_page=${perPage}&page=1`, apiKey, proxyUrl);
+    if (!firstData) return [];
+
+    let allItems = firstData[resultKey] || [];
+    const totalPages = firstData.total_pages;
+
+    if (totalPages && totalPages > 1) {
+        const promises = [];
+        for (let p = 2; p <= totalPages; p++) {
+            promises.push(safeFetch(`${basePath}?per_page=${perPage}&page=${p}`, apiKey, proxyUrl));
+        }
+        const subsequentPages = await Promise.all(promises);
+        subsequentPages.forEach(data => {
+            if (data && data[resultKey]) allItems = allItems.concat(data[resultKey]);
+        });
+    } else {
+        // Fallback if total_pages is missing but records still exist
+        let page = 2;
+        let lastBatchSize = allItems.length;
+        while (lastBatchSize === perPage) {
+            const data = await safeFetch(`${basePath}?per_page=${perPage}&page=${page}`, apiKey, proxyUrl);
+            if (!data) break;
+            const batch = data[resultKey] || [];
+            allItems = allItems.concat(batch);
+            lastBatchSize = batch.length;
+            page++;
+        }
+    }
+    return allItems;
+};
+
+export const fetchAllCustomers = async (apiKey, proxyUrl = '', forceRefresh = false) => {
+    if (!forceRefresh && isCustomerCacheValid()) {
+        return cachedCustomers;
+    }
+
+    const customers = await fetchAllPages('/customers', 'customers', apiKey, proxyUrl);
+    setCustomerCache(customers);
+    return customers;
+};
+
+// Normalize billing_account_owner_id: null/[] → 'N/A', array → joined string
+export const normalizePayer = (val) => {
+    if (val === null || val === undefined) return 'N/A';
+    if (Array.isArray(val)) return val.length === 0 ? 'N/A' : val.map(v => String(v)).join(', ');
+    const s = String(val).trim();
+    return s === '' ? 'N/A' : s;
+};
+
 const getUrl = (path, proxyConfig) => {
     // If a specific CORS proxy is configured by user, use it
     if (proxyConfig && proxyConfig.trim().length > 0) {
@@ -147,72 +246,20 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
         });
 
         await checkResponse(accResponse, 'Map payer account subsets');
-        return await accResponse.json();
+        const accData = await accResponse.json();
+        return { assignmentId, ...accData };
     }
+    return { assignmentId };
 };
 
 export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
-    // Helper: gracefully fetch a single URL, returns JSON or null
-    const safeFetch = async (endpoint) => {
-        try {
-            const url = getUrl(endpoint, proxyUrl);
-            const res = await fetch(url, { headers: getHeaders(apiKey) });
-            // Surface auth errors immediately rather than silently swallowing them
-            if (res.status === 401 || res.status === 403) throw new ApiAuthError(res.status);
-            return res.ok ? await res.json() : null;
-        } catch (e) {
-            if (e instanceof ApiAuthError) throw e; // re-throw auth errors
-            return null;
-        }
-    };
-
-    // Helper: exhaust all pages rapidly using Promise.all for speed
-    const fetchAllPages = async (basePath, resultKey) => {
-        const perPage = 100;
-        const firstData = await safeFetch(`${basePath}?per_page=${perPage}&page=1`);
-        if (!firstData) return [];
-
-        let allItems = firstData[resultKey] || [];
-        const totalPages = firstData.total_pages;
-
-        if (totalPages && totalPages > 1) {
-            const promises = [];
-            for (let p = 2; p <= totalPages; p++) {
-                promises.push(safeFetch(`${basePath}?per_page=${perPage}&page=${p}`));
-            }
-            const subsequentPages = await Promise.all(promises);
-            subsequentPages.forEach(data => {
-                if (data && data[resultKey]) allItems = allItems.concat(data[resultKey]);
-            });
-        } else {
-            let page = 2;
-            let items = firstData[resultKey] || [];
-            while (items.length === perPage) {
-                const data = await safeFetch(`${basePath}?per_page=${perPage}&page=${page}`);
-                if (!data) break;
-                items = data[resultKey] || [];
-                allItems = allItems.concat(items);
-                page++;
-            }
-        }
-        return allItems;
-    };
-
-    // Normalize billing_account_owner_id: null/[] → 'N/A', array → joined string
-    const normalizePayer = (val) => {
-        if (val === null || val === undefined) return 'N/A';
-        if (Array.isArray(val)) return val.length === 0 ? 'N/A' : val.map(v => String(v)).join(', ');
-        const s = String(val).trim();
-        return s === '' ? 'N/A' : s;
-    };
-
-    // 1. Fetch BOTH assignment endpoints in parallel
-    //    /price_book_assignments       = base customer→pricebook links (the source of truth for assigned rows)
-    //    /price_book_account_assignments = payer account level, linked by price_book_assignment_id → base.id
-    const [baseAssignments, accountAssignments, allBooks] = await Promise.all([
-        fetchAllPages('/price_book_assignments', 'price_book_assignments'),
-        fetchAllPages('/price_book_account_assignments', 'price_book_account_assignments'),
-        fetchAllPages('/price_books', 'price_books'),
+    // 1. Fetch BOTH assignment endpoints and pricebooks in parallel
+    // Also fetch all customers to prime the cache and get proper names
+    const [baseAssignments, accountAssignments, allBooks, allCustomers] = await Promise.all([
+        fetchAllPages('/price_book_assignments', 'price_book_assignments', apiKey, proxyUrl),
+        fetchAllPages('/price_book_account_assignments', 'price_book_account_assignments', apiKey, proxyUrl),
+        fetchAllPages('/price_books', 'price_books', apiKey, proxyUrl),
+        fetchAllCustomers(apiKey, proxyUrl) // PRIMES THE CACHE
     ]);
 
     // Build lookup: base_assignment_id → account assignment record
@@ -225,21 +272,17 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
     const bookMap = {};
     allBooks.forEach(b => bookMap[b.id] = b);
 
-    // Fetch unique customers in parallel
-    const uniqueCustomerIds = [...new Set(baseAssignments.map(a => a.target_client_api_id))];
-    const customerResults = await Promise.all(
-        uniqueCustomerIds.map(id => safeFetch(`/customers/${id}`).then(d => ({ id, data: d })))
-    );
+    // Build customer map from the full fetched list
     const customerMap = {};
-    customerResults.forEach(r => {
-        if (r.data) customerMap[r.id] = r.data.customer || r.data;
+    allCustomers.forEach(c => {
+        customerMap[c.id] = c;
     });
 
     // Fallback: individually fetch books missing from the bulk page
     const uniqueBookIds = [...new Set(baseAssignments.map(a => a.price_book_id))];
     const missingBookIds = uniqueBookIds.filter(id => !bookMap[id]);
     if (missingBookIds.length > 0) {
-        const extra = await Promise.all(missingBookIds.map(id => safeFetch(`/price_books/${id}`).then(d => ({ id, data: d }))));
+        const extra = await Promise.all(missingBookIds.map(id => safeFetch(`/price_books/${id}`, apiKey, proxyUrl).then(d => ({ id, data: d }))));
         extra.forEach(r => { if (r.data) bookMap[r.id] = r.data.price_book || r.data; });
     }
 
@@ -290,7 +333,16 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
 };
 
 export const searchCustomerByName = async (nameQuery, apiKey, proxyUrl = '') => {
-    // CloudHealth provides search functionality via query param
+    // If we have a valid cache, search it locally for instant results
+    if (isCustomerCacheValid()) {
+        const query = nameQuery.toLowerCase();
+        return cachedCustomers.filter(c =>
+            c.name.toLowerCase().includes(query) ||
+            String(c.id).includes(query)
+        );
+    }
+
+    // Fallback to API if no cache (though fetchAllCustomers is preferred to seed it)
     const url = getUrl(`/customers?name=${encodeURIComponent(nameQuery)}`, proxyUrl);
     const res = await fetch(url, { headers: getHeaders(apiKey) });
     await checkResponse(res, 'Search customers');

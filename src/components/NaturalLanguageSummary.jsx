@@ -52,10 +52,10 @@ const NaturalLanguageSummary = () => {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {/* GLOBAL OVERVIEW HEADER */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '65fr 35fr', gap: '20px' }}>
                     <div className="card" style={{ padding: '20px', margin: 0, background: 'var(--bg-card)' }}>
                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.1em', fontWeight: 700 }}>Pricebook Name</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--primary)' }}>{priceBook.bookName || 'N/A'}</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--primary)', wordBreak: 'break-word' }}>{priceBook.bookName || 'N/A'}</div>
                     </div>
                     <div className="card" style={{ padding: '20px', margin: 0, background: 'var(--bg-card)' }}>
                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.1em', fontWeight: 700 }}>Author / Team</div>
@@ -152,9 +152,13 @@ const NaturalLanguageSummary = () => {
                                                                 </div>
                                                             </div>
 
-                                                            {/* Products Grid */}
+                                                            {/* Products Grid: use auto-fill for multi-product, full-width for single */}
                                                             {rule.products && rule.products.length > 0 && (
-                                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px', padding: '12px', background: 'var(--bg-deep)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                                                                <div style={{
+                                                                    display: 'grid',
+                                                                    gridTemplateColumns: rule.products.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+                                                                    gap: '12px', padding: '12px', background: 'var(--bg-deep)', borderRadius: '10px', border: '1px solid var(--border)'
+                                                                }}>
                                                                     {rule.products.map((prod, pIdx) => (
                                                                         <div key={prod.id || pIdx} style={{ padding: '12px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', color: 'var(--primary)' }}>

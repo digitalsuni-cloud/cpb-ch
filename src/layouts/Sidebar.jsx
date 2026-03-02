@@ -12,7 +12,8 @@ import {
     FaQuestionCircle,
     FaDownload,
     FaFolderOpen,
-    FaAlignLeft
+    FaAlignLeft,
+    FaHistory
 } from 'react-icons/fa';
 import { isElectronApp } from '../utils/env';
 
@@ -25,7 +26,8 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
         { id: 'export', label: 'Export', icon: <FaFileExport /> },
         ...(isElectronApp() ? [
             { id: 'deploy', label: 'Deploy', icon: <FaRocket /> },
-            { id: 'directory', label: 'Price Book Directory', icon: <FaFolderOpen /> }
+            { id: 'directory', label: 'Price Book Directory', icon: <FaFolderOpen /> },
+            { id: 'history', label: 'Action History', icon: <FaHistory /> }
         ] : [])
     ];
 

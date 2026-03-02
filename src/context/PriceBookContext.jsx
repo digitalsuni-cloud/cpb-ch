@@ -47,11 +47,14 @@ const initialPriceBook = {
 
 const initialState = {
     priceBook: initialPriceBook,
+    directoryCache: { customers: [], books: [], assignments: [] },
     theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 };
 
 function priceBookReducer(state, action) {
     switch (action.type) {
+        case 'SET_DIRECTORY_CACHE':
+            return { ...state, directoryCache: action.payload };
         case 'SET_THEME':
             return { ...state, theme: action.payload };
         case 'TOGGLE_THEME':
@@ -311,7 +314,9 @@ const init = (defaultState) => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-            return JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            // Merge stored state with default state to ensure new properties (like directoryCache) are initialized
+            return { ...defaultState, ...parsed };
         }
     } catch (error) {
         console.error('Failed to load state from localStorage:', error);

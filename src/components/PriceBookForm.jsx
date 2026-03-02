@@ -1,12 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { motion } from 'framer-motion';
 import { isElectronApp } from '../utils/env';
+import { fetchAllCustomers } from '../utils/chApi';
 
 const PriceBookForm = () => {
     const { state, dispatch } = usePriceBook();
     const { priceBook } = state;
     const [errors, setErrors] = useState({});
+    const [customerOptions, setCustomerOptions] = useState([]);
+    const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+
+    useEffect(() => {
+        let mounted = true;
+        const loadCustomers = async () => {
+            const apiKey = localStorage.getItem('ch_api_key');
+            if (!apiKey) return;
+            setIsLoadingCustomers(true);
+            try {
+                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const customers = await fetchAllCustomers(apiKey, proxyUrl);
+                if (mounted) setCustomerOptions(customers || []);
+            } catch (e) {
+                console.warn('Failed to fetch customers', e);
+            } finally {
+                if (mounted) setIsLoadingCustomers(false);
+            }
+        };
+        loadCustomers();
+        return () => { mounted = false; };
+    }, []);
+
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -96,15 +121,23 @@ const PriceBookForm = () => {
                     </div>
 
                     <div className="input-group" style={{ flex: '0 0 30%' }}>
-                        <label htmlFor="customerApiId">Customer API ID</label>
+                        <label htmlFor="customerApiId">Customer API ID {isLoadingCustomers && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}</label>
                         <input
                             type="text"
                             id="customerApiId"
                             name="customerApiId"
+                            list="dashboard-customer-suggestions"
                             value={priceBook.customerApiId || ''}
                             onChange={handleChange}
                             placeholder="e.g. 42346"
+                            autoComplete="off"
                         />
+                        <datalist id="dashboard-customer-suggestions">
+                            {customerOptions.map(c => (
+                                <option key={c.id} value={c.id}>{`${c.name} (${c.id})`}</option>
+                            ))}
+                        </datalist>
+
                     </div>
 
                     <div className="input-group" style={{ flex: 1 }}>

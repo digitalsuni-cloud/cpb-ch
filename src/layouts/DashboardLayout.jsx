@@ -54,6 +54,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                             {activeView === 'export' && 'Export Configuration'}
                             {activeView === 'deploy' && 'Deployment Center'}
                             {activeView === 'directory' && 'Pricebook Directory'}
+                            {activeView === 'history' && 'Action History'}
                         </h1>
                         <p style={{
                             margin: '4px 0 0 0',
@@ -66,6 +67,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                             {activeView === 'export' && 'Download and deploy your price book.'}
                             {activeView === 'deploy' && 'Deploy live updates to CloudHealth.'}
                             {activeView === 'directory' && 'View, edit, unassign, and delete your existing CloudHealth Pricebooks.'}
+                            {activeView === 'history' && 'A local record of all changes made through this app on this machine.'}
                         </p>
                     </div>
 
@@ -97,7 +99,14 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                 </header>
 
                 {/* Content Area */}
-                <div style={{ padding: 'clamp(16px, 3vh, 32px)', maxWidth: activeView === 'directory' ? '100%' : '1200px', margin: '0 auto', transition: 'max-width 0.3s ease' }}>
+                <div style={{
+                    padding: (activeView === 'directory' || activeView === 'history')
+                        ? 'clamp(16px, 3vh, 32px) clamp(16px, 3vh, 32px) 0 clamp(16px, 3vh, 32px)'
+                        : 'clamp(16px, 3vh, 32px)',
+                    maxWidth: (activeView === 'directory' || activeView === 'history') ? '100%' : '1200px',
+                    margin: '0 auto',
+                    transition: 'max-width 0.3s ease'
+                }}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeView}
