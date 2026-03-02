@@ -55,7 +55,7 @@ function App() {
           }}>
             {/* Stats Cards Row */}
             <div style={{ flex: '0 0 auto', width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(12px, 2vw, 20px)', minWidth: '850px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(16px, 2vw, 24px)', width: '100%', minWidth: '950px' }}>
                 <div className="card" style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 2vw, 24px)' }}>
                   <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Rule Groups</h3>
                   <div style={{ fontSize: 'clamp(2rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--primary)' }}>
@@ -152,7 +152,7 @@ function App() {
                       return <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-secondary)' }}>Pricebook Empty</div>;
                     }
                     const dateText = !state.priceBook.lastUpdated ? 'Not Set' : new Date(state.priceBook.lastUpdated).toLocaleDateString();
-                    return <div style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 800, color: 'var(--text-secondary)' }}>{dateText}</div>;
+                    return <div style={{ fontSize: 'clamp(1.6rem, 3.2vw, 2.2rem)', fontWeight: 800, color: 'var(--text-secondary)' }}>{dateText}</div>;
                   })()}
                 </div>
               </div>

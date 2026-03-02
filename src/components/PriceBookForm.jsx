@@ -27,7 +27,9 @@ const PriceBookForm = () => {
                 if (mounted) setIsLoadingCustomers(false);
             }
         };
-        loadCustomers();
+        if (isElectronApp()) {
+            loadCustomers();
+        }
         return () => { mounted = false; };
     }, []);
 

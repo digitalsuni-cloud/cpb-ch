@@ -540,7 +540,7 @@ const ExportSection = () => {
                         {[
                             { os: 'Windows', icon: <FaWindows />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio.4.0.0.exe' },
                             { os: 'macOS (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0.dmg' },
-                            { os: 'macOS (Silicon)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0-arm64.dmg' },
+                            { os: 'macOS (Apple Silicon)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0-arm64.dmg' },
                             { os: 'Linux', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0.AppImage' }
                         ].map((btn) => (
                             <a
