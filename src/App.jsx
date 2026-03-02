@@ -54,14 +54,14 @@ function App() {
             margin: '-2px'
           }}>
             {/* Stats Cards Row */}
-            <div style={{ flex: '0 0 auto', width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(16px, 2vw, 24px)', width: '100%', minWidth: '950px' }}>
+            <div style={{ flex: '0 0 auto', width: '100%', paddingBottom: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'clamp(12px, 1.5vw, 20px)', width: '100%' }}>
                 <div className="card" style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 2vw, 24px)' }}>
                   <h3 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Rule Groups</h3>
                   <div style={{ fontSize: 'clamp(2rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--primary)' }}>
                     {state.priceBook.ruleGroups.filter(g => g.startDate).length}
                   </div>
-                  <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '16px', fontSize: '0.85rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
                       <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--success)' }}>
                         {state.priceBook.ruleGroups.filter(g => {
@@ -120,7 +120,7 @@ function App() {
                   <div style={{ fontSize: 'clamp(2rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--secondary)' }}>
                     {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false').reduce((acc, g) => acc + g.rules.filter(r => r.adjustment).length, 0)}
                   </div>
-                  <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '16px', fontSize: '0.85rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--text-muted)' }}>
                       <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--success)' }}>
                         {state.priceBook.ruleGroups.filter(g => g.enabled !== 'false')
