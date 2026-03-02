@@ -89,7 +89,7 @@ export const logPricebookUpdate = (bookId, bookName, beforeXml, afterXml, isSucc
 export const logPricebookDelete = (bookId, bookName, deletedXml, isSuccess = true, errorMsg = '') => {
     return logHistoryEvent({
         type: 'PRICEBOOK_DELETE',
-        title: `Deleted Pricebook Globally: ${bookName} (${bookId})`,
+        title: `Deleted Pricebook: ${bookName} (${bookId})`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
         details: { bookId, bookName, beforeXml: deletedXml } // No afterXml since it's deleted

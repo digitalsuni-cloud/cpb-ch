@@ -258,7 +258,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 addLog(`✅ Assigned successfully to Payer Account: ${billingAccountOwnerId || 'ALL'}`);
 
                 const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
-                const safeCustomerName = custName ? `${custName} (${customerId})` : `Customer ${customerId}`;
+                const safeCustomerName = custName || 'Customer';
                 const safeBookName = state.priceBook.bookName || 'Pricebook';
                 logAssignmentUpdate(deployedBookId, safeBookName, customerId, safeCustomerName, finalAssignmentId, billingAccountOwnerId || 'ALL', previousAssignmentAccounts, billingAccountOwnerId || 'ALL', true);
                 assignmentActionDone = true;
@@ -279,7 +279,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
 
             if (assignCustomer && customerId && !assignmentActionDone) {
                 const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
-                const safeCustomerName = custName ? `${custName} (${customerId})` : `Customer ${customerId}`;
+                const safeCustomerName = custName || 'Customer';
                 logAssignmentUpdate(deployedBookId || 'PENDING', state.priceBook.bookName || 'Pricebook', customerId, safeCustomerName, null, billingAccountOwnerId || null, null, null, false, error.message);
             }
 
