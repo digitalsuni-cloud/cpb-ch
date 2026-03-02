@@ -188,16 +188,12 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
             setActionProgress(prev => ({ ...prev, status: `Successfully deleted.`, logs: [...prev.logs, `✅ Permanently deleted ${bookName}`], done: true }));
 
-            // Remove the deleted book from local state without re-fetching
-            setApiData(prev => {
-                const updated = {
-                    ...prev,
-                    assignments: prev.assignments.filter(a => a.id !== bookId),
-                    books: prev.books.filter(b => b.id !== bookId)
-                };
-                directoryCache = updated;
-                return updated;
-            });
+            const updated = {
+                ...apiData,
+                assignments: apiData.assignments.filter(a => a.id !== bookId),
+                books: apiData.books.filter(b => b.id !== bookId)
+            };
+            dispatch({ type: 'SET_DIRECTORY_CACHE', payload: updated });
         } catch (err) {
             setActionProgress(prev => ({ ...prev, status: `Failed: ${err.message}`, logs: [...prev.logs, `❌ Fatal Error: ${err.message}`], done: true, error: true }));
         }
