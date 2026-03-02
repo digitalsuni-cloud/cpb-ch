@@ -1,40 +1,57 @@
-# Custom Price Book Management Studio
+# CloudHealth Custom Price Book Management Studio
 
-A beautiful, interactive interface for building, managing, and deploying Custom Price Books to CloudHealth. 
+A professional, visual interface for building, managing, and securely deploying Custom Price Books to CloudHealth. 
 
-Live Deployment: [https://digitalsuni-cloud.github.io/cpb-ch/](https://digitalsuni-cloud.github.io/cpb-ch/)
+---
 
-## Running Locally (Bypassing CORS)
+## 📥 Standalone Management Studio (Recommended)
 
-Because the public GitHub Pages deployment runs directly in your browser, hitting the `https://chapi.cloudhealthtech.com/v1` API will occasionally trigger browser CORS (Cross-Origin Resource Sharing) restrictions depending on your enterprise endpoint settings.
+Running the studio as a standalone application is the **fastest and most secure way** to manage your price books. The desktop apps are optimized to securely communicate with the CloudHealth API directly from your machine—bypassing all browser CORS (Cross-Origin Resource Sharing) restrictions and removing the need for local proxy servers.
 
-To completely bypass CORS and securely push/pull Price Books straight from CloudHealth without needing a proxy, you can run this exact UI locally on your machine.
+**[Download the Latest Release (Mac, Windows, Linux) 🚀](https://github.com/digitalsuni-cloud/cpb-ch/releases/latest)**
 
-We have built a custom API Proxy directly into the local development server to bypass CORS!
+*   **macOS**: Universal DMG (supports both Intel and Apple Silicon/M-series)
+*   **Windows**: Portable executable (no installation required)
+*   **Linux**: AppImage and Debian packages available
 
-### Step 1: Clone the Repository
-```bash
-git clone https://github.com/digitalsuni-cloud/cpb-ch.git
-cd cpb-ch/cpb-react
-```
+---
 
-### Step 2: Install Dependencies
-```bash
-npm install
-```
+## 🌐 Web Preview
+You can preview the interface directly in your browser:  
+[https://digitalsuni-cloud.github.io/cpb-ch/](https://digitalsuni-cloud.github.io/cpb-ch/)
 
-### Step 3: Start the Local Proxy Server
-```bash
-npm run dev
-```
+> **Note:** The web version is for preview and building only. To **import** or **deploy** directly to CloudHealth, please use the Standalone App to avoid browser security restrictions.
 
-### Step 4: Access the UI
-Open your browser to the local address provided (e.g. `http://localhost:5173/cpb-ch/`). 
+---
 
-The application will automatically detect that you're running locally and will securely proxy your API key requests to CloudHealth, ensuring the ☁️ **Import from API** and 🚀 **Deploy to CloudHealth** buttons work flawlessly!
+## ✨ Core Features
+- 🏗️ **Visual Rule Builder**: Drag, drop, and construct complex tiering logic without touching XML.
+- 📂 **Price Book Directory**: A live dashboard of all price books currently assigned to your tenant.
+- 📜 **Action History**: A detailed audit log of every assignment, deletion, and update performed locally.
+- ☁️ **Direct Sync**: Pull specifications directly from CloudHealth, modify them, and push patches in seconds.
+- ⚡ **CORS-Free Engine**: Natively handles secure API handshakes without external dependencies.
+- 📝 **Natural Language Summary**: Automatically translates complex XML logic into human-readable English for verification.
 
-## Features
-- **Visual Rule Builder**: Visually construct billing rules without writing any XML.
-- **Natural Language Summary**: Ensure pricing structures are logical before pushing.
-- **Direct CloudHealth Sync**: Download and patch price books straight from the API.
-- **Deployment Artifacts**: Generates raw `curl` or JSON packages for bulk execution.
+---
+
+## 🛠️ For Developers (Local Build)
+
+If you want to contribute or build from source:
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/digitalsuni-cloud/cpb-ch.git
+   cd cpb-ch/cpb-react
+   ```
+
+2. **Install & Run**
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+3. **Build Standalone**
+   ```bash
+   # Build for current OS
+   npm run electron:build
+   ```
