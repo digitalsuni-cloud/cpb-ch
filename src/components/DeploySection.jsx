@@ -257,7 +257,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 const finalAssignmentId = assignRes.assignmentId || previousAssignmentId;
                 addLog(`✅ Assigned successfully to Payer Account: ${billingAccountOwnerId || 'ALL'}`);
 
-                const safeCustomerName = `Customer ${customerId}`;
+                const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
+                const safeCustomerName = custName ? `${custName} (${customerId})` : `Customer ${customerId}`;
                 const safeBookName = state.priceBook.bookName || 'Pricebook';
                 logAssignmentUpdate(deployedBookId, safeBookName, customerId, safeCustomerName, finalAssignmentId, billingAccountOwnerId || 'ALL', previousAssignmentAccounts, billingAccountOwnerId || 'ALL', true);
                 assignmentActionDone = true;
@@ -277,7 +278,9 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
             }
 
             if (assignCustomer && customerId && !assignmentActionDone) {
-                logAssignmentUpdate(deployedBookId || 'PENDING', state.priceBook.bookName || 'Pricebook', customerId, `Customer ${customerId}`, null, billingAccountOwnerId || null, null, null, false, error.message);
+                const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
+                const safeCustomerName = custName ? `${custName} (${customerId})` : `Customer ${customerId}`;
+                logAssignmentUpdate(deployedBookId || 'PENDING', state.priceBook.bookName || 'Pricebook', customerId, safeCustomerName, null, billingAccountOwnerId || null, null, null, false, error.message);
             }
 
             if (error instanceof ApiAuthError) {
