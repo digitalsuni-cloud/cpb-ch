@@ -82,7 +82,7 @@ const RuleGroup = ({ group }) => {
     return (
         <div ref={setNodeRef} style={style} id={group.id}>
             <div className="rule-group">
-                <div className="rule-group-header">
+                <div className="rule-group-header" style={{ borderBottom: 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '1.5rem', lineHeight: 1 }} title="Drag to reorder">
@@ -188,9 +188,6 @@ const RuleGroup = ({ group }) => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '32px' }}>
-                        <h4 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Billing Rules</h4>
-                    </div>
                 </div>
 
                 <AnimatePresence>
@@ -200,10 +197,14 @@ const RuleGroup = ({ group }) => {
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                         >
+                            <div style={{ padding: '8px 0 0 32px', marginBottom: '-8px' }}>
+                                <h4 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Billing Rules</h4>
+                            </div>
+
                             <div
                                 style={{
                                     height: '20px',
-                                    margin: '16px 0 16px 0',
+                                    margin: '8px 0 8px 0',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -221,8 +222,8 @@ const RuleGroup = ({ group }) => {
                                     height: '2px', // Thin line
                                     background: isListStartHovered
                                         ? 'linear-gradient(90deg, transparent, var(--secondary), transparent)'
-                                        : 'var(--border)',
-                                    opacity: isListStartHovered ? 1 : 0.3,
+                                        : 'transparent',
+                                    opacity: isListStartHovered ? 1 : 0,
                                     transition: 'all 0.3s'
                                 }} />
 
