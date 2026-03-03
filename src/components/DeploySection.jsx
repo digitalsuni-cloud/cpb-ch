@@ -3,7 +3,7 @@ import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
 import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
-import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate } from '../utils/history/historyLogger';
+import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate, logDryRun } from '../utils/history/historyLogger';
 import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt } from 'react-icons/fa';
 
 const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
@@ -193,6 +193,18 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 if (dryRunResponse && dryRunResponse.id) {
                     addLog(`Job ID: ${dryRunResponse.id}`);
                 }
+
+                // Log to Action History
+                logDryRun(
+                    state.priceBook.bookName,
+                    String(dryRunCustomerId),
+                    dryRunCustomer?.name || String(dryRunCustomerId),
+                    String(dryRunPayerId),
+                    dryRunStartDate,
+                    dryRunResponse?.id || null,
+                    true
+                );
+
                 setDeployStatus(prev => ({ success: true, inProgress: false, message: 'Dry Run Submitted successfully!', details: prev.details }));
                 setIsDeploying(false);
                 return;
@@ -271,8 +283,22 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         } catch (error) {
             console.error(error);
 
+            // Log dry run failure to Action History
+            if (isDryRun) {
+                logDryRun(
+                    state.priceBook.bookName,
+                    String(dryRunCustomerId),
+                    dryRunCustomer?.name || String(dryRunCustomerId),
+                    String(dryRunPayerId),
+                    dryRunStartDate,
+                    null,
+                    false,
+                    error.message
+                );
+            }
+
             // Log failures ONLY if they weren't already logged as success
-            if (!pricebookActionDone) {
+            if (!isDryRun && !pricebookActionDone) {
                 if (actionType === 'update' && priceBookId) {
                     logPricebookUpdate(priceBookId, state.priceBook.bookName || 'Pricebook', null, generatedXml, false, error.message);
                 } else if (actionType === 'create') {
@@ -280,7 +306,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 }
             }
 
-            if (assignCustomer && customerId && !assignmentActionDone) {
+            if (!isDryRun && assignCustomer && customerId && !assignmentActionDone) {
                 const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
                 const safeCustomerName = custName || 'Customer';
                 logAssignmentUpdate(deployedBookId || 'PENDING', state.priceBook.bookName || 'Pricebook', customerId, safeCustomerName, null, billingAccountOwnerId || null, null, null, false, error.message);

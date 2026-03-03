@@ -126,6 +126,7 @@ const TYPE_COLORS = {
     ASSIGNMENT_UPDATE: { bg: 'rgba(56,189,248,0.12)', color: '#7dd3fc', label: 'Assignment Update' },
     ASSIGNMENT_DELETE: { bg: 'rgba(234,179,8,0.12)', color: '#fde68a', label: 'Assignment Delete' },
     CUSTOMER_UNASSIGN: { bg: 'rgba(234,179,8,0.12)', color: '#fde68a', label: 'Customer Unassign' },
+    DRY_RUN: { bg: 'rgba(168,85,247,0.12)', color: '#d8b4fe', label: 'Dry Run' },
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -289,6 +290,25 @@ const HistoryLog = () => {
                             <span style={{ fontWeight: 600 }}>{d.assignmentId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assigned Payer Account ID</span>
                             <span style={{ fontWeight: 600 }}>{d.payerAccountId || '—'}</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Dry Run ── */}
+                {item.type === 'DRY_RUN' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                        <div>
+                            Simulation submitted for <strong>{d.bookName || 'Pricebook'}</strong> assigned to <strong>{d.customerName || d.customerId}</strong>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Customer ID</span>
+                            <span style={{ fontWeight: 600 }}>{d.customerId || '—'}</span>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Payer Account ID</span>
+                            <span style={{ fontWeight: 600 }}>{d.payerId || '—'}</span>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start Month</span>
+                            <span style={{ fontWeight: 600 }}>{d.startMonth ? d.startMonth.substring(0, 7) : '—'}</span>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Job ID</span>
+                            <span style={{ fontWeight: 600 }}>{d.jobId || (item.status === 'ERROR' ? '—' : 'Pending')}</span>
                         </div>
                     </div>
                 )}

@@ -9,7 +9,7 @@ const MAX_HISTORY_ITEMS = 200; // Keep the last 200 actions
  * {
  *   id: string (uuid),
  *   timestamp: number (Date.now()),
- *   type: 'PRICEBOOK_UPDATE' | 'PRICEBOOK_DELETE' | 'ASSIGNMENT_UPDATE' | 'ASSIGNMENT_DELETE' | 'CUSTOMER_UNASSIGN',
+ *   type: 'PRICEBOOK_UPDATE' | 'PRICEBOOK_DELETE' | 'ASSIGNMENT_UPDATE' | 'ASSIGNMENT_DELETE' | 'CUSTOMER_UNASSIGN' | 'DRY_RUN',
  *   title: string,
  *   details: {
  *     bookId?: number | string,
@@ -129,5 +129,15 @@ export const logCustomerUnassign = (bookId, bookName, customerId, customerName, 
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
         details: { bookId, bookName, customerId, customerName, assignmentId, payerAccountId }
+    });
+};
+
+export const logDryRun = (bookName, customerId, customerName, payerId, startMonth, jobId, isSuccess = true, errorMsg = '') => {
+    return logHistoryEvent({
+        type: 'DRY_RUN',
+        title: `Dry Run: ${bookName || 'Pricebook'} for ${customerName || customerId}`,
+        status: isSuccess ? 'SUCCESS' : 'ERROR',
+        errorMessage: errorMsg,
+        details: { bookName, customerId, customerName, payerId, startMonth, jobId }
     });
 };
