@@ -545,9 +545,9 @@ const ExportSection = () => {
                                     { os: 'Mac (M-Series)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0-arm64.dmg' },
                                     { os: 'Mac (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0.dmg' },
                                     { os: 'Linux (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0.AppImage' },
-                                    { os: 'Linux (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio_4.1.0_amd64.deb' },
+                                    { os: 'Linux (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/cpb-react_4.1.0_amd64.deb' },
                                     { os: 'Linux ARM64 (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0-arm64.AppImage' },
-                                    { os: 'Linux ARM64 (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio_4.1.0_arm64.deb' }
+                                    { os: 'Linux ARM64 (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/cpb-react_4.1.0_arm64.deb' }
                                 ].map((btn) => (
                                     <a
                                         key={btn.os}
