@@ -4,7 +4,7 @@ import { generateXML } from '../utils/converter';
 import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
 import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate } from '../utils/history/historyLogger';
-import { FaWindows, FaApple, FaLinux, FaDownload } from 'react-icons/fa';
+import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt } from 'react-icons/fa';
 
 const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
     const { state, dispatch } = usePriceBook();
@@ -63,8 +63,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     // States for Dry Run and Deployment
     const [isDryRun, setIsDryRun] = useState(false);
     const [dryRunStartDate, setDryRunStartDate] = useState(monthOptions[0].value);
-    const [dryRunPayerId, setDryRunPayerId] = useState(() => extractPayerId(state.priceBook.cxPayerId));
-    const [dryRunCustomerId, setDryRunCustomerId] = useState(state.priceBook.customerApiId || '');
+    const [dryRunPayerId, setDryRunPayerId] = useState(() => String(extractPayerId(state.priceBook.cxPayerId) || ''));
+    const [dryRunCustomerId, setDryRunCustomerId] = useState(String(state.priceBook.customerApiId || ''));
 
     // Auto-generate incremented version name for "Create New" on mount or bookName change
     useEffect(() => {
@@ -168,11 +168,14 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
 
                 addLog(`Initiating Dry Run Job starting from: ${dryRunStartDate}`);
 
-                if (!dryRunCustomerId || dryRunCustomerId.trim() === '') {
+                const safeCustomerId = String(dryRunCustomerId ?? '');
+                const safePayerId = String(dryRunPayerId ?? '');
+
+                if (!safeCustomerId || safeCustomerId.trim() === '') {
                     throw new Error("Client API ID is required for running a Dry Run Evaluation.");
                 }
 
-                if (!dryRunPayerId || dryRunPayerId === 'ALL' || dryRunPayerId.trim() === '') {
+                if (!safePayerId || safePayerId.trim() === 'ALL' || safePayerId.trim() === '') {
                     throw new Error("A specific Payer Account ID is explicitly required to run a Dry Run Evaluation. Please provide a valid Payer ID instead of 'ALL'.");
                 }
 
@@ -180,8 +183,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                     actionType === 'update' ? priceBookId : null,
                     generatedXml,
                     dryRunStartDate,
-                    dryRunCustomerId,
-                    dryRunPayerId,
+                    String(dryRunCustomerId),
+                    String(dryRunPayerId),
                     apiKey,
                     proxyUrl
                 );
@@ -491,7 +494,27 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         <div style={{ minHeight: '18px' }} />{/* spacer */}
                                     </div>
                                     <div className="input-group">
-                                        <label>Client API ID <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            Client API ID <span style={{ color: 'var(--danger)' }}>*</span>
+                                            <button
+                                                onClick={async () => {
+                                                    const apiKey = localStorage.getItem('ch_api_key');
+                                                    const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                    if (!apiKey) return;
+                                                    setIsLoadingCustomers(true);
+                                                    try {
+                                                        const { fetchAllCustomers: _fac } = await import('../utils/chApi');
+                                                        const c = await _fac(apiKey, proxyUrl, true);
+                                                        setCustomerOptions(c || []);
+                                                    } catch (e) { console.warn(e); }
+                                                    finally { setIsLoadingCustomers(false); }
+                                                }}
+                                                title="Refresh customer list"
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
+                                            >
+                                                {isLoadingCustomers ? <span style={{ fontSize: '0.7rem' }}>⏳</span> : <FaSyncAlt size={10} />}
+                                            </button>
+                                        </label>
                                         <input
                                             type="text"
                                             list="customer-suggestions"
