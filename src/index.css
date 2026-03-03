@@ -744,8 +744,12 @@ textarea:focus {
 /* Rule Groups */
 .rule-group-header {
   border-bottom: 1px solid var(--border);
-  padding-bottom: 20px;
-  margin-bottom: 20px;
+  padding-bottom: 10px;
+  margin-bottom: 0px;
+}
+ 
+.rule-group.collapsed {
+  padding-bottom: 8px;
 }
 
 /* Billing Rule Items */
@@ -776,6 +780,11 @@ textarea:focus {
   font-family: var(--font-heading) !important;
   width: 100%;
   box-sizing: border-box;
+}
+ 
+.rule.collapsed {
+  padding: 4px 16px;
+  margin-bottom: 0px;
 }
 
 .ruleName:focus {

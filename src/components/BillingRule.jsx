@@ -88,8 +88,8 @@ const BillingRule = ({ rule, groupId }) => {
 
     return (
         <div ref={setNodeRef} style={style} id={rule.id}>
-            <div className="rule">
-                <div className="rule-header">
+            <div className={`rule ${rule.collapsed ? 'collapsed' : ''}`}>
+                <div className="rule-header" style={{ borderBottom: rule.collapsed ? 'none' : '1px solid var(--border)', paddingBottom: rule.collapsed ? '4px' : '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-secondary)', fontSize: '1.2rem', display: 'flex' }}>
                             ⋮⋮
@@ -340,7 +340,7 @@ const BillingRule = ({ rule, groupId }) => {
             <div
                 style={{
                     height: '16px',
-                    margin: '8px 0 16px 0',
+                    margin: '8px 0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
