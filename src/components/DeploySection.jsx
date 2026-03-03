@@ -202,6 +202,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                     String(dryRunPayerId),
                     dryRunStartDate,
                     dryRunResponse?.id || null,
+                    dryRunResponse?.tempPriceBookId || null,
                     true
                 );
 
@@ -291,6 +292,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                     dryRunCustomer?.name || String(dryRunCustomerId),
                     String(dryRunPayerId),
                     dryRunStartDate,
+                    null,
                     null,
                     false,
                     error.message

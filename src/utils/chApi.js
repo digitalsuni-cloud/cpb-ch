@@ -431,7 +431,8 @@ export const performDryRun = async (priceBookId, generatedXml, startMonthDate, t
     });
 
     await checkResponse(response, 'Initiate dry run');
-    return await response.json();
+    const data = await response.json();
+    return { ...data, tempPriceBookId };
 };
 
 export const deletePriceBook = async (id, apiKey, proxyUrl = '') => {

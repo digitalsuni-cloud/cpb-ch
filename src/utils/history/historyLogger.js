@@ -132,13 +132,13 @@ export const logCustomerUnassign = (bookId, bookName, customerId, customerName, 
     });
 };
 
-export const logDryRun = (bookName, customerId, customerName, payerId, startMonth, jobId, isSuccess = true, errorMsg = '') => {
+export const logDryRun = (bookName, customerId, customerName, payerId, startMonth, jobId, tempBookId, isSuccess = true, errorMsg = '') => {
     const monthLabel = startMonth ? startMonth.substring(0, 7) : '';
     return logHistoryEvent({
         type: 'DRY_RUN',
         title: `Dry Run: ${bookName || 'Pricebook'} for ${customerName || customerId}${monthLabel ? ` — ${monthLabel}` : ''}`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
-        details: { bookName, customerId, customerName, payerId, startMonth, jobId }
+        details: { bookName, customerId, customerName, payerId, startMonth, jobId, tempBookId }
     });
 };
