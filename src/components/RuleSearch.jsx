@@ -104,14 +104,14 @@ const RuleSearch = () => {
     const customStyles = {
         control: (provided, state) => ({
             ...provided,
-            backgroundColor: 'var(--bg-card)',
-            border: state.isFocused ? '1px solid var(--primary)' : '1px solid var(--border)',
+            backgroundColor: 'var(--input-bg)',
+            border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
             boxShadow: state.isFocused ? '0 0 0 1px var(--primary)' : 'none',
             color: 'var(--text-main)',
             minHeight: '40px',
             '&:hover': {
-                borderColor: state.isFocused ? 'var(--primary)' : 'var(--text-muted)'
+                borderColor: 'var(--text-muted)'
             }
         }),
         menu: (provided) => ({
@@ -124,15 +124,12 @@ const RuleSearch = () => {
         }),
         option: (provided, state) => ({
             ...provided,
-            backgroundColor: state.isFocused ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
+            backgroundColor: state.isFocused ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
             color: state.isFocused ? 'var(--primary)' : 'var(--text-main)',
             cursor: 'pointer',
             fontSize: '0.85rem',
-            padding: 0, // Handled by CustomOption
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            padding: 0,
+            transition: 'all 0.1s ease',
             borderLeft: `3px solid ${state.isFocused ? 'var(--primary)' : 'transparent'}`,
             fontWeight: state.isFocused ? '600' : '400'
         }),
@@ -141,10 +138,7 @@ const RuleSearch = () => {
             color: 'var(--text-main)',
             fontSize: '0.85rem',
             margin: 0,
-            padding: 0,
-            background: 'transparent',
-            border: 'none',
-            boxShadow: 'none'
+            padding: 0
         }),
         input: (provided) => ({
             ...provided,

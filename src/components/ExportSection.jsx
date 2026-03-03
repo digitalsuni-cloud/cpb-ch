@@ -508,9 +508,9 @@ const ExportSection = () => {
                         marginTop: '20px',
                         padding: '16px',
                         flexShrink: 0,
-                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+                        background: 'var(--bg-deep)',
                         borderRadius: '12px',
-                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                        border: '1px solid var(--border)',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '12px'
@@ -527,7 +527,7 @@ const ExportSection = () => {
                                     justifyContent: 'center',
                                     color: 'white',
                                     fontSize: '1.2rem',
-                                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
+                                    boxShadow: '0 2px 8px rgba(79, 70, 229, 0.2)'
                                 }}>
                                     <FaRocket />
                                 </div>

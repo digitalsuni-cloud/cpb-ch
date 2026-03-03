@@ -68,55 +68,54 @@
 }
 
 [data-theme="light"] {
-  --bg-deep: #f1f5f9;
-  /* Layer 0: Page Background (Deepened) */
-  --bg-card: #f8fafc;
-  /* Layer 1: Surface (No more pure white) */
-  --bg-card-hover: #f1f5f9;
-  /* Hover state */
+  --bg-deep: #f4f4f5;
+  /* Zinc 100 - Neutral matte background */
+  --bg-card: #fdfdfd;
+  /* Slightly off-white for cards */
+  --bg-card-hover: #f4f4f5;
+  /* Matches background for "recessing" effect */
 
-  --text-main: #475569;
-  /* Slate 600 - Even softer reading contrast */
-  --text-secondary: #64748b;
-  /* Slate 500 */
-  --text-muted: #94a3b8;
-  /* Slate 400 */
+  --text-main: #3f3f46;
+  /* Zinc 700 - Deep graphite, much softer than black */
+  --text-secondary: #52525b;
+  /* Zinc 600 */
+  --text-muted: #71717a;
+  /* Zinc 500 */
 
-  /* Brand colors derived from the Dark Theme */
-  --primary: #6366f1;
-  /* Indigo 500 */
-  --primary-hover: #4f46e5;
-  /* Indigo 600 */
-  --secondary: #06b6d4;
-  /* Cyan 500 */
-  --accent: #f43f5e;
-  /* Rose 500 */
-  --danger: #ef4444;
-  /* Red 500 */
-  --success: #10b981;
-  /* Emerald 500 */
+  --primary: #4f46e5;
+  /* Indigo 600 - Standardized brand color */
+  --primary-hover: #4338ca;
+  /* Indigo 700 */
+  --secondary: #0891b2;
+  /* Cyan 600 */
+  --accent: #e11d48;
+  /* Rose 600 */
+  --danger: #dc2626;
+  /* Red 600 */
+  --success: #059669;
+  /* Emerald 600 */
 
-  --border: #e2e8f0;
-  /* Soft border */
-  --border-glow: rgba(99, 102, 241, 0.08);
+  --border: #d4d4d8;
+  /* Zinc 300 - Clear but soft definition */
+  --border-glow: rgba(79, 70, 229, 0.08);
 
-  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 10px -1px rgba(15, 23, 42, 0.02);
-  --shadow-glow: 0 0 10px rgba(99, 102, 241, 0.05);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-glow: 0 0 10px rgba(79, 70, 229, 0.04);
 
-  --bg-code: #e2e8f0;
-  /* Deeper recessed code area */
-  --input-bg: #e2e8f0;
-  /* DEEP Recessed inputs for zero glare */
+  --bg-code: #e4e4e7;
+  /* Zinc 200 - Very matte code blocks */
+  --input-bg: #e4e4e7;
+  /* Recessed, non-glare input background */
 
-  /* Highlighting Colors for the Muted Tone */
-  --hl-key: #0d9488;
-  --hl-string: #d97706;
-  --hl-number: #db2777;
-  --hl-boolean: #4f46e5;
-  --hl-null: #64748b;
-  --hl-tag: #2563eb;
-  --hl-comment: #94a3b8;
-  --bg-subtle: #f1f5f9;
+  /* Highlighting Colors - Neutralized for Graphite Palette */
+  --hl-key: #0f766e;
+  --hl-string: #92400e;
+  --hl-number: #9d174d;
+  --hl-boolean: #3730a3;
+  --hl-null: #52525b;
+  --hl-tag: #1e40af;
+  --hl-comment: #71717a;
+  --bg-subtle: #f4f4f5;
 }
 
 body {
@@ -140,7 +139,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-card-hover);
+  background: var(--border);
   border-radius: 5px;
   border: 2px solid var(--bg-deep);
 }
@@ -186,55 +185,55 @@ div[class*="-input"] input {
 }
 
 .hl-tag-group {
-  color: #e879f9 !important;
+  color: #d946ef !important;
   font-weight: 600;
 }
 
 .hl-tag-rule {
-  color: #fb923c !important;
+  color: #f97316 !important;
   font-weight: 600;
 }
 
 .hl-tag-product {
-  color: #a78bfa !important;
+  color: #8b5cf6 !important;
   font-weight: 600;
 }
 
 .hl-tag-prop {
-  color: #22d3ee !important;
+  color: #06b6d4 !important;
 }
 
 .hl-tag-meta {
-  color: #94a3b8 !important;
+  color: #64748b !important;
   font-style: italic;
 }
 
-/* Light theme overrides for syntax highlighting */
+/* Light theme overrides for syntax highlighting - Graphite Muting */
 [data-theme="light"] .hl-tag-group {
-  color: #a21caf !important;
+  color: #86198f !important;
 }
 
-/* Fuchsia 700 */
+/* Fuchsia 800 */
 [data-theme="light"] .hl-tag-rule {
-  color: #c2410c !important;
+  color: #9a3412 !important;
 }
 
-/* Orange 700 */
+/* Orange 800 */
 [data-theme="light"] .hl-tag-product {
-  color: #6d28d9 !important;
+  color: #5b21b6 !important;
 }
 
-/* Violet 700 */
+/* Violet 800 */
 [data-theme="light"] .hl-tag-prop {
-  color: #0e7490 !important;
+  color: #155e75 !important;
 }
 
-/* Cyan 700 */
+/* Cyan 800 */
 [data-theme="light"] .hl-tag-meta {
-  color: #475569 !important;
+  color: #4b5563 !important;
 }
 
-/* Slate 600 */
+/* Gray 600 */
 
 /* Specific attribute colors for better debugging */
 .hl-attr-creator {
@@ -582,12 +581,15 @@ h1 {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
   margin-bottom: 0.5rem;
 }
 
+[data-theme="dark"] h1 {
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+}
+
 .subtitle {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 1.1rem;
   text-align: center;
   max-width: 600px;

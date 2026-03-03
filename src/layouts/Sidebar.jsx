@@ -161,7 +161,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                             gap: '12px',
                             padding: '12px 16px',
                             borderRadius: '12px',
-                            background: 'linear-gradient(90deg, var(--primary), #a855f7)',
+                            background: 'var(--primary)',
                             border: 'none',
                             color: '#ffffff',
                             fontSize: '0.9rem',
@@ -169,7 +169,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                             textDecoration: 'none',
-                            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
+                            boxShadow: '0 4px 15px rgba(79, 70, 229, 0.2)'
                         }}
                     >
                         <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download App

@@ -10,14 +10,14 @@ const NaturalLanguageSummary = () => {
     const { priceBook } = state;
 
     const toReadableAdjustment = (type, adj) => {
-        if (!type) return { text: '', color: 'var(--text-muted)', bg: 'rgba(0,0,0,0.05)' };
+        if (!type) return { text: '', color: 'var(--text-muted)', bg: 'rgba(0,0,0,0.03)' };
         const val = parseFloat(adj);
-        if (isNaN(val)) return { text: adj, color: 'var(--text-main)', bg: 'var(--bg-card-hover)' };
+        if (isNaN(val)) return { text: adj, color: 'var(--text-main)', bg: 'var(--bg-deep)' };
 
-        if (type === 'percentDiscount') return { text: `-${val}% Discount`, color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' };
-        if (type === 'percentIncrease') return { text: `+${val}% Markup`, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)' };
-        if (type === 'fixedRate') return { text: `$${val} Fixed Rate`, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)' };
-        return { text: `${adj} (${type})`, color: 'var(--text-main)', bg: 'var(--bg-card-hover)', border: 'var(--border)' };
+        if (type === 'percentDiscount') return { text: `-${val}% Discount`, color: '#059669', bg: 'rgba(5,150,105,0.08)', border: 'rgba(5,150,105,0.2)' };
+        if (type === 'percentIncrease') return { text: `+${val}% Markup`, color: '#d97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.2)' };
+        if (type === 'fixedRate') return { text: `$${val} Fixed Rate`, color: '#0284c7', bg: 'rgba(2,132,199,0.08)', border: 'rgba(2,132,199,0.2)' };
+        return { text: `${adj} (${type})`, color: 'var(--text-main)', bg: 'var(--bg-deep)', border: 'var(--border)' };
     };
 
     const formatList = (items) => {
