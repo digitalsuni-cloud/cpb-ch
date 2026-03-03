@@ -207,9 +207,12 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
     const pbId = parseInt(priceBookId, 10);
     const clientId = parseInt(targetClientApiId, 10);
 
-    // Always arrayify the accounts, defaulting to ["ALL"] if empty or explicitly typed
-    const isAll = !billingAccountOwnerId || billingAccountOwnerId.trim() === '' || billingAccountOwnerId.toUpperCase() === 'ALL';
-    const accountsList = isAll ? ["ALL"] : billingAccountOwnerId.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, ''));
+    // Coerce to string to avoid trim() crash when value is a number or array
+    const rawOwner = Array.isArray(billingAccountOwnerId)
+        ? billingAccountOwnerId.join(',')
+        : String(billingAccountOwnerId ?? '');
+    const isAll = !rawOwner || rawOwner.trim() === '' || rawOwner.trim().toUpperCase() === 'ALL';
+    const accountsList = isAll ? ["ALL"] : rawOwner.split(',').map(s => s.trim().replace(/^['"']|['"']$/g, ''));
 
     // 1. Assign to Customer globally first
     const assignUrl = getUrl('/price_book_assignments', proxyUrl);
@@ -259,7 +262,7 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
         fetchAllPages('/price_book_assignments', 'price_book_assignments', apiKey, proxyUrl),
         fetchAllPages('/price_book_account_assignments', 'price_book_account_assignments', apiKey, proxyUrl),
         fetchAllPages('/price_books', 'price_books', apiKey, proxyUrl),
-        fetchAllCustomers(apiKey, proxyUrl) // PRIMES THE CACHE
+        fetchAllCustomers(apiKey, proxyUrl, true) // PRIMES THE CACHE — force refresh to get latest
     ]);
 
     // Build lookup: base_assignment_id → account assignment record

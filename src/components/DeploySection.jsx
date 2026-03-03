@@ -467,7 +467,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                     Launch a safe simulation of this payload's impact without overwriting live mapping tables.
                                     Dry Run jobs run in the background on CloudHealth and must be reviewed in the CH Portal.
                                 </p>
-                                <div className="input-row">
+                                <div className="input-row" style={{ alignItems: 'flex-start' }}>
                                     <div className="input-group">
                                         <label>Start Month <span style={{ color: 'var(--danger)' }}>*</span></label>
                                         <select
@@ -478,6 +478,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                             ))}
                                         </select>
+                                        <div style={{ minHeight: '18px' }} />{/* spacer to match Client ID hint height */}
                                     </div>
                                     <div className="input-group">
                                         <label>Payer Account ID <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -487,6 +488,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                             onChange={(e) => setDryRunPayerId(e.target.value)}
                                             placeholder="Explicit Payer ID (e.g. 1234)"
                                         />
+                                        <div style={{ minHeight: '18px' }} />{/* spacer */}
                                     </div>
                                     <div className="input-group">
                                         <label>Client API ID <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -498,11 +500,9 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                             placeholder="Target Client ID (e.g. 42346)"
                                             autoComplete="off"
                                         />
-                                        {dryRunCustomer && (
-                                            <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                {dryRunCustomer.name}
-                                            </div>
-                                        )}
+                                        <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {dryRunCustomer ? dryRunCustomer.name : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
