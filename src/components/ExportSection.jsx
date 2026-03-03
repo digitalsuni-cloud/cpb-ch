@@ -541,10 +541,10 @@ const ExportSection = () => {
 
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 {[
-                                    { os: 'Win', icon: <FaWindows />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio.4.0.0.exe' },
-                                    { os: 'Mac (M-Series)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0-arm64.dmg' },
-                                    { os: 'Mac (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0.dmg' },
-                                    { os: 'Linux', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.0.0/CloudHealth.Pricebook.Studio-4.0.0.AppImage' }
+                                    { os: 'Win', icon: <FaWindows />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio.4.1.0.exe' },
+                                    { os: 'Mac (M-Series)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0-arm64.dmg' },
+                                    { os: 'Mac (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0.dmg' },
+                                    { os: 'Linux', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.1.0/CloudHealth.Pricebook.Studio-4.1.0.AppImage' }
                                 ].map((btn) => (
                                     <a
                                         key={btn.os}
