@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BillingRuleList from './BillingRuleList';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 
-const RuleGroup = ({ group }) => {
+const RuleGroup = ({ group, index }) => {
     const { dispatch } = usePriceBook();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
 
@@ -79,25 +79,92 @@ const RuleGroup = ({ group }) => {
 
     const status = getStatus();
 
+    const renderAdjustmentTagForRule = (rule) => {
+        if (!rule.adjustment || isNaN(parseFloat(rule.adjustment))) return null;
+        let label = '';
+        let color = '';
+        switch (rule.type) {
+            case 'percentDiscount': label = `-${rule.adjustment}%`; color = 'var(--success)'; break;
+            case 'percentIncrease': label = `+${rule.adjustment}%`; color = '#ef4444'; break;
+            case 'fixedRate': label = `$${rule.adjustment}`; color = 'var(--secondary)'; break;
+            default: return null;
+        }
+        return (
+            <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: color,
+                background: `${color}15`,
+                padding: '1px 6px',
+                borderRadius: '4px',
+                border: `1px solid ${color}30`,
+                whiteSpace: 'nowrap'
+            }}>
+                {label}
+            </span>
+        );
+    };
+
+    const renderRulesSummary = () => {
+        if (!group.collapsed || !group.rules || group.rules.length === 0) return null;
+
+        const maxVisible = 2;
+        const visibleRules = group.rules.slice(0, maxVisible);
+        const remainingCount = group.rules.length - maxVisible;
+
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    {visibleRules.map((rule, idx) => {
+                        const name = rule.name || "Untitled Rule";
+                        const truncatedName = name.length > 15 ? name.substring(0, 13) + '...' : name;
+
+                        return (
+                            <React.Fragment key={rule.id}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', fontWeight: 500 }}>{truncatedName}</span>
+                                    {renderAdjustmentTagForRule(rule)}
+                                </div>
+                                {(idx < visibleRules.length - 1 || remainingCount > 0) && <span style={{ color: 'var(--text-muted)' }}>|</span>}
+                            </React.Fragment>
+                        );
+                    })}
+                    {remainingCount > 0 && (
+                        <span style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            fontStyle: 'italic',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            +{remainingCount} more
+                        </span>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div ref={setNodeRef} style={style} id={group.id}>
             <div className={`rule-group ${group.collapsed ? 'collapsed' : ''}`}>
                 <div className="rule-group-header" style={{ borderBottom: 'none', paddingBottom: group.collapsed ? '0' : '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '1.5rem', lineHeight: 1 }} title="Drag to reorder">
                                 ⋮⋮
                             </span>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
-                                Rule Group {group.rules && group.rules.length > 0 && <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>({group.rules.length} Rules)</span>}
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                Rule Group {index + 1}
                             </h3>
                             <span
                                 className={`status-badge ${status === 'ACTIVE' ? 'enabled' : 'disabled'}`}
-                                style={getStatusStyle(status)}
+                                style={{ ...getStatusStyle(status), padding: '2px 10px', fontSize: '0.7rem' }}
                                 title={getStatusTooltip(status)}
                             >
                                 {status}
                             </span>
+                            {renderRulesSummary()}
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center' }}>

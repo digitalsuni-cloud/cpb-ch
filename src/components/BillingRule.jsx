@@ -97,36 +97,83 @@ const BillingRule = ({ rule, groupId }) => {
 
                         <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {rule.collapsed ? (
-                                <div
-                                    style={{
-                                        fontSize: '0.85rem',
-                                        fontWeight: 600,
-                                        color: 'var(--text-main)',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        padding: '8px 0',
-                                        cursor: 'pointer'
-                                    }}
-                                    onClick={() => updateRule({ collapsed: false })}
-                                    title={rule.name ? `Rule: ${rule.name}` : "Click to expand and edit"}
-                                >
-                                    {rule.name || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Untitled Rule</span>}
+                                <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={() => updateRule({ collapsed: false })}>
+                                    <div
+                                        style={{
+                                            fontSize: '0.85rem',
+                                            fontWeight: 600,
+                                            color: 'var(--text-main)',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            padding: '8px 0',
+                                            maxWidth: '200px'
+                                        }}
+                                        title={rule.name ? `Rule: ${rule.name}` : "Untitled Rule"}
+                                    >
+                                        {rule.name || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Untitled Rule</span>}
+                                    </div>
+                                    <div style={{ marginLeft: '8px' }}>
+                                        {renderAdjustmentTag()}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden', flex: 1, marginLeft: '12px' }}>
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginRight: '8px' }}>-</span>
+                                        <span
+                                            style={{
+                                                fontSize: '0.8rem',
+                                                color: 'var(--text-secondary)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                maxWidth: '250px'
+                                            }}
+                                            title={(rule.products || []).map(p => p.productName || 'All Products').join(', ')}
+                                        >
+                                            {(rule.products || []).map(p => p.productName || 'All Products').join(', ') || "No products"}
+                                        </span>
+                                        {(() => {
+                                            let totalFilters = 0;
+                                            (rule.products || []).forEach(p => {
+                                                if (p.properties) {
+                                                    Object.values(p.properties).forEach(values => {
+                                                        if (Array.isArray(values)) totalFilters += values.length;
+                                                    });
+                                                }
+                                            });
+                                            if (totalFilters === 0) return null;
+                                            return (
+                                                <span style={{
+                                                    fontSize: '0.7rem',
+                                                    background: 'var(--bg-deep)',
+                                                    color: 'var(--text-muted)',
+                                                    padding: '1px 6px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid var(--border)',
+                                                    marginLeft: '8px',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {totalFilters} {totalFilters === 1 ? 'filter' : 'filters'}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
                             ) : (
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={rule.name}
-                                    onChange={handleChange}
-                                    placeholder="Billing Rule Name"
-                                    title="Enter a name for this billing rule (e.g. Service Discount)"
-                                    className="ruleName"
-                                    style={{ flex: 1, minWidth: 0 }}
-                                    startFocus={true}
-                                />
+                                <>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={rule.name}
+                                        onChange={handleChange}
+                                        placeholder="Billing Rule Name"
+                                        title="Enter a name for this billing rule (e.g. Service Discount)"
+                                        className="ruleName"
+                                        style={{ flex: 1, minWidth: 0 }}
+                                        startFocus={true}
+                                    />
+                                    {renderAdjustmentTag()}
+                                </>
                             )}
-                            {renderAdjustmentTag()}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <motion.button

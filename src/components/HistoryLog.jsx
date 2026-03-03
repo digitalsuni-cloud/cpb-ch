@@ -14,17 +14,17 @@ const DiffViewer = ({ before, after, title, onClose }) => {
         const leftLines = (a || '').split('\n');
         const rightLines = (b || '').split('\n');
 
-        // Trim lines for comparison to avoid highlighting indentation-only changes
-        const leftSet = new Set(leftLines.map(l => l.trim()));
-        const rightSet = new Set(rightLines.map(l => l.trim()));
+        // Simple set-based diffing that ignores leading/trailing whitespace for comparison
+        const leftSet = new Set(leftLines.map(l => l.trim()).filter(Boolean));
+        const rightSet = new Set(rightLines.map(l => l.trim()).filter(Boolean));
 
         const left = leftLines.map(line => ({
             text: line,
-            changed: !rightSet.has(line.trim())
+            changed: line.trim() !== '' && !rightSet.has(line.trim())
         }));
         const right = rightLines.map(line => ({
             text: line,
-            changed: !leftSet.has(line.trim())
+            changed: line.trim() !== '' && !leftSet.has(line.trim())
         }));
         return { left, right };
     };
@@ -32,80 +32,113 @@ const DiffViewer = ({ before, after, title, onClose }) => {
     const { left, right } = computeDiff(before, after);
 
     const renderLines = (lines, side) => (
-        <div style={{ flexGrow: 1, overflow: 'auto', padding: '0', background: 'var(--bg-code)', fontFamily: 'monospace', fontSize: '0.82rem', lineHeight: '1.6' }}>
-            {lines.map((l, i) => (
-                <div
-                    key={i}
-                    style={{
-                        padding: '0 16px',
-                        background: l.changed
-                            ? (side === 'left' ? 'rgba(239,68,68,0.18)' : 'rgba(16,185,129,0.18)')
-                            : 'transparent',
-                        borderLeft: l.changed
-                            ? (side === 'left' ? '3px solid rgba(239,68,68,0.7)' : '3px solid rgba(16,185,129,0.7)')
-                            : '3px solid transparent',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all',
-                        color: l.changed ? (side === 'left' ? '#fca5a5' : '#6ee7b7') : 'var(--text-secondary)'
-                    }}
-                >
-                    {l.text || '\u00a0'}
-                </div>
-            ))}
+        <div style={{
+            flexGrow: 1,
+            overflow: 'auto',
+            background: 'var(--bg-code)',
+            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+            fontSize: '0.8rem',
+            lineHeight: '1.5'
+        }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+                <tbody>
+                    {lines.map((l, i) => (
+                        <tr
+                            key={i}
+                            style={{
+                                background: l.changed
+                                    ? (side === 'left' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)')
+                                    : 'transparent',
+                                borderLeft: l.changed
+                                    ? (side === 'left' ? '4px solid #ef4444' : '4px solid #10b981')
+                                    : '4px solid transparent'
+                            }}
+                        >
+                            {/* Line Number Gutter */}
+                            <td style={{
+                                width: '40px',
+                                minWidth: '40px',
+                                textAlign: 'right',
+                                padding: '0 12px 0 4px',
+                                color: 'rgba(255,255,255,0.2)',
+                                userSelect: 'none',
+                                borderRight: '1px solid rgba(255,255,255,0.05)',
+                                fontSize: '0.7rem'
+                            }}>
+                                {i + 1}
+                            </td>
+                            {/* Code Content */}
+                            <td style={{
+                                padding: '0 16px',
+                                whiteSpace: 'pre', // No wrap as requested
+                                color: l.changed ? (side === 'left' ? '#fca5a5' : '#6ee7b7') : 'var(--text-secondary)'
+                            }}>
+                                {l.text || '\u00a0'}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 
     return createPortal(
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(5px)',
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
             zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: expanded ? '2vh 2vw' : '4vh 24px'
+            padding: expanded ? '0' : '2vh 2vw'
         }}>
             <motion.div
-                initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 style={{
-                    background: 'var(--bg-card)', border: '1px solid var(--border)',
-                    borderRadius: '16px', width: '100%', maxWidth: expanded ? '100%' : '1200px',
-                    height: expanded ? '100%' : '85vh',
-                    display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)'
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: expanded ? '0' : '12px',
+                    width: '100%',
+                    maxWidth: expanded ? '100%' : '1400px',
+                    height: expanded ? '100%' : '90vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    boxShadow: '0 30px 60px -12px rgba(0,0,0,0.8)'
                 }}
             >
                 {/* Header */}
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-deep)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-                    <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.1rem', fontWeight: 600 }}>{title}</h3>
+                <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-deep)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                    <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.5px' }}>{title}</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => setExpanded(!expanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px 8px', borderRadius: '8px' }}>
+                        <button onClick={() => setExpanded(!expanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {expanded ? <FaCompressAlt /> : <FaExpandAlt />}
                         </button>
-                        <button onClick={onClose} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px 8px', borderRadius: '8px' }}>
+                        <button onClick={onClose} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <FaTimes />
                         </button>
                     </div>
                 </div>
 
                 {/* Legend */}
-                <div style={{ display: 'flex', gap: '16px', padding: '8px 16px', background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)', fontSize: '0.78rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 10, height: 10, background: 'rgba(239,68,68,0.5)', borderRadius: 2, display: 'inline-block' }} /> Removed / Changed</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 10, height: 10, background: 'rgba(16,185,129,0.5)', borderRadius: 2, display: 'inline-block' }} /> Added / New</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 10, height: 10, background: 'transparent', border: '1px solid var(--border)', borderRadius: 2, display: 'inline-block' }} /> Unchanged</span>
+                <div style={{ display: 'flex', gap: '24px', padding: '10px 20px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ width: 12, height: 12, background: 'rgba(239,68,68,0.4)', border: '1px solid #ef4444', borderRadius: 2, display: 'inline-block' }} /> Removed / Changed</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ width: 12, height: 12, background: 'rgba(16,185,129,0.4)', border: '1px solid #10b981', borderRadius: 2, display: 'inline-block' }} /> Added / New</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ width: 12, height: 12, background: 'transparent', border: '1px solid var(--border)', borderRadius: 2, display: 'inline-block' }} /> Unchanged</span>
                 </div>
 
                 {/* Panes */}
                 <div style={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
                     {before && (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: after ? '1px solid var(--border)' : 'none', overflow: 'hidden' }}>
-                            <div style={{ padding: '6px 16px', background: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
-                                Before
+                            <div style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.08)', color: '#fca5a5', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
+                                BEFORE
                             </div>
                             {renderLines(left, 'left')}
                         </div>
                     )}
                     {after && (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <div style={{ padding: '6px 16px', background: 'rgba(16, 185, 129, 0.12)', color: '#6ee7b7', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
-                                {before ? 'After' : 'Current'}
+                            <div style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.08)', color: '#6ee7b7', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
+                                {before ? 'AFTER' : 'CURRENT SPECIFICATION'}
                             </div>
                             {renderLines(right, 'right')}
                         </div>

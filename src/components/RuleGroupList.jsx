@@ -110,8 +110,8 @@ const RuleGroupList = () => {
                     items={state.priceBook.ruleGroups.map(g => g.id)}
                     strategy={verticalListSortingStrategy}
                 >
-                    {state.priceBook.ruleGroups.map(group => (
-                        <RuleGroup key={group.id} group={group} />
+                    {state.priceBook.ruleGroups.map((group, index) => (
+                        <RuleGroup key={group.id} group={group} index={index} />
                     ))}
                 </SortableContext>
             </div>
