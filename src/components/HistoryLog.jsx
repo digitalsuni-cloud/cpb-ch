@@ -13,16 +13,18 @@ const DiffViewer = ({ before, after, title, onClose }) => {
         if (!a && !b) return { left: [], right: [] };
         const leftLines = (a || '').split('\n');
         const rightLines = (b || '').split('\n');
-        const leftSet = new Set(leftLines);
-        const rightSet = new Set(rightLines);
+
+        // Trim lines for comparison to avoid highlighting indentation-only changes
+        const leftSet = new Set(leftLines.map(l => l.trim()));
+        const rightSet = new Set(rightLines.map(l => l.trim()));
 
         const left = leftLines.map(line => ({
             text: line,
-            changed: !rightSet.has(line)
+            changed: !rightSet.has(line.trim())
         }));
         const right = rightLines.map(line => ({
             text: line,
-            changed: !leftSet.has(line)
+            changed: !leftSet.has(line.trim())
         }));
         return { left, right };
     };
@@ -217,9 +219,13 @@ const HistoryLog = () => {
                             {item.type === 'PRICEBOOK_CREATE' ? 'Created' : 'Updated specification for'} <strong>{d.bookName}</strong>&nbsp;(ID: {d.bookId})
                         </div>
                         {(d.beforeXml || d.afterXml) && (
-                            <button onClick={() => setViewingDiff({ before: d.beforeXml, after: d.afterXml, title: `Spec Diff — ${d.bookName}` })}
+                            <button onClick={() => setViewingDiff({
+                                before: d.beforeXml,
+                                after: d.afterXml,
+                                title: item.type === 'PRICEBOOK_CREATE' ? `Pricebook Spec — ${d.bookName}` : `Spec Diff — ${d.bookName}`
+                            })}
                                 style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
-                                View Spec Diff
+                                {item.type === 'PRICEBOOK_CREATE' ? 'View Spec' : 'View Spec Diff'}
                             </button>
                         )}
                     </div>
