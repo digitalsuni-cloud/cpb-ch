@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch } from 'react-icons/fa';
-import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError } from '../utils/chApi';
+import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch, FaPlay } from 'react-icons/fa';
+import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError, performDryRun, fetchAwsAccountAssignments } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
-import { parseXMLToState } from '../utils/converter';
+import { parseXMLToState, generateXML } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
-import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete } from '../utils/history/historyLogger';
+import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete, logDryRun } from '../utils/history/historyLogger';
 
 let specCache = new Map(); // bookId → xml string
 
@@ -35,6 +35,10 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     const [xmlRefreshing, setXmlRefreshing] = useState(false);
     const [legendOpen, setLegendOpen] = useState(false);
     const [openFilter, setOpenFilter] = useState(null); // 'customer' | 'book' | 'payer'
+
+    // Dry Run state
+    const [dryRunData, setDryRunData] = useState(null); // { assignment, month, payerId, payerOptions, isLoadingOptions }
+    const [isDryRunExecuting, setIsDryRunExecuting] = useState(false);
 
     // Overlay state for destructive actions
     const [actionProgress, setActionProgress] = useState({ active: false, title: '', status: '', logs: [], done: false, error: false });
@@ -313,6 +317,126 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         }
     };
 
+    const handleDryRunOpen = async (item) => {
+        const isAllOrNone = !item.billing_account_owner_id ||
+            item.billing_account_owner_id === 'ALL' ||
+            item.billing_account_owner_id === 'None' ||
+            item.billing_account_owner_id === 'N/A';
+
+        // Set initial modal state
+        setDryRunData({
+            assignment: item,
+            month: getMonthOptions(13)[0].value,
+            payerId: (isAllOrNone ? '' : item.billing_account_owner_id),
+            payerOptions: [],
+            isLoadingOptions: true,
+            isAllOrNone: isAllOrNone
+        });
+
+        // Fetch payer account assignments asynchronously
+        const apiKey = localStorage.getItem('ch_api_key');
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        try {
+            const assignments = await fetchAwsAccountAssignments(item.target_client_api_id, apiKey, proxyUrl);
+            const options = [...new Set(assignments.map(a => a.payer_account_owner_id).filter(Boolean))];
+            setDryRunData(prev => prev ? { ...prev, payerOptions: options, isLoadingOptions: false } : null);
+        } catch (e) {
+            console.error('Failed to fetch payer options', e);
+            setDryRunData(prev => prev ? { ...prev, isLoadingOptions: false } : null);
+        }
+    };
+
+    const handleDryRunSubmit = async () => {
+        if (!dryRunData.payerId || dryRunData.payerId.trim() === '') {
+            alert('A specific Payer Account ID is required for a Dry Run.');
+            return;
+        }
+
+        const { assignment, month, payerId } = dryRunData;
+        const apiKey = localStorage.getItem('ch_api_key');
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+
+        setIsDryRunExecuting(true);
+        setActionProgress({
+            active: true,
+            title: 'Initiating Dry Run',
+            status: `Connecting to CloudHealth...`,
+            logs: [`Starting dry run for ${assignment.book_name}...`],
+            done: false,
+            error: false
+        });
+
+        try {
+            // No need to fetch specification XML if we are using the existing pricebook ID
+            setActionProgress(prev => ({ ...prev, status: 'Submitting dry run request...' }));
+            const response = await performDryRun(
+                assignment.id,
+                null, // No XML required for existing ID
+                month,
+                assignment.target_client_api_id,
+                payerId,
+                apiKey,
+                proxyUrl,
+                true // useExistingId
+            );
+
+            setActionProgress(prev => ({
+                ...prev,
+                status: 'Dry Run Queued Successfully!',
+                logs: [...prev.logs, `✅ The dry run evaluation has been initiated.`, `Please check the CloudHealth portal for results.`],
+                done: true
+            }));
+
+            logDryRun(
+                assignment.book_name,
+                assignment.target_client_api_id,
+                assignment.customer_name,
+                payerId,
+                month,
+                null, // jobId removed as per request
+                null, // tempBookId removed as per request
+                true
+            );
+
+            setDryRunData(null);
+        } catch (err) {
+            setActionProgress(prev => ({
+                ...prev,
+                status: `Dry Run Failed`,
+                logs: [...prev.logs, `❌ Error: ${err.message}`],
+                done: true,
+                error: true
+            }));
+
+            logDryRun(
+                assignment.book_name,
+                assignment.target_client_api_id,
+                assignment.customer_name,
+                payerId,
+                month,
+                null,
+                null,
+                false,
+                err.message
+            );
+        } finally {
+            setIsDryRunExecuting(false);
+        }
+    };
+
+    const getMonthOptions = (count = 12) => {
+        const options = [];
+        const d = new Date();
+        for (let i = 0; i < count; i++) {
+            const label = d.toLocaleString('default', { month: 'short' }) + ' ' + d.getFullYear();
+            const yearStr = d.getFullYear();
+            const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+            options.push({ label, value: `${yearStr}-${monthStr}-01` });
+            d.setMonth(d.getMonth() - 1);
+        }
+        return options;
+    };
+
     // Lightweight syntax highlighter for XML viewer
     const highlightXml = (code) => {
         if (!code) return '';
@@ -451,6 +575,7 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                                 { icon: <FaEye size={10} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)', label: 'View XML Spec' },
                                                                 { icon: <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '12px' }}><FaBookOpen size={10} style={{ position: 'absolute' }} /><FaPen size={6} style={{ position: 'absolute', bottom: '-1px', right: '-2px' }} /></span>, color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', label: 'Edit Pricebook Rules' },
                                                                 { icon: <FaAlignLeft size={10} />, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)', label: 'View Summary' },
+                                                                { icon: <FaPlay size={10} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', label: 'Pricebook Dry Run' },
                                                                 { icon: <FaUserEdit size={10} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.3)', label: 'Edit Assignment' },
                                                                 { icon: <FaTimes size={10} />, color: '#eab308', bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.3)', label: 'Unassign from Customer' },
                                                                 { icon: <FaTrash size={10} />, color: 'var(--danger)', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', label: 'Delete Assignment & Pricebook' },
@@ -528,6 +653,13 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                         title="View Pricebook Summary"
                                                     >
                                                         <FaAlignLeft size={11} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDryRunOpen(item)}
+                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                        title="Launch Pricebook Dry Run"
+                                                    >
+                                                        <FaPlay size={11} style={{ marginLeft: '2px' }} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleEditAssignment(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
@@ -668,6 +800,114 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                     </div>
                                     <div style={{ padding: '24px', overflowX: 'auto', overflowY: 'auto', flexGrow: 1, background: 'var(--bg-code)' }}>
                                         <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: highlightXml(viewingXml) }} />
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Dry Run Modal */}
+                    <AnimatePresence>
+                        {dryRunData && (
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+                                onClick={() => !isDryRunExecuting && setDryRunData(null)}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+                                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-deep)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ padding: '8px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', color: '#f59e0b', display: 'flex' }}>
+                                                <FaPlay size={14} />
+                                            </div>
+                                            <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 600 }}>Pricebook Dry Run</h3>
+                                        </div>
+                                        <button onClick={() => setDryRunData(null)} disabled={isDryRunExecuting} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+
+                                    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                            You're test running the <strong style={{ color: 'var(--primary)' }}>{dryRunData.assignment.book_name}</strong> for the <strong style={{ color: 'var(--primary)' }}>{dryRunData.assignment.customer_name.replace(/\s*\(\d+\)$/, '')}</strong>.
+                                        </p>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div className="input-group">
+                                                <label style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px', display: 'block' }}>Select Month</label>
+                                                <select
+                                                    value={dryRunData.month}
+                                                    onChange={(e) => setDryRunData({ ...dryRunData, month: e.target.value })}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--bg-deep)', border: '1px solid var(--border)', color: 'var(--text-main)', outline: 'none' }}
+                                                >
+                                                    {getMonthOptions(13).map(opt => (
+                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    Payer Account ID
+                                                    {dryRunData.isLoadingOptions && (
+                                                        <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
+                                                    )}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    list="dry-run-payer-suggestions"
+                                                    value={dryRunData.payerId}
+                                                    onChange={(e) => setDryRunData({ ...dryRunData, payerId: e.target.value })}
+                                                    disabled={isDryRunExecuting}
+                                                    placeholder="Select or enter Payer ID"
+                                                    style={{
+                                                        width: '100%', padding: '10px', borderRadius: '8px',
+                                                        background: 'var(--bg-deep)',
+                                                        border: '1px solid var(--border)',
+                                                        color: 'var(--text-main)',
+                                                        outline: 'none',
+                                                        cursor: isDryRunExecuting ? 'not-allowed' : 'text'
+                                                    }}
+                                                />
+                                                <datalist id="dry-run-payer-suggestions">
+                                                    {dryRunData.payerOptions.map(opt => (
+                                                        <option key={opt} value={opt} />
+                                                    ))}
+                                                </datalist>
+                                                {!dryRunData.isAllOrNone && (
+                                                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                        Pre-populated from assignment (Editable).
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ marginTop: '12px', display: 'flex', gap: '12px' }}>
+                                            <button
+                                                onClick={() => setDryRunData(null)}
+                                                disabled={isDryRunExecuting}
+                                                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 600 }}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleDryRunSubmit}
+                                                disabled={isDryRunExecuting || !dryRunData.payerId}
+                                                style={{
+                                                    flex: 2, padding: '12px', borderRadius: '8px', border: 'none',
+                                                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                                    color: 'white', cursor: (isDryRunExecuting || !dryRunData.payerId) ? 'not-allowed' : 'pointer',
+                                                    fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                    opacity: (isDryRunExecuting || !dryRunData.payerId) ? 0.6 : 1
+                                                }}
+                                            >
+                                                {isDryRunExecuting ? <><FaSyncAlt className="spin" /> Submitting...</> : <><FaPlay size={10} /> Launch Dry Run</>}
+                                            </button>
+                                        </div>
                                     </div>
                                 </motion.div>
                             </motion.div>

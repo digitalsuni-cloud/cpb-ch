@@ -139,6 +139,6 @@ export const logDryRun = (bookName, customerId, customerName, payerId, startMont
         title: `Dry Run: ${bookName || 'Pricebook'} for ${customerName || customerId}${monthLabel ? ` — ${monthLabel}` : ''}`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
-        details: { bookName, customerId, customerName, payerId, startMonth, jobId, tempBookId }
+        details: { bookName, customerId, customerName, payerId, startMonth, tempBookId }
     });
 };

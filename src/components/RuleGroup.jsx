@@ -113,20 +113,46 @@ const RuleGroup = ({ group, index }) => {
         const remainingCount = group.rules.length - maxVisible;
 
         return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>:</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '8px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '1rem', flexShrink: 0 }}>:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     {visibleRules.map((rule, idx) => {
                         const name = rule.name || "Untitled Rule";
-                        const truncatedName = name.length > 15 ? name.substring(0, 13) + '...' : name;
 
                         return (
                             <React.Fragment key={rule.id}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
-                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', fontWeight: 500 }}>{truncatedName}</span>
-                                    {renderAdjustmentTagForRule(rule)}
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        minWidth: 0,
+                                        flex: '1 1 0', // equal share for every rule
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    <span
+                                        title={name}
+                                        style={{
+                                            fontSize: '0.9rem',
+                                            color: 'var(--text-main)',
+                                            fontWeight: 500,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            minWidth: 0,
+                                            cursor: 'default'
+                                        }}
+                                    >
+                                        {name}
+                                    </span>
+                                    <span style={{ flexShrink: 0 }}>
+                                        {renderAdjustmentTagForRule(rule)}
+                                    </span>
                                 </div>
-                                {(idx < visibleRules.length - 1 || remainingCount > 0) && <span style={{ color: 'var(--text-muted)' }}>|</span>}
+                                {(idx < visibleRules.length - 1 || remainingCount > 0) && (
+                                    <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>|</span>
+                                )}
                             </React.Fragment>
                         );
                     })}
@@ -135,7 +161,8 @@ const RuleGroup = ({ group, index }) => {
                             fontSize: '0.75rem',
                             color: 'var(--text-muted)',
                             fontStyle: 'italic',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                         }}>
                             +{remainingCount} more
                         </span>

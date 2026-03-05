@@ -340,8 +340,6 @@ const HistoryLog = () => {
                             <span style={{ fontWeight: 600 }}>{d.payerId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start Month</span>
                             <span style={{ fontWeight: 600 }}>{d.startMonth ? d.startMonth.substring(0, 7) : '—'}</span>
-                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Job ID</span>
-                            <span style={{ fontWeight: 600 }}>{d.jobId || (item.status === 'ERROR' ? '—' : 'Pending')}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Temp Pricebook ID</span>
                             <span style={{ fontWeight: 600, color: d.tempBookId ? 'var(--warning, #f59e0b)' : 'inherit' }}>
                                 {d.tempBookId || '—'}

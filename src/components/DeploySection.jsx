@@ -190,9 +190,6 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 );
 
                 addLog(`✅ Dry Run Queued successfully.`);
-                if (dryRunResponse && dryRunResponse.id) {
-                    addLog(`Job ID: ${dryRunResponse.id}`);
-                }
 
                 // Log to Action History
                 logDryRun(
