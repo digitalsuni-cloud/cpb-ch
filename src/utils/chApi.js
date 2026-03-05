@@ -124,9 +124,12 @@ export const normalizePayer = (val) => {
 };
 
 const getUrl = (path, proxyConfig) => {
+    // Ensure path starts with a version, default to /v1 if missing
+    const versionedPath = path.startsWith('/v') ? path : `/v1${path}`;
+
     // If a specific CORS proxy is configured by user, use it
     if (proxyConfig && proxyConfig.trim().length > 0) {
-        return `${proxyConfig.trim()}${CH_API_BASE}${path}`;
+        return `${proxyConfig.trim()}${CH_API_BASE}${versionedPath}`;
     }
 
     // Auto-detect if running on local development server
@@ -134,17 +137,30 @@ const getUrl = (path, proxyConfig) => {
 
     // If local dev, use the Vite dev server proxy to bypass CORS
     if (isLocalhost) {
-        return `/api/ch/v1${path}`;
+        return `/api/ch${versionedPath}`;
     }
 
-    // Default: Return direct CloudHealth URL (works with browser extensions or in same-origin environments)
-    return `${CH_API_BASE}${path}`;
+    // Default: Return direct CloudHealth URL
+    return `${CH_API_BASE}${versionedPath}`;
 };
 
 const getHeaders = (apiKey) => ({
     'Authorization': `Bearer ${apiKey}`,
     'Content-Type': 'application/json'
 });
+
+export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUrl = '') => {
+    // Note: This uses v2 API as requested
+    const url = getUrl(`/v2/aws_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(apiKey)
+    });
+
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.aws_account_assignments || [];
+};
 
 export const getPriceBooks = async (apiKey, proxyUrl = '') => {
     const url = getUrl('/price_books', proxyUrl);
@@ -395,17 +411,26 @@ export const getSingleCustomerAssignment = async (targetClientId, apiKey, proxyU
     };
 };
 
-export const performDryRun = async (priceBookId, generatedXml, startMonthDate, targetClientId, billingAccountId, apiKey, proxyUrl = '') => {
-    // ALWAYS create a dummy pricebook for Dry Runs so we don't accidentally update live mapping rule tables.
-    const createRes = await createPriceBook(`Temp Dry Run ${Date.now()}`, generatedXml, apiKey, proxyUrl);
-    const tempPriceBookId = createRes.price_book ? createRes.price_book.id : createRes.id;
+export const performDryRun = async (priceBookId, generatedXml, startMonthDate, targetClientId, billingAccountId, apiKey, proxyUrl = '', useExistingId = false) => {
+    let effectivePriceBookId = priceBookId;
+    let tempPriceBookId = null;
+
+    // Only create a temporary pricebook if we are NOT using an existing one
+    if (!useExistingId) {
+        if (!generatedXml) throw new Error("Specification XML is required to create a temporary Dry Run environment.");
+        const createRes = await createPriceBook(`Temp Dry Run ${Date.now()}`, generatedXml, apiKey, proxyUrl);
+        effectivePriceBookId = createRes.price_book ? createRes.price_book.id : createRes.id;
+        tempPriceBookId = effectivePriceBookId;
+    }
+
+    if (!effectivePriceBookId) throw new Error("Price Book ID is required for evaluation.");
 
     // YYYY-MM
     const monthFormatted = startMonthDate.substring(0, 7);
 
     const url = getUrl(`/price_books/dry_run`, proxyUrl);
     const payload = {
-        price_book_id: parseInt(tempPriceBookId, 10),
+        price_book_id: parseInt(effectivePriceBookId, 10),
         target_client_api_id: parseInt(targetClientId, 10),
         month: monthFormatted,
         billing_account_owner_id: null
