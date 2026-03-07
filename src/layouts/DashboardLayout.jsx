@@ -3,10 +3,10 @@ import Sidebar from './Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import SettingsModal from '../components/SettingsModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCog } from 'react-icons/fa';
+import { FaCog, FaSyncAlt } from 'react-icons/fa';
 import { isElectronApp } from '../utils/env';
 
-const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setShowHelp }) => {
+const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setShowHelp, onCheckUpdates }) => {
     const [showSettings, setShowSettings] = useState(false);
 
     return (
@@ -73,26 +73,48 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'absolute', right: '32px' }}>
                         {isElectronApp() && (
-                            <button
-                                onClick={() => setShowSettings(true)}
-                                className="button-ghost"
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    padding: '8px',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '1.2rem',
-                                    transition: 'color 0.2s'
-                                }}
-                                title="API Settings"
-                            >
-                                <FaCog />
-                            </button>
+                            <>
+                                <button
+                                    onClick={onCheckUpdates}
+                                    className="button-ghost"
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        padding: '8px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1.1rem',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    title="Check for App Updates"
+                                >
+                                    <FaSyncAlt />
+                                </button>
+                                <button
+                                    onClick={() => setShowSettings(true)}
+                                    className="button-ghost"
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        padding: '8px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1.2rem',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    title="API Settings"
+                                >
+                                    <FaCog />
+                                </button>
+                            </>
                         )}
                         <ThemeToggle />
                     </div>
