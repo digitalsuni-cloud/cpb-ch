@@ -22,83 +22,100 @@ function createWindow() {
         win.loadFile(path.join(__dirname, '../dist/index.html'));
     }
 
-    // ── Find-in-page (Cmd/Ctrl+F) ─────────────────────────────────────────────
-    // Inject a lightweight floating search bar after the page loads
+    // ── Find-in-page (Native Electron API) ───────────────────────────────────
+    ipcMain.on('find-in-page', (e, text, options) => {
+        if (!text) {
+            win.webContents.stopFindInPage('clearSelection');
+            return;
+        }
+        win.webContents.findInPage(text, options);
+    });
+
+    win.webContents.on('found-in-page', (event, result) => {
+        win.webContents.send('find-in-page-results', {
+            active: result.activeMatchOrdinal,
+            count: result.matches
+        });
+    });
+
     win.webContents.on('did-finish-load', () => {
         win.webContents.executeJavaScript(`
             (function() {
+                const { ipcRenderer } = require('electron');
                 if (document.getElementById('__electron_find_bar__')) return;
 
                 const bar = document.createElement('div');
                 bar.id = '__electron_find_bar__';
                 bar.style.cssText = [
-                    'position:fixed', 'top:8px', 'right:12px', 'z-index:99999',
-                    'display:none', 'align-items:center', 'gap:6px',
+                    'position:fixed', 'top:12px', 'right:12px', 'z-index:999999',
+                    'display:none', 'align-items:center', 'gap:8px',
                     'background:var(--bg-card,#1e1e2e)', 'border:1px solid var(--border,#3d3d5c)',
-                    'border-radius:10px', 'padding:6px 10px',
-                    'box-shadow:0 8px 24px rgba(0,0,0,0.55)',
-                    'font-family:Inter,system-ui,sans-serif'
+                    'border-radius:12px', 'padding:8px 12px',
+                    'box-shadow:0 12px 32px rgba(0,0,0,0.6)',
+                    'font-family:Inter,system-ui,sans-serif', 'backdrop-filter:blur(8px)'
                 ].join(';');
 
                 const input = document.createElement('input');
                 input.placeholder = 'Find in page…';
                 input.style.cssText = [
                     'background:var(--bg-deep,#13131f)', 'border:1px solid var(--border,#3d3d5c)',
-                    'border-radius:6px', 'padding:4px 10px', 'color:var(--text-main,#fff)',
-                    'width:200px', 'outline:none', 'font-size:13px'
+                    'border-radius:8px', 'padding:6px 12px', 'color:var(--text-main,#fff)',
+                    'width:220px', 'outline:none', 'font-size:13px', 'transition:border-color 0.2s'
                 ].join(';');
+                input.onfocus = () => input.style.borderColor = 'var(--primary,#8b5cf6)';
+                input.onblur = () => input.style.borderColor = 'var(--border,#3d3d5c)';
 
                 const counter = document.createElement('span');
-                counter.style.cssText = 'color:var(--text-muted,#888);min-width:60px;text-align:center;font-size:12px';
+                counter.style.cssText = 'color:var(--text-muted,#888);min-width:70px;text-align:center;font-size:12px;font-variant-numeric:tabular-nums';
 
-                const mkBtn = (label) => {
+                const mkBtn = (label, title) => {
                     const b = document.createElement('button');
-                    b.textContent = label;
-                    b.style.cssText = 'background:none;border:none;color:var(--text-muted,#aaa);cursor:pointer;font-size:14px;padding:0 4px;line-height:1';
+                    b.innerHTML = label;
+                    b.title = title;
+                    b.style.cssText = 'background:none;border:none;color:var(--text-muted,#aaa);cursor:pointer;font-size:16px;padding:4px;line-height:1;display:flex;align-items:center;transition:color 0.2s';
+                    b.onmouseenter = () => b.style.color = 'var(--text-main,#fff)';
+                    b.onmouseleave = () => b.style.color = 'var(--text-muted,#aaa)';
                     return b;
                 };
-                const btnPrev  = mkBtn('↑');
-                const btnNext  = mkBtn('↓');
-                const btnClose = mkBtn('✕');
-
-                let activeIdx = 0, results = 0;
-                const updateCounter = () => {
-                    counter.textContent = results > 0 ? (activeIdx + 1) + ' / ' + results : (input.value ? '0 results' : '');
-                };
+                
+                const btnPrev  = mkBtn('↑', 'Previous (Shift+Enter)');
+                const btnNext  = mkBtn('↓', 'Next (Enter)');
+                const btnClose = mkBtn('✕', 'Close (Esc)');
 
                 input.addEventListener('input', () => {
-                    activeIdx = 0;
-                    if (!input.value) { window.find('', false, false, false, false, true); counter.textContent = ''; results = 0; return; }
-                    const found = window.find(input.value, false, false, true, false, true);
-                    results = found ? 1 : 0;
-                    updateCounter();
+                    ipcRenderer.send('find-in-page', input.value, { forward: true, findNext: false });
                 });
 
                 input.addEventListener('keydown', e => {
-                    if (e.key === 'Enter') { e.shiftKey ? btnPrev.click() : btnNext.click(); }
+                    if (e.key === 'Enter') { 
+                        e.preventDefault();
+                        ipcRenderer.send('find-in-page', input.value, { forward: !e.shiftKey, findNext: true });
+                    }
                     if (e.key === 'Escape') { btnClose.click(); }
                     e.stopPropagation();
                 });
 
                 btnNext.addEventListener('click', () => {
-                    if (!input.value) return;
-                    window.find(input.value, false, false, true);
-                    activeIdx = (activeIdx + 1) % Math.max(results, 1);
-                    updateCounter();
+                    ipcRenderer.send('find-in-page', input.value, { forward: true, findNext: true });
                 });
 
                 btnPrev.addEventListener('click', () => {
-                    if (!input.value) return;
-                    window.find(input.value, false, true, true);
-                    if (activeIdx > 0) activeIdx--;
-                    updateCounter();
+                    ipcRenderer.send('find-in-page', input.value, { forward: false, findNext: true });
                 });
 
                 btnClose.addEventListener('click', () => {
                     bar.style.display = 'none';
-                    window.find('', false, false, false, false, true);
+                    ipcRenderer.send('find-in-page', '');
                     input.value = '';
                     counter.textContent = '';
+                });
+
+                ipcRenderer.on('find-in-page-results', (e, result) => {
+                    if (input.value) {
+                        counter.textContent = result.count > 0 ? (result.active + ' / ' + result.count) : '0 results';
+                    } else {
+                        counter.textContent = '';
+                    }
                 });
 
                 bar.append(input, btnPrev, btnNext, counter, btnClose);
