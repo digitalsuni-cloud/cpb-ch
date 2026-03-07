@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePriceBook } from './context/PriceBookContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import HelpSection from './components/HelpSection';
@@ -25,6 +25,46 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const { toasts, showToast, removeToast } = useToast();
 
+  const checkForUpdates = useCallback(async (manual = false) => {
+    if (!isElectronApp()) return;
+
+    try {
+      const res = await fetch('https://api.github.com/repos/digitalsuni-cloud/cpb-ch/releases/latest');
+      const data = await res.json();
+      if (!data || !data.tag_name) throw new Error("Invalid response");
+
+      const latestVersion = data.tag_name.replace(/^v/, '');
+      const currentVersion = import.meta.env.VITE_APP_VERSION;
+
+      if (latestVersion && currentVersion) {
+        const isNewer = latestVersion.localeCompare(currentVersion, undefined, { numeric: true, sensitivity: 'base' }) > 0;
+        if (isNewer) {
+          showToast({
+            type: 'info',
+            title: 'Update Available',
+            message: `A newer version of the standalone app (v${latestVersion}) is available!`,
+            duration: 0, // sticky
+            dedupeKey: 'app-update',
+            action: {
+              label: 'Go to Downloads',
+              icon: <span style={{ marginRight: '2px' }}>⬇️</span>,
+              onClick: () => setActiveView('export')
+            }
+          });
+        } else if (manual) {
+          showToast({ type: 'success', title: 'Up to Date', message: `You are running the latest version (v${currentVersion}).` });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to check for updates:', e);
+      if (manual) showToast({ type: 'error', title: 'Update Check Failed', message: 'Could not reach GitHub to check for updates.' });
+    }
+  }, [showToast, setActiveView]);
+
+  useEffect(() => {
+    checkForUpdates(false);
+  }, [checkForUpdates]);
+
   return (
     <>
       <Toast toasts={toasts} removeToast={removeToast} />
@@ -33,6 +73,7 @@ function App() {
         setActiveView={setActiveView}
         showHelp={showHelp}
         setShowHelp={setShowHelp}
+        onCheckUpdates={() => checkForUpdates(true)}
       >
         <HelpSection isOpen={showHelp} onClose={() => setShowHelp(false)} />
 

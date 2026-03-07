@@ -45,9 +45,10 @@ function ToastItem({ toast, removeToast }) {
     const c = COLORS[toast.type] || COLORS.info;
 
     useEffect(() => {
+        if (toast.duration === 0) return; // sticky toast
         const timer = setTimeout(() => removeToast(toast.id), toast.duration || 6000);
         return () => clearTimeout(timer);
-    }, [toast.id]);
+    }, [toast.id, toast.duration, removeToast]);
 
     return (
         <motion.div
@@ -88,7 +89,7 @@ function ToastItem({ toast, removeToast }) {
                         onClick={toast.action.onClick}
                         style={{ marginTop: '8px', background: 'none', border: `1px solid ${c.border}`, color: c.text, borderRadius: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                     >
-                        <FaCog size={10} /> {toast.action.label}
+                        {toast.action.icon || <FaCog size={10} />} {toast.action.label}
                     </button>
                 )}
             </div>
