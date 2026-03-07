@@ -1,4 +1,4 @@
-export const CH_API_BASE = 'https://chapi.cloudhealthtech.com/v1';
+export const CH_API_BASE = 'https://chapi.cloudhealthtech.com';
 
 // Typed error classes — let callers distinguish auth failures from other errors
 export class ApiAuthError extends Error {
@@ -127,7 +127,7 @@ const getUrl = (path, proxyConfig) => {
     // Ensure path starts with a version, default to /v1 if missing
     const versionedPath = path.startsWith('/v') ? path : `/v1${path}`;
 
-    // If a specific CORS proxy is configured by user, use it
+    // If a specific CORS proxy is configured by user, prepend it before the full CH URL
     if (proxyConfig && proxyConfig.trim().length > 0) {
         return `${proxyConfig.trim()}${CH_API_BASE}${versionedPath}`;
     }
@@ -135,12 +135,12 @@ const getUrl = (path, proxyConfig) => {
     // Auto-detect if running on local development server
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    // If local dev, use the Vite dev server proxy to bypass CORS
+    // If local dev, use the Vite dev server proxy to bypass CORS (/api/ch → https://chapi.cloudhealthtech.com)
     if (isLocalhost) {
         return `/api/ch${versionedPath}`;
     }
 
-    // Default: Return direct CloudHealth URL
+    // Default: Return direct CloudHealth URL (bare host + versioned path)
     return `${CH_API_BASE}${versionedPath}`;
 };
 
