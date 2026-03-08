@@ -384,7 +384,7 @@ const ExportSection = () => {
                 <div
                     className="output-box"
                     style={{
-                        background: 'var(--bg-deep)',
+                        background: 'var(--bg-code)',
                         border: '1px solid var(--border)',
                         borderRadius: '12px',
                         padding: '16px',
@@ -397,8 +397,8 @@ const ExportSection = () => {
                         minHeight: innerMinHeight,
                         overflow: 'auto',
                         whiteSpace: 'pre-wrap',
-                        boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.15)',
-                        color: 'var(--text-main)',
+                        boxShadow: 'inset 0 1px 2px rgba(15,23,42,0.25)',
+                        color: 'var(--code-text)',
                         resize: 'none' // disabled resize to prevent breaking flex layout
                     }}
                 >
