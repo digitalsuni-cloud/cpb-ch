@@ -3,6 +3,7 @@ import { usePriceBook } from '../context/PriceBookContext';
 import { motion } from 'framer-motion';
 import { isElectronApp } from '../utils/env';
 import { fetchAllCustomers } from '../utils/chApi';
+import Tooltip from './Tooltip';
 
 const PriceBookForm = () => {
     const { state, dispatch } = usePriceBook();
@@ -69,7 +70,6 @@ const PriceBookForm = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="e.g. Q1 Enterprise Pricing"
-                        title="Enter a unique name for this Price Book"
                         style={errors.bookName ? { borderColor: 'var(--accent)' } : {}}
                     />
                     {errors.bookName && <span style={{ color: 'var(--accent)', fontSize: '0.8rem' }}>{errors.bookName}</span>}
@@ -86,7 +86,6 @@ const PriceBookForm = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="John Doe"
-                        title="The name of the user or system creating this Price Book"
                         style={errors.createdBy ? { borderColor: 'var(--accent)' } : {}}
                     />
                     {errors.createdBy && <span style={{ color: 'var(--accent)', fontSize: '0.8rem' }}>{errors.createdBy}</span>}

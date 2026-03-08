@@ -5,6 +5,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import RuleGroup from './RuleGroup';
 import { motion } from 'framer-motion';
 import { FaPlus } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const RuleGroupList = () => {
     const { state, dispatch } = usePriceBook();

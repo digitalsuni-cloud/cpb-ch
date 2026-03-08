@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getHistoryOptions, clearHistory } from '../utils/history/historyLogger';
+import { useConfirm } from '../context/ConfirmContext';
 import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 import { createPortal } from 'react-dom';
 
 // ─── Diff Viewer with line-level highlighting ──────────────────────────────────
@@ -45,14 +47,7 @@ const DiffViewer = ({ before, after, title, onClose }) => {
                     {lines.map((l, i) => (
                         <tr
                             key={i}
-                            style={{
-                                background: l.changed
-                                    ? (side === 'left' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)')
-                                    : 'transparent',
-                                borderLeft: l.changed
-                                    ? (side === 'left' ? '4px solid #ef4444' : '4px solid #10b981')
-                                    : '4px solid transparent'
-                            }}
+                            className={l.changed ? (side === 'left' ? 'diff-row-removed' : 'diff-row-added') : ''}
                         >
                             {/* Line Number Gutter */}
                             <td style={{
@@ -68,11 +63,14 @@ const DiffViewer = ({ before, after, title, onClose }) => {
                                 {i + 1}
                             </td>
                             {/* Code Content */}
-                            <td style={{
-                                padding: '0 16px',
-                                whiteSpace: 'pre', // No wrap as requested
-                                color: l.changed ? (side === 'left' ? '#fca5a5' : '#6ee7b7') : 'var(--text-secondary)'
-                            }}>
+                            <td
+                                className={l.changed ? (side === 'left' ? 'diff-text-removed' : 'diff-text-added') : ''}
+                                style={{
+                                    padding: '0 16px',
+                                    whiteSpace: 'pre',
+                                    color: l.changed ? 'inherit' : 'var(--text-secondary)'
+                                }}
+                            >
                                 {l.text || '\u00a0'}
                             </td>
                         </tr>
@@ -129,7 +127,7 @@ const DiffViewer = ({ before, after, title, onClose }) => {
                 <div style={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
                     {before && (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: after ? '1px solid var(--border)' : 'none', overflow: 'hidden' }}>
-                            <div style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.08)', color: '#fca5a5', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
+                            <div className="diff-header-removed" style={{ padding: '8px 16px', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
                                 BEFORE
                             </div>
                             {renderLines(left, 'left')}
@@ -137,7 +135,7 @@ const DiffViewer = ({ before, after, title, onClose }) => {
                     )}
                     {after && (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <div style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.08)', color: '#6ee7b7', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
+                            <div className="diff-header-added" style={{ padding: '8px 16px', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
                                 {before ? 'AFTER' : 'CURRENT SPECIFICATION'}
                             </div>
                             {renderLines(right, 'right')}
@@ -151,15 +149,15 @@ const DiffViewer = ({ before, after, title, onClose }) => {
 };
 
 // ─── Change type badge colours ─────────────────────────────────────────────────
-const TYPE_COLORS = {
-    PRICEBOOK_CREATE: { bg: 'rgba(99,102,241,0.12)', color: '#a5b4fc', label: 'Create Pricebook' },
-    PRICEBOOK_UPDATE: { bg: 'rgba(56,189,248,0.12)', color: '#7dd3fc', label: 'Update Pricebook' },
-    PRICEBOOK_DELETE: { bg: 'rgba(239,68,68,0.12)', color: '#fca5a5', label: 'Delete Pricebook' },
-    ASSIGNMENT_CREATE: { bg: 'rgba(16,185,129,0.12)', color: '#6ee7b7', label: 'Assignment Create' },
-    ASSIGNMENT_UPDATE: { bg: 'rgba(56,189,248,0.12)', color: '#7dd3fc', label: 'Assignment Update' },
-    ASSIGNMENT_DELETE: { bg: 'rgba(234,179,8,0.12)', color: '#fde68a', label: 'Assignment Delete' },
-    CUSTOMER_UNASSIGN: { bg: 'rgba(234,179,8,0.12)', color: '#fde68a', label: 'Customer Unassign' },
-    DRY_RUN: { bg: 'rgba(168,85,247,0.12)', color: '#d8b4fe', label: 'Dry Run' },
+const TYPE_CONFIGS = {
+    PRICEBOOK_CREATE: { className: 'history-tag-create', label: 'Create Pricebook' },
+    PRICEBOOK_UPDATE: { className: 'history-tag-update', label: 'Update Pricebook' },
+    PRICEBOOK_DELETE: { className: 'history-tag-delete', label: 'Delete Pricebook' },
+    ASSIGNMENT_CREATE: { className: 'history-tag-assign', label: 'Assignment Create' },
+    ASSIGNMENT_UPDATE: { className: 'history-tag-update', label: 'Assignment Update' },
+    ASSIGNMENT_DELETE: { className: 'history-tag-unassign', label: 'Assignment Delete' },
+    CUSTOMER_UNASSIGN: { className: 'history-tag-unassign', label: 'Customer Unassign' },
+    DRY_RUN: { className: 'history-tag-dry', label: 'Dry Run' },
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -173,6 +171,7 @@ const HistoryLog = () => {
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
+    const confirm = useConfirm();
 
     useEffect(() => {
         const loadHistory = () => setHistory(getHistoryOptions());
@@ -181,8 +180,16 @@ const HistoryLog = () => {
         return () => window.removeEventListener('historyUpdated', loadHistory);
     }, []);
 
-    const handleClear = () => {
-        if (window.confirm('Are you sure you want to clear all history logs? This cannot be undone.')) {
+    const handleClear = async () => {
+        const isConfirmed = await confirm({
+            title: 'Clear History Logs',
+            message: 'Are you sure you want to clear all history logs? This cannot be undone.',
+            variant: 'danger',
+            confirmLabel: 'Clear All',
+            cancelLabel: 'Keep Logs'
+        });
+
+        if (isConfirmed) {
             clearHistory();
             setHistory([]);
             setExpandedItems(new Set());
@@ -221,7 +228,7 @@ const HistoryLog = () => {
 
     const filtered = history.filter(item => {
         const { status, date, type: typeF, desc } = colFilters;
-        const typeLabel = (TYPE_COLORS[item.type]?.label || item.type).toLowerCase();
+        const typeLabel = (TYPE_CONFIGS[item.type]?.label || item.type).toLowerCase();
         if (status && !item.status.toLowerCase().includes(status.toLowerCase())) return false;
         if (date && !formatDate(item.timestamp).toLowerCase().includes(date.toLowerCase())) return false;
         if (typeF && !typeLabel.includes(typeF.toLowerCase())) return false;
@@ -400,10 +407,12 @@ const HistoryLog = () => {
                                         <th style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '110px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <span>Status</span>
-                                                <button onClick={() => toggleColFilter('status')} title="Filter by status"
-                                                    style={{ background: colFilters.status ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.status ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.status ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
-                                                    <FaSearch size={10} />
-                                                </button>
+                                                <Tooltip title="Filter" content="Search within status column" position="top">
+                                                    <button onClick={() => toggleColFilter('status')}
+                                                        style={{ background: colFilters.status ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.status ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.status ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
+                                                        <FaSearch size={10} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                             {openCol === 'status' && (
                                                 <input autoFocus type="text" placeholder="SUCCESS / ERROR" value={colFilters.status}
@@ -416,10 +425,12 @@ const HistoryLog = () => {
                                         <th style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '175px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <span>Date / Time</span>
-                                                <button onClick={() => toggleColFilter('date')} title="Filter by date"
-                                                    style={{ background: colFilters.date ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.date ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.date ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
-                                                    <FaSearch size={10} />
-                                                </button>
+                                                <Tooltip title="Filter" content="Search within date column" position="top">
+                                                    <button onClick={() => toggleColFilter('date')}
+                                                        style={{ background: colFilters.date ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.date ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.date ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
+                                                        <FaSearch size={10} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                             {openCol === 'date' && (
                                                 <input autoFocus type="text" placeholder="e.g. 3/1/2026" value={colFilters.date}
@@ -432,10 +443,12 @@ const HistoryLog = () => {
                                         <th style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '170px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <span>Change Type</span>
-                                                <button onClick={() => toggleColFilter('type')} title="Filter by change type"
-                                                    style={{ background: colFilters.type ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.type ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.type ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
-                                                    <FaSearch size={10} />
-                                                </button>
+                                                <Tooltip title="Filter" content="Search within type column" position="top">
+                                                    <button onClick={() => toggleColFilter('type')}
+                                                        style={{ background: colFilters.type ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.type ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.type ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
+                                                        <FaSearch size={10} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                             {openCol === 'type' && (
                                                 <input autoFocus type="text" placeholder="e.g. Create, Update" value={colFilters.type}
@@ -448,10 +461,12 @@ const HistoryLog = () => {
                                         <th style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <span>Description</span>
-                                                <button onClick={() => toggleColFilter('desc')} title="Filter by description"
-                                                    style={{ background: colFilters.desc ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.desc ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.desc ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
-                                                    <FaSearch size={10} />
-                                                </button>
+                                                <Tooltip title="Filter" content="Search within description column" position="top">
+                                                    <button onClick={() => toggleColFilter('desc')}
+                                                        style={{ background: colFilters.desc ? 'rgba(139,92,246,0.2)' : 'none', border: colFilters.desc ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent', color: colFilters.desc ? '#a78bfa' : 'var(--text-muted)', cursor: 'pointer', padding: '2px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}>
+                                                        <FaSearch size={10} />
+                                                    </button>
+                                                </Tooltip>
                                             </div>
                                             {openCol === 'desc' && (
                                                 <input autoFocus type="text" placeholder="Search description..." value={colFilters.desc}
@@ -466,7 +481,7 @@ const HistoryLog = () => {
                                         {paginated.map(item => {
                                             const isExpanded = expandedItems.has(item.id);
                                             const isError = item.status === 'ERROR';
-                                            const typeConf = TYPE_COLORS[item.type] || { bg: 'rgba(100,100,100,0.1)', color: 'var(--text-muted)', label: item.type };
+                                            const typeConf = TYPE_CONFIGS[item.type] || { className: 'history-tag', label: item.type };
 
                                             return (
                                                 <React.Fragment key={item.id}>
@@ -494,16 +509,21 @@ const HistoryLog = () => {
 
                                                         {/* Change Type badge */}
                                                         <td style={{ padding: '12px 16px' }}>
-                                                            <span style={{ padding: '3px 10px', borderRadius: '10px', background: typeConf.bg, color: typeConf.color, fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                                                            <span className={`history-tag ${typeConf.className}`}>
                                                                 {typeConf.label}
                                                             </span>
                                                         </td>
 
-                                                        {/* Description — title only, no type repetition */}
+                                                        {/* Description */}
                                                         <td style={{ padding: '12px 16px', width: '100%' }}>
-                                                            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                                                            <div style={{
+                                                                fontWeight: 500,
+                                                                color: 'var(--text-main)',
+                                                                fontSize: '0.85rem',
+                                                                lineHeight: '1.4'
+                                                            }}>
                                                                 {item.title}
-                                                            </span>
+                                                            </div>
                                                         </td>
                                                     </motion.tr>
 

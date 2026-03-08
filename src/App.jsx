@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePriceBook } from './context/PriceBookContext';
+import { useConfirm } from './context/ConfirmContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import HelpSection from './components/HelpSection';
 import Toast from './components/Toast';
@@ -26,9 +27,60 @@ const ReleaseNotes = ({ body }) => {
   // Simple Markdown-to-React renderer for common release note elements
   const renderInline = (text) => {
     if (!text) return '';
-    if (!text.includes('**')) return text;
-    const parts = text.split('**');
-    return parts.map((part, i) => i % 2 === 1 ? <strong key={i} style={{ color: 'var(--text-main)' }}>{part}</strong> : part);
+
+    const tokenRegex = /(!\[.*?\]\(.*?\))|(\[.*?\]\(.*?\))|(\*\*.*?\*\*)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = tokenRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      const found = match[0];
+      if (found.startsWith('![')) {
+        const altMatch = found.match(/!\[(.*?)\]/);
+        const urlMatch = found.match(/\((.*?)\)/);
+        if (altMatch && urlMatch) {
+          parts.push(
+            <img
+              key={match.index}
+              src={urlMatch[1]}
+              alt={altMatch[1]}
+              style={{ height: '16px', verticalAlign: 'middle', display: 'inline-block' }}
+            />
+          );
+        }
+      } else if (found.startsWith('[')) {
+        const labelMatch = found.match(/\[(.*?)\]/);
+        const urlMatch = found.match(/\((.*?)\)/);
+        if (labelMatch && urlMatch) {
+          parts.push(
+            <a
+              key={match.index}
+              href={urlMatch[1]}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600, borderBottom: '1px solid rgba(139, 92, 246, 0.3)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {labelMatch[1]}
+            </a>
+          );
+        }
+      } else if (found.startsWith('**')) {
+        const content = found.substring(2, found.length - 2);
+        parts.push(<strong key={match.index} style={{ color: 'var(--text-main)' }}>{content}</strong>);
+      }
+      lastIndex = tokenRegex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
   };
 
   const formatBody = (text) => {
@@ -38,27 +90,38 @@ const ReleaseNotes = ({ body }) => {
 
       // Headers
       if (trimmed.startsWith('### ')) return <h4 key={i} style={{ margin: '14px 0 6px 0', fontSize: '0.85rem', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>{renderInline(trimmed.substring(4))}</h4>;
-      if (trimmed.startsWith('## ')) return <h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.95rem', color: 'var(--primary)' }}>{renderInline(trimmed.substring(3))}</h3>;
+      if (trimmed.startsWith('## ')) return <h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.90rem', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>{renderInline(trimmed.substring(3))}</h3>;
 
       // Tables
-      if (trimmed.includes('|') && /^[\s\-|]+$/.test(trimmed)) return null;
+      if (trimmed.includes('|') && /^[\s\-|:|]+$/.test(trimmed)) return null;
       if (trimmed.includes('|')) {
-        const cells = trimmed.split('|').map(c => c.trim()).filter(c => c !== '');
+        const cells = trimmed.split('|').map(c => c.trim()).filter((c, ci) => {
+          // Keep internal empty cells but skip trailing/leading if they are just from split
+          if (ci === 0 && c === '' && line.startsWith('|')) return false;
+          if (ci === trimmed.split('|').length - 1 && c === '' && line.endsWith('|')) return false;
+          return true;
+        });
+
         if (cells.length > 1) {
-          const isHeader = i === 0 || (lines[i + 1] && /^[\s\-|]+$/.test(lines[i + 1].trim()));
+          const isHeader = i === 0 || (lines[i + 1] && /^[\s\-|:|]+$/.test(lines[i + 1].trim()));
           return (
             <div key={i} style={{
               display: 'grid',
-              gridTemplateColumns: cells.length === 3 ? '1.2fr 1.5fr 3fr' : `repeat(${cells.length}, 1fr)`,
-              gap: '8px',
+              gridTemplateColumns: cells.length === 3 ? '1.2fr 1fr 3fr' : `repeat(${cells.length}, 1fr)`,
+              gap: '4px',
               padding: '6px 8px',
-              fontSize: '0.75rem',
+              fontSize: '0.72rem',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
-              background: isHeader ? 'rgba(255,255,255,0.1)' : 'transparent',
+              background: isHeader ? 'rgba(255,255,255,0.08)' : 'transparent',
               fontWeight: isHeader ? '700' : '400',
-              borderRadius: isHeader ? '4px' : '0'
+              borderRadius: isHeader ? '4px' : '0',
+              alignItems: 'center'
             }}>
-              {cells.map((cell, ci) => <span key={ci}>{renderInline(cell)}</span>)}
+              {cells.map((cell, ci) => (
+                <div key={ci} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: ci === 2 ? 'normal' : 'nowrap' }}>
+                  {renderInline(cell)}
+                </div>
+              ))}
             </div>
           );
         }
@@ -110,16 +173,16 @@ const ReleaseNotes = ({ body }) => {
       {expanded && (
         <div style={{
           marginTop: '6px',
-          padding: '10px',
-          background: 'rgba(0,0,0,0.15)',
-          borderRadius: '8px',
+          padding: '12px',
+          background: 'rgba(0,0,0,0.2)',
+          borderRadius: '10px',
           fontSize: '0.75rem',
-          maxHeight: '180px',
+          maxHeight: '240px',
           overflowY: 'auto',
           lineHeight: '1.4',
           color: 'var(--text-main)',
-          borderLeft: '2px solid var(--primary)',
-          boxShadow: 'inset 0 0 10px rgba(0,0,0,0.1)'
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)'
         }}>
           {formatBody(body)}
         </div>
@@ -130,6 +193,7 @@ const ReleaseNotes = ({ body }) => {
 
 function App() {
   const { state, dispatch } = usePriceBook();
+  const confirm = useConfirm();
   const [activeView, setActiveView] = useState('dashboard');
   const [deployHint, setDeployHint] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -208,8 +272,8 @@ function App() {
             height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
             overflowY: 'auto',
             overflowX: 'hidden',
-            padding: '2px',
-            margin: '-2px'
+            padding: '20px 20px 60px 20px',
+            margin: '-20px'
           }}>
             {/* Stats Cards Row */}
             <div style={{ flex: '0 0 auto', width: '100%', paddingBottom: '8px' }}>
@@ -343,10 +407,16 @@ function App() {
                   </p>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
-                    if (!hasData || confirm("⚠️ This will permanently delete all your rules and configurations. Are you absolutely sure?"))
+                    if (!hasData || await confirm({
+                      title: 'Reset Price Book',
+                      message: "This will permanently delete all your rules and configurations. Are you absolutely sure?",
+                      variant: 'danger',
+                      confirmLabel: 'Reset Everything'
+                    })) {
                       dispatch({ type: 'RESET_ALL' });
+                    }
                   }}
                   style={{
                     background: 'transparent',
@@ -374,7 +444,13 @@ function App() {
 
         {/* VIEW: BUILDER */}
         {activeView === 'builder' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            padding: '10px 20px 60px 20px',
+            margin: '0 -20px'
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <RuleSearch />
             </div>
@@ -413,8 +489,8 @@ function App() {
             height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
             overflowY: 'auto',
             overflowX: 'hidden',
-            padding: '2px',
-            margin: '-2px'
+            padding: '20px 20px 60px 20px',
+            margin: '-20px'
           }}>
             <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
               <DeploySection autoAssign={deployHint} onAutoAssignConsumed={() => setDeployHint(false)} showToast={showToast} />
@@ -424,13 +500,13 @@ function App() {
 
         {/* VIEW: DIRECTORY — kept mounted to preserve loaded data across navigation */}
         {isElectronApp() && (
-          <div style={{
+          <div className="static-view" style={{
             display: activeView === 'directory' ? 'flex' : 'none',
             flexDirection: 'column',
             height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
             overflow: 'hidden',
-            padding: '2px',
-            margin: '-2px'
+            padding: '20px 20px 60px 20px',
+            margin: '-20px'
           }}>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <DirectorySection setActiveView={setActiveView} setDeployHint={setDeployHint} showToast={showToast} activeView={activeView} />
@@ -440,13 +516,13 @@ function App() {
 
         {/* VIEW: HISTORY */}
         {activeView === 'history' && isElectronApp() && (
-          <div style={{
+          <div className="static-view" style={{
             display: 'flex',
             flexDirection: 'column',
             height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
             overflow: 'hidden',
-            padding: '2px',
-            margin: '-2px'
+            padding: '20px 20px 60px 20px',
+            margin: '-20px'
           }}>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <HistoryLog />
@@ -463,8 +539,8 @@ function App() {
             height: 'calc(100vh - 75px - clamp(32px, 6vh, 64px))',
             overflowY: 'auto',
             overflowX: 'hidden',
-            padding: '2px',
-            margin: '-2px'
+            padding: '20px 20px 60px 20px',
+            margin: '-20px'
           }}>
             <div style={{ flex: '1 1 auto', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
               <ExportSection />
@@ -485,10 +561,16 @@ function App() {
                   </p>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
-                    if (!hasData || confirm("⚠️ This will permanently delete all your rules and configurations. Are you absolutely sure?"))
+                    if (!hasData || await confirm({
+                      title: 'Reset Price Book',
+                      message: "This will permanently delete all your rules and configurations. Are you absolutely sure?",
+                      variant: 'danger',
+                      confirmLabel: 'Reset Everything'
+                    })) {
                       dispatch({ type: 'RESET_ALL' });
+                    }
                   }}
                   style={{
                     background: 'transparent',

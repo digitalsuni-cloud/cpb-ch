@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isElectronApp } from '../utils/env';
 import { FaCode } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const SettingsModal = ({ isOpen, onClose }) => {
     const [apiKey, setApiKey] = useState('');
@@ -105,35 +106,37 @@ const SettingsModal = ({ isOpen, onClose }) => {
                             {isElectronApp() && (
                                 <div className="input-group" style={{ margin: 0 }}>
                                     <label>Advanced Troubleshooting</label>
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            if (window.require) {
-                                                const { ipcRenderer } = window.require('electron');
-                                                ipcRenderer.send('toggle-dev-tools');
-                                            }
-                                        }}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px',
-                                            width: '100%',
-                                            padding: '10px',
-                                            background: 'var(--bg-deep)',
-                                            border: '1px solid var(--border)',
-                                            color: 'var(--text-main)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 600,
-                                            transition: 'all 0.2s'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-                                    >
-                                        <FaCode /> Toggle Developer Tools (Network Inspector)
-                                    </button>
+                                    <Tooltip title="DevTools" content="Open the built-in browser inspector to debug API calls and view console logs" position="top">
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                if (window.require) {
+                                                    const { ipcRenderer } = window.require('electron');
+                                                    ipcRenderer.send('toggle-dev-tools');
+                                                }
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                width: '100%',
+                                                padding: '10px',
+                                                background: 'var(--bg-deep)',
+                                                border: '1px solid var(--border)',
+                                                color: 'var(--text-main)',
+                                                borderRadius: '8px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.9rem',
+                                                fontWeight: 600,
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                                        >
+                                            <FaCode /> Toggle Developer Tools (Network Inspector)
+                                        </button>
+                                    </Tooltip>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                                         Open the native Chrome DevTools to inspect live raw API payloads and debug network requests. (Shortcut: Ctrl+Shift+I)
                                     </span>

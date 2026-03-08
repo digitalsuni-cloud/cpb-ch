@@ -8,6 +8,7 @@ import CalendarIcon from './CalendarIcon';
 import { createPriceBook, updatePriceBook } from '../utils/chApi';
 import { isElectronApp } from '../utils/env';
 import { FaWindows, FaApple, FaLinux } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const ExportSection = () => {
     const { state } = usePriceBook();
@@ -321,27 +322,32 @@ const ExportSection = () => {
                     </h5>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {showEmojiToggle && (
-                            <button
-                                onClick={() => setShowEmojis(!showEmojis)}
-                                style={emojiButtonStyle}
-                                title="Don't worry, emojis are for display only and won't be included in your Price Book content."
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-1px)';
-                                    e.currentTarget.style.background = showEmojis ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)';
-                                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.background = showEmojis ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.03)';
-                                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                                }}
+                            <Tooltip
+                                title="Visual Helpers"
+                                content="Emojis are for display only and won't be included in your Price Book content."
+                                variant="glass"
                             >
-                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                    <FaSmile size={11} color={showEmojis ? '#f6e05e' : 'inherit'} />
-                                    {!showEmojis && <FaSlash size={9} style={{ position: 'absolute', top: 0, left: 1, opacity: 0.8 }} />}
-                                </div>
-                                {showEmojis ? 'Emojis On' : 'Emojis Off'}
-                            </button>
+                                <button
+                                    onClick={() => setShowEmojis(!showEmojis)}
+                                    style={emojiButtonStyle}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.background = showEmojis ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)';
+                                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.background = showEmojis ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.03)';
+                                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                    }}
+                                >
+                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                        <FaSmile size={11} color={showEmojis ? '#f6e05e' : 'inherit'} />
+                                        {!showEmojis && <FaSlash size={9} style={{ position: 'absolute', top: 0, left: 1, opacity: 0.8 }} />}
+                                    </div>
+                                    {showEmojis ? 'Emojis On' : 'Emojis Off'}
+                                </button>
+                            </Tooltip>
                         )}
                         <button
                             onClick={() => handleCopy(content, id)}
@@ -549,40 +555,45 @@ const ExportSection = () => {
                                     { os: 'Linux ARM64 (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/CloudHealth.Pricebook.Studio-4.3.1-arm64.AppImage' },
                                     { os: 'Linux ARM64 (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/cpb-react_4.3.1_arm64.deb' }
                                 ].map((btn) => (
-                                    <a
+                                    <Tooltip
                                         key={btn.os}
-                                        href={btn.url}
-                                        title={`Download for ${btn.os}`}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '6px',
-                                            padding: '8px 12px',
-                                            background: 'var(--bg-card)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: '8px',
-                                            color: 'var(--text-main)',
-                                            fontSize: '0.8rem',
-                                            fontWeight: 600,
-                                            textDecoration: 'none',
-                                            transition: 'all 0.2s ease',
-                                            cursor: 'pointer'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.borderColor = 'var(--primary)';
-                                            e.currentTarget.style.background = 'var(--bg-hover)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.borderColor = 'var(--border)';
-                                            e.currentTarget.style.background = 'var(--bg-card)';
-                                        }}
+                                        title="Download Release"
+                                        content={`Download the latest executable for ${btn.os}`}
+                                        variant="info"
                                     >
-                                        <span style={{ fontSize: '1rem' }}>{btn.icon}</span>
-                                        {btn.os}
-                                    </a>
+                                        <a
+                                            href={btn.url}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '6px',
+                                                padding: '8px 12px',
+                                                background: 'var(--bg-card)',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: '8px',
+                                                color: 'var(--text-main)',
+                                                fontSize: '0.8rem',
+                                                fontWeight: 600,
+                                                textDecoration: 'none',
+                                                transition: 'all 0.2s ease',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                                e.currentTarget.style.background = 'var(--bg-hover)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                e.currentTarget.style.borderColor = 'var(--border)';
+                                                e.currentTarget.style.background = 'var(--bg-card)';
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '1rem' }}>{btn.icon}</span>
+                                            {btn.os}
+                                        </a>
+                                    </Tooltip>
                                 ))}
                             </div>
                         </div>

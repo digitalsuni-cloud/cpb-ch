@@ -10,14 +10,14 @@ const NaturalLanguageSummary = () => {
     const { priceBook } = state;
 
     const toReadableAdjustment = (type, adj) => {
-        if (!type) return { text: '', color: 'var(--text-muted)', bg: 'rgba(0,0,0,0.03)' };
+        if (!type) return { text: '', className: '' };
         const val = parseFloat(adj);
-        if (isNaN(val)) return { text: adj, color: 'var(--text-main)', bg: 'var(--bg-deep)' };
+        if (isNaN(val)) return { text: adj, className: '' };
 
-        if (type === 'percentDiscount') return { text: `-${val}% Discount`, color: '#059669', bg: 'rgba(5,150,105,0.08)', border: 'rgba(5,150,105,0.2)' };
-        if (type === 'percentIncrease') return { text: `+${val}% Markup`, color: '#d97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.2)' };
-        if (type === 'fixedRate') return { text: `$${val} Fixed Rate`, color: '#0284c7', bg: 'rgba(2,132,199,0.08)', border: 'rgba(2,132,199,0.2)' };
-        return { text: `${adj} (${type})`, color: 'var(--text-main)', bg: 'var(--bg-deep)', border: 'var(--border)' };
+        if (type === 'percentDiscount') return { text: `-${val}% Discount`, className: 'adj-tag-discount' };
+        if (type === 'percentIncrease') return { text: `+${val}% Markup`, className: 'adj-tag-markup' };
+        if (type === 'fixedRate') return { text: `$${val} Fixed Rate`, className: 'adj-tag-fixed' };
+        return { text: `${adj} (${type})`, className: '' };
     };
 
     const formatList = (items) => {
@@ -147,7 +147,7 @@ const NaturalLanguageSummary = () => {
                                                                         {rule.includeDataTransfer !== 'true' && rule.includeRIPurchases !== 'true' ? 'Base Usage only' : ''}
                                                                     </div>
                                                                 </div>
-                                                                <div style={{ padding: '6px 14px', borderRadius: '8px', background: adj.bg, border: `1px solid ${adj.border}`, color: adj.color, fontWeight: 800, fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                                                                <div className={`adj-tag ${adj.className}`}>
                                                                     {adj.text}
                                                                 </div>
                                                             </div>
@@ -228,10 +228,10 @@ const NaturalLanguageSummary = () => {
             </div>
 
             <div style={{
-                padding: '10px 0',
+                padding: '20px 20px 40px 20px',
                 maxHeight: 'calc(100vh - 250px)',
                 overflowY: 'auto',
-                paddingRight: '10px'
+                margin: '0 -20px'
             }}>
                 {renderSummary()}
             </div>

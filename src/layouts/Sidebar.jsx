@@ -16,6 +16,7 @@ import {
     FaHistory
 } from 'react-icons/fa';
 import { isElectronApp } from '../utils/env';
+import Tooltip from '../components/Tooltip';
 
 const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
 
@@ -148,11 +149,45 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                 gap: '8px'
             }}>
                 {!isElectronApp() && (
-                    <motion.a
-                        href="https://github.com/digitalsuni-cloud/cpb-ch/releases/latest"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Download the standalone app for an integrated local API experience without CORS or proxy limits!"
+                    <Tooltip
+                        title="Get Standalone App"
+                        content="Install for an integrated local experience without CORS or proxy limits!"
+                        position="right"
+                        variant="primary"
+                    >
+                        <motion.a
+                            href="https://github.com/digitalsuni-cloud/cpb-ch/releases/latest"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                background: 'var(--primary)',
+                                border: 'none',
+                                color: '#ffffff',
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                textDecoration: 'none',
+                                boxShadow: '0 4px 15px rgba(79, 70, 229, 0.2)',
+                                width: '100%',
+                                boxSizing: 'border-box'
+                            }}
+                        >
+                            <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download App
+                        </motion.a>
+                    </Tooltip>
+                )}
+
+                <Tooltip title="Help" content="Open the user guide and API reference" position="right">
+                    <motion.button
+                        onClick={() => setShowHelp(true)}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         style={{
@@ -161,49 +196,27 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                             gap: '12px',
                             padding: '12px 16px',
                             borderRadius: '12px',
-                            background: 'var(--primary)',
-                            border: 'none',
-                            color: '#ffffff',
+                            background: 'transparent',
+                            border: '1px solid var(--border)',
+                            color: 'var(--text-secondary)',
                             fontSize: '0.9rem',
-                            fontWeight: 600,
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
-                            textDecoration: 'none',
-                            boxShadow: '0 4px 15px rgba(79, 70, 229, 0.2)'
+                            width: '100%',
+                            boxSizing: 'border-box'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--bg-hover)';
+                            e.currentTarget.style.color = 'var(--text-main)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--text-secondary)';
                         }}
                     >
-                        <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download App
-                    </motion.a>
-                )}
-
-                <motion.button
-                    onClick={() => setShowHelp(true)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        background: 'transparent',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.9rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--bg-hover)';
-                        e.currentTarget.style.color = 'var(--text-main)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                    }}
-                >
-                    <span style={{ fontSize: '1.1rem' }}><FaQuestionCircle /></span> Help & Guide
-                </motion.button>
+                        <span style={{ fontSize: '1.1rem' }}><FaQuestionCircle /></span> Help & Guide
+                    </motion.button>
+                </Tooltip>
             </div>
         </div>
     );

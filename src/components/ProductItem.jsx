@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePriceBook } from '../context/PriceBookContext';
+import { useConfirm } from '../context/ConfirmContext';
 import CreatableSelect from 'react-select/creatable';
 import { AWSProducts } from '../constants/products';
 import PropertySection from './PropertySection';
 import { propertyTypes } from '../constants/propertyTypes';
 import { getIconForProduct } from '../utils/awsIcons';
 import { FaTrash, FaPlus } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const customStyles = {
     control: (base) => ({
@@ -66,6 +68,7 @@ const productOptions = [
 
 const ProductItem = ({ product, index, groupId, ruleId }) => {
     const { dispatch } = usePriceBook();
+    const confirm = useConfirm();
     // Auto-expand only if the product has zero properties configured (ie brand new)
     const [expanded, setExpanded] = useState(() => Object.keys(product.properties || {}).length === 0);
     const [expandedSections, setExpandedSections] = useState({});
@@ -207,115 +210,122 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                                     if (!values || values.length === 0) return null;
                                     const propName = propertyTypes[propKey]?.name || propKey;
                                     return (
-                                        <span
-                                            key={propKey}
-                                            className="property-tag"
-                                            style={{
-                                                background: 'rgba(139, 92, 246, 0.15)',
-                                                border: '1px solid rgba(139, 92, 246, 0.4)',
-                                                color: 'var(--primary)',
-                                                padding: '2px 6px',
-                                                borderRadius: '3px',
-                                                fontSize: '0.62rem',
-                                                fontWeight: 600,
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '3px',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setExpanded(true);
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
-                                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
-                                                e.currentTarget.style.transform = 'translateY(0)';
-                                            }}
-                                            title={`Click to expand and edit ${propName}`}
-                                        >
-                                            {propName}
-                                            <span style={{
-                                                background: 'var(--primary)',
-                                                color: 'white',
-                                                padding: '0 4px',
-                                                borderRadius: '2px',
-                                                fontSize: '0.6rem',
-                                                fontWeight: 700
-                                            }}>
-                                                {values.length}
+                                        <Tooltip key={propKey} title={propName} content={`Specific filters applied for ${propName}`}>
+                                            <span
+                                                className="property-tag"
+                                                style={{
+                                                    background: 'rgba(139, 92, 246, 0.15)',
+                                                    border: '1px solid rgba(139, 92, 246, 0.4)',
+                                                    color: 'var(--primary)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '3px',
+                                                    fontSize: '0.62rem',
+                                                    fontWeight: 600,
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '3px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setExpanded(true);
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
+                                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
+                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                }}
+                                            >
+                                                {propName}
+                                                <span style={{
+                                                    background: 'var(--primary)',
+                                                    color: 'white',
+                                                    padding: '0 4px',
+                                                    borderRadius: '2px',
+                                                    fontSize: '0.6rem',
+                                                    fontWeight: 700
+                                                }}>
+                                                    {values.length}
+                                                </span>
                                             </span>
-                                        </span>
+                                        </Tooltip>
                                     );
                                 })}
                             </div>
                         )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <motion.button
-                            className="button-ghost"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm("Remove this product?")) {
-                                    dispatch({ type: 'REMOVE_PRODUCT', groupId, ruleId, productId: product.id });
-                                }
-                            }}
-                            whileHover={{ scale: 1.1, color: '#ef4444' }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                                color: 'var(--text-muted)',
-                                borderColor: 'rgba(239, 68, 68, 0.3)',
-                                padding: '0',
-                                background: 'transparent',
-                                width: '28px',
-                                height: '28px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '6px',
-                                cursor: 'pointer'
-                            }}
-                            title="Delete Product"
-                        >
-                            <FaTrash size={12} />
-                        </motion.button>
-
-                        <motion.button
-                            className="button-ghost"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (expanded) cleanupProperties();
-                                setExpanded(!expanded);
-                            }}
-                            title={!expanded ? "Expand Product" : "Collapse Product"}
-                            whileHover={{ scale: 1.1, rotate: !expanded ? 0 : 5 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                                width: '28px',
-                                height: '28px',
-                                padding: '0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
-                                border: '1px solid var(--border-glow)',
-                                borderRadius: '6px',
-                                fontSize: '0.8rem'
-                            }}
-                        >
-                            <motion.span
-                                animate={{ rotate: !expanded ? -90 : 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                style={{ display: 'flex' }}
+                        <Tooltip title="Delete Product" content="Remove this product scope and all its filters from the rule" variant="danger">
+                            <motion.button
+                                className="button-ghost"
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (await confirm({
+                                        title: 'Remove Product',
+                                        message: `Are you sure you want to remove the product scope "${product.productName || 'ANY'}"?`,
+                                        variant: 'danger',
+                                        confirmLabel: 'Remove Product'
+                                    })) {
+                                        dispatch({ type: 'REMOVE_PRODUCT', groupId, ruleId, productId: product.id });
+                                    }
+                                }}
+                                whileHover={{ scale: 1.1, color: '#ef4444' }}
+                                whileTap={{ scale: 0.9 }}
+                                style={{
+                                    color: 'var(--text-muted)',
+                                    borderColor: 'rgba(239, 68, 68, 0.3)',
+                                    padding: '0',
+                                    background: 'transparent',
+                                    width: '28px',
+                                    height: '28px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer'
+                                }}
                             >
-                                ▼
-                            </motion.span>
-                        </motion.button>
+                                <FaTrash size={12} />
+                            </motion.button>
+                        </Tooltip>
+
+                        <Tooltip title={!expanded ? "Expand" : "Collapse"} content={!expanded ? "Configure filters for this product" : "Hide configuration"}>
+                            <motion.button
+                                className="button-ghost"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (expanded) cleanupProperties();
+                                    setExpanded(!expanded);
+                                }}
+                                whileHover={{ scale: 1.1, rotate: !expanded ? 0 : 5 }}
+                                whileTap={{ scale: 0.9 }}
+                                style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    padding: '0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
+                                    border: '1px solid var(--border-glow)',
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem'
+                                }}
+                            >
+                                <motion.span
+                                    animate={{ rotate: !expanded ? -90 : 0 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                    style={{ display: 'flex' }}
+                                >
+                                    ▼
+                                </motion.span>
+                            </motion.button>
+                        </Tooltip>
                     </div>
                 </div>
 
@@ -508,7 +518,6 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onClick={() => dispatch({ type: 'ADD_PRODUCT', groupId, ruleId, afterId: product.id })}
-                title="Insert Product Here"
             >
                 <div style={{
                     width: '100%',
