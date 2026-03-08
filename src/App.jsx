@@ -17,9 +17,9 @@ import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
 import { isElectronApp } from './utils/env';
-import { FaChevronDown, FaChevronUp, FaWindows, FaApple, FaLinux, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
-const ReleaseNotes = ({ body, assets }) => {
+const ReleaseNotes = ({ body }) => {
   const [expanded, setExpanded] = useState(false);
   if (!body) return null;
 
@@ -29,41 +29,6 @@ const ReleaseNotes = ({ body, assets }) => {
     if (!text.includes('**')) return text;
     const parts = text.split('**');
     return parts.map((part, i) => i % 2 === 1 ? <strong key={i} style={{ color: 'var(--text-main)' }}>{part}</strong> : part);
-  };
-
-  const getOSIcon = (text) => {
-    const lower = text.toLowerCase();
-    if (lower.includes('macos') || lower.includes('apple')) return <FaApple style={{ color: '#fff', fontSize: '0.9rem' }} />;
-    if (lower.includes('windows')) return <FaWindows style={{ color: '#00a4ef', fontSize: '0.9rem' }} />;
-    if (lower.includes('linux')) return <FaLinux style={{ color: '#fcc624', fontSize: '0.9rem' }} />;
-    return null;
-  };
-
-  const wrapDownloadLink = (filename) => {
-    if (!assets || !Array.isArray(assets)) return filename;
-    const asset = assets.find(a => a.name === filename.trim());
-    if (asset) {
-      return (
-        <a
-          href={asset.browser_download_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: 'var(--primary)',
-            textDecoration: 'none',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-        >
-          {filename} <FaExternalLinkAlt size={8} />
-        </a>
-      );
-    }
-    return filename;
   };
 
   const formatBody = (text) => {
@@ -80,8 +45,7 @@ const ReleaseNotes = ({ body, assets }) => {
       if (trimmed.includes('|')) {
         const cells = trimmed.split('|').map(c => c.trim()).filter(c => c !== '');
         if (cells.length > 1) {
-          const isHeader = i === 0 || (lines[i - 1] && /^[\s\-|]+$/.test(lines[i - 1].trim())) || (lines[i + 1] && /^[\s\-|]+$/.test(lines[i + 1].trim()));
-
+          const isHeader = i === 0 || (lines[i + 1] && /^[\s\-|]+$/.test(lines[i + 1].trim()));
           return (
             <div key={i} style={{
               display: 'grid',
@@ -92,18 +56,9 @@ const ReleaseNotes = ({ body, assets }) => {
               borderBottom: '1px solid rgba(255,255,255,0.05)',
               background: isHeader ? 'rgba(255,255,255,0.1)' : 'transparent',
               fontWeight: isHeader ? '700' : '400',
-              borderRadius: isHeader ? '4px' : '0',
-              alignItems: 'center'
+              borderRadius: isHeader ? '4px' : '0'
             }}>
-              {cells.map((cell, ci) => {
-                const icon = ci === 0 ? getOSIcon(cell) : null;
-                const content = ci === 2 ? wrapDownloadLink(cell) : renderInline(cell);
-                return (
-                  <span key={ci} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {icon} {content}
-                  </span>
-                );
-              })}
+              {cells.map((cell, ci) => <span key={ci}>{renderInline(cell)}</span>)}
             </div>
           );
         }
@@ -202,7 +157,7 @@ function App() {
                 <div style={{ fontSize: '0.9rem', marginBottom: '4px', color: 'var(--text-main)' }}>
                   A newer version of the standalone app <strong style={{ color: 'var(--primary)', fontWeight: 800, textShadow: '0 0 10px rgba(139, 92, 246, 0.3)' }}>v{latestVersion}</strong> is available!
                 </div>
-                <ReleaseNotes body={data.body} assets={data.assets} />
+                <ReleaseNotes body={data.body} />
               </div>
             ),
             duration: 0, // sticky
