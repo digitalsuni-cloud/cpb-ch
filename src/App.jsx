@@ -17,6 +17,116 @@ import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
 import { isElectronApp } from './utils/env';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
+
+const ReleaseNotes = ({ body }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (!body) return null;
+
+  // Simple Markdown-to-React renderer for common release note elements
+  const renderInline = (text) => {
+    if (!text) return '';
+    if (!text.includes('**')) return text;
+    const parts = text.split('**');
+    return parts.map((part, i) => i % 2 === 1 ? <strong key={i} style={{ color: 'var(--text-main)' }}>{part}</strong> : part);
+  };
+
+  const formatBody = (text) => {
+    const lines = text.split('\n');
+    return lines.map((line, i) => {
+      const trimmed = line.trim();
+
+      // Headers
+      if (trimmed.startsWith('### ')) return <h4 key={i} style={{ margin: '14px 0 6px 0', fontSize: '0.85rem', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>{renderInline(trimmed.substring(4))}</h4>;
+      if (trimmed.startsWith('## ')) return <h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.95rem', color: 'var(--primary)' }}>{renderInline(trimmed.substring(3))}</h3>;
+
+      // Tables
+      if (trimmed.includes('|') && /^[\s\-|]+$/.test(trimmed)) return null;
+      if (trimmed.includes('|')) {
+        const cells = trimmed.split('|').map(c => c.trim()).filter(c => c !== '');
+        if (cells.length > 1) {
+          const isHeader = i === 0 || (lines[i + 1] && /^[\s\-|]+$/.test(lines[i + 1].trim()));
+          return (
+            <div key={i} style={{
+              display: 'grid',
+              gridTemplateColumns: cells.length === 3 ? '1.2fr 1.5fr 3fr' : `repeat(${cells.length}, 1fr)`,
+              gap: '8px',
+              padding: '6px 8px',
+              fontSize: '0.75rem',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              background: isHeader ? 'rgba(255,255,255,0.1)' : 'transparent',
+              fontWeight: isHeader ? '700' : '400',
+              borderRadius: isHeader ? '4px' : '0'
+            }}>
+              {cells.map((cell, ci) => <span key={ci}>{renderInline(cell)}</span>)}
+            </div>
+          );
+        }
+      }
+
+      // Bullets
+      const bulletMatch = trimmed.match(/^[*•-]\s*(.*)/);
+      if (bulletMatch) {
+        const content = bulletMatch[1];
+        return (
+          <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '4px', paddingLeft: '4px', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--primary)', flexShrink: 0 }}>•</span>
+            <span style={{ flex: 1 }}>{renderInline(content)}</span>
+          </div>
+        );
+      }
+
+      // Default text
+      return trimmed ? <div key={i} style={{ marginBottom: '6px' }}>{renderInline(trimmed)}</div> : <div key={i} style={{ height: '6px' }} />;
+    });
+  };
+
+  return (
+    <div style={{ marginTop: '4px' }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded(!expanded);
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'inherit',
+          fontSize: '0.7rem',
+          padding: '2px 0',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          opacity: 0.8,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}
+      >
+        {expanded ? <FaChevronUp size={8} /> : <FaChevronDown size={8} />}
+        {expanded ? "Hide Details" : "What's New?"}
+      </button>
+      {expanded && (
+        <div style={{
+          marginTop: '6px',
+          padding: '10px',
+          background: 'rgba(0,0,0,0.15)',
+          borderRadius: '8px',
+          fontSize: '0.75rem',
+          maxHeight: '180px',
+          overflowY: 'auto',
+          lineHeight: '1.4',
+          color: 'var(--text-main)',
+          borderLeft: '2px solid var(--primary)',
+          boxShadow: 'inset 0 0 10px rgba(0,0,0,0.1)'
+        }}>
+          {formatBody(body)}
+        </div>
+      )}
+    </div>
+  );
+};
 
 function App() {
   const { state, dispatch } = usePriceBook();
@@ -42,17 +152,24 @@ function App() {
           showToast({
             type: 'info',
             title: 'Update Available',
-            message: `A newer version of the standalone app (v${latestVersion}) is available!`,
+            message: (
+              <div>
+                <div style={{ fontSize: '0.9rem', marginBottom: '4px', color: 'var(--text-main)' }}>
+                  A newer version of the standalone app <strong style={{ color: 'var(--primary)', fontWeight: 800, textShadow: '0 0 10px rgba(139, 92, 246, 0.3)' }}>v{latestVersion}</strong> is available!
+                </div>
+                <ReleaseNotes body={data.body} />
+              </div>
+            ),
             duration: 0, // sticky
             dedupeKey: 'app-update',
             action: {
               label: 'Go to Downloads',
               icon: <span style={{ marginRight: '2px' }}>⬇️</span>,
-              onClick: () => setActiveView('export')
+              onClick: () => window.open(data.html_url, '_blank')
             }
           });
         } else if (manual) {
-          showToast({ type: 'success', title: 'Up to Date', message: `You are running the latest version (v${currentVersion}).` });
+          showToast({ type: 'success', title: 'Up to Date', message: `You are running the latest version v${currentVersion}.` });
         }
       }
     } catch (e) {

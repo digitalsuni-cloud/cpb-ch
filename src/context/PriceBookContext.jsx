@@ -48,7 +48,7 @@ const initialPriceBook = {
 const initialState = {
     priceBook: initialPriceBook,
     directoryCache: { customers: [], books: [], assignments: [] },
-    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    theme: 'dark'
 };
 
 function priceBookReducer(state, action) {
