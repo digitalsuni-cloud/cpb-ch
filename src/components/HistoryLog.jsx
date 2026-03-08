@@ -292,15 +292,21 @@ const HistoryLog = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
                         <div>Linked <strong>{d.bookName}</strong> to <strong>{d.customerName}</strong></div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Price Book ID</span>
+                            <span style={{ fontWeight: 600 }}>{d.bookId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assignment ID</span>
                             <span style={{ fontWeight: 600 }}>{d.assignmentId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assigned Payer Account ID</span>
                             <span>
-                                <span style={{ color: 'var(--danger)', textDecoration: 'line-through', marginRight: '8px' }}>
-                                    {Array.isArray(d.beforeAssignment) ? d.beforeAssignment.join(', ') : d.beforeAssignment || 'None'}
-                                </span>
-                                <span style={{ color: 'var(--text-muted)', marginRight: '8px' }}>→</span>
-                                <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                                {item.type === 'ASSIGNMENT_UPDATE' && (
+                                    <>
+                                        <span style={{ color: 'var(--danger)', textDecoration: 'line-through', marginRight: '8px' }}>
+                                            {Array.isArray(d.beforeAssignment) ? d.beforeAssignment.join(', ') : d.beforeAssignment || 'None'}
+                                        </span>
+                                        <span style={{ color: 'var(--text-muted)', marginRight: '8px' }}>→</span>
+                                    </>
+                                )}
+                                <span style={{ color: item.type === 'ASSIGNMENT_UPDATE' ? 'var(--success)' : 'inherit', fontWeight: 600 }}>
                                     {Array.isArray(d.afterAssignment) ? d.afterAssignment.join(', ') : d.afterAssignment || d.payerAccountId || 'None'}
                                 </span>
                             </span>
@@ -308,11 +314,12 @@ const HistoryLog = () => {
                     </div>
                 )}
 
-                {/* ── Assignment Delete ── */}
                 {item.type === 'ASSIGNMENT_DELETE' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
                         <div>Removed assignment for <strong>{d.customerName}</strong> from pricebook <strong>{d.bookName}</strong></div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Price Book ID</span>
+                            <span style={{ fontWeight: 600 }}>{d.bookId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assignment ID</span>
                             <span style={{ fontWeight: 600 }}>{d.assignmentId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assigned Payer Account ID</span>
@@ -321,11 +328,12 @@ const HistoryLog = () => {
                     </div>
                 )}
 
-                {/* ── Customer Unassign ── */}
                 {item.type === 'CUSTOMER_UNASSIGN' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
                         <div>Removed link between <strong>{d.bookName}</strong> and <strong>{d.customerName}</strong></div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
+                            <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Price Book ID</span>
+                            <span style={{ fontWeight: 600 }}>{d.bookId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assignment ID</span>
                             <span style={{ fontWeight: 600 }}>{d.assignmentId || '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Assigned Payer Account ID</span>
