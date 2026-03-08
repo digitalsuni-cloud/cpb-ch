@@ -541,13 +541,13 @@ const ExportSection = () => {
 
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 {[
-                                    { os: 'Win', icon: <FaWindows />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/CloudHealth.Pricebook.Studio.4.3.0.exe' },
-                                    { os: 'Mac (M-Series)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/CloudHealth.Pricebook.Studio-4.3.0-arm64.dmg' },
-                                    { os: 'Mac (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/CloudHealth.Pricebook.Studio-4.3.0.dmg' },
-                                    { os: 'Linux (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/CloudHealth.Pricebook.Studio-4.3.0.AppImage' },
-                                    { os: 'Linux (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/cpb-react_4.3.0_amd64.deb' },
-                                    { os: 'Linux ARM64 (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/CloudHealth.Pricebook.Studio-4.3.0-arm64.AppImage' },
-                                    { os: 'Linux ARM64 (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.0/cpb-react_4.3.0_arm64.deb' }
+                                    { os: 'Win', icon: <FaWindows />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/CloudHealth.Pricebook.Studio.4.3.1.exe' },
+                                    { os: 'Mac (M-Series)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/CloudHealth.Pricebook.Studio-4.3.1-arm64.dmg' },
+                                    { os: 'Mac (Intel)', icon: <FaApple />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/CloudHealth.Pricebook.Studio-4.3.1.dmg' },
+                                    { os: 'Linux (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/CloudHealth.Pricebook.Studio-4.3.1.AppImage' },
+                                    { os: 'Linux (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/cpb-react_4.3.1_amd64.deb' },
+                                    { os: 'Linux ARM64 (AppImage)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/CloudHealth.Pricebook.Studio-4.3.1-arm64.AppImage' },
+                                    { os: 'Linux ARM64 (Deb)', icon: <FaLinux />, url: 'https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v4.3.1/cpb-react_4.3.1_arm64.deb' }
                                 ].map((btn) => (
                                     <a
                                         key={btn.os}
