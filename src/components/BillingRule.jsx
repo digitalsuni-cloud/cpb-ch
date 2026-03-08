@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { usePriceBook } from '../context/PriceBookContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { propertyTypes } from '../constants/propertyTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import PropertySection from './PropertySection';
@@ -10,9 +11,11 @@ import { FaGripVertical, FaTrash, FaPlus, FaChevronDown } from 'react-icons/fa';
 import CreatableSelect from 'react-select/creatable';
 import ProductItem from './ProductItem';
 import ToggleSwitch from './ToggleSwitch';
+import Tooltip from './Tooltip';
 
 const BillingRule = ({ rule, groupId }) => {
     const { dispatch } = usePriceBook();
+    const confirm = useConfirm();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rule.id });
     const [selectedProp, setSelectedProp] = useState('');
     const [isHovered, setIsHovered] = useState(false);
@@ -91,46 +94,50 @@ const BillingRule = ({ rule, groupId }) => {
             <div className={`rule ${rule.collapsed ? 'collapsed' : ''}`}>
                 <div className="rule-header" style={{ borderBottom: rule.collapsed ? 'none' : '1px solid var(--border)', paddingBottom: rule.collapsed ? '4px' : '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-secondary)', fontSize: '1.2rem', display: 'flex' }}>
-                            ⋮⋮
-                        </span>
+                        <Tooltip title="Reorder Rule" content="Drag to reorder this billing rule within the group">
+                            <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-secondary)', fontSize: '1.2rem', display: 'flex' }}>
+                                ⋮⋮
+                            </span>
+                        </Tooltip>
 
                         <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {rule.collapsed ? (
                                 <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={() => updateRule({ collapsed: false })}>
-                                    <div
-                                        style={{
-                                            fontSize: '0.85rem',
-                                            fontWeight: 600,
-                                            color: 'var(--text-main)',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            padding: '8px 0',
-                                            maxWidth: '200px'
-                                        }}
-                                        title={rule.name ? `Rule: ${rule.name}` : "Untitled Rule"}
-                                    >
-                                        {rule.name || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Untitled Rule</span>}
-                                    </div>
+                                    <Tooltip title="Rule Name" content={rule.name || "Untitled Rule"}>
+                                        <div
+                                            style={{
+                                                fontSize: '0.85rem',
+                                                fontWeight: 600,
+                                                color: 'var(--text-main)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                padding: '8px 0',
+                                                maxWidth: '200px'
+                                            }}
+                                        >
+                                            {rule.name || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Untitled Rule</span>}
+                                        </div>
+                                    </Tooltip>
                                     <div style={{ marginLeft: '8px' }}>
                                         {renderAdjustmentTag()}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden', flex: 1, marginLeft: '12px' }}>
                                         <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginRight: '8px' }}>-</span>
-                                        <span
-                                            style={{
-                                                fontSize: '0.8rem',
-                                                color: 'var(--text-secondary)',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                maxWidth: '250px'
-                                            }}
-                                            title={(rule.products || []).map(p => p.productName || 'All Products').join(', ')}
-                                        >
-                                            {(rule.products || []).map(p => p.productName || 'All Products').join(', ') || "No products"}
-                                        </span>
+                                        <Tooltip title="Products Scope" content={(rule.products || []).map(p => p.productName || 'All Products').join(', ')} maxWidth="300px">
+                                            <span
+                                                style={{
+                                                    fontSize: '0.8rem',
+                                                    color: 'var(--text-secondary)',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    maxWidth: '250px'
+                                                }}
+                                            >
+                                                {(rule.products || []).map(p => p.productName || 'All Products').join(', ') || "No products"}
+                                            </span>
+                                        </Tooltip>
                                         {(() => {
                                             let totalFilters = 0;
                                             (rule.products || []).forEach(p => {
@@ -160,76 +167,84 @@ const BillingRule = ({ rule, groupId }) => {
                                 </div>
                             ) : (
                                 <>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={rule.name}
-                                        onChange={handleChange}
-                                        placeholder="Billing Rule Name"
-                                        title="Enter a name for this billing rule (e.g. Service Discount)"
-                                        className="ruleName"
-                                        style={{ flex: 1, minWidth: 0 }}
-                                        startFocus={true}
-                                    />
+                                    <Tooltip title="Billing Rule Name" content="Enter a descriptive name for this rule (e.g. 'AWS Lambda Discount')">
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={rule.name}
+                                            onChange={handleChange}
+                                            placeholder="Billing Rule Name"
+                                            className="ruleName"
+                                            style={{ flex: 1, minWidth: 0 }}
+                                            startFocus={true}
+                                        />
+                                    </Tooltip>
                                     {renderAdjustmentTag()}
                                 </>
                             )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <motion.button
-                                className="button-ghost"
-                                onClick={() => {
-                                    if (confirm('Delete this billing rule?')) {
-                                        dispatch({ type: 'REMOVE_BILLING_RULE', groupId, ruleId: rule.id });
-                                    }
-                                }}
-                                title="Delete Billing Rule"
-                                whileHover={{ scale: 1.1, color: '#ef4444' }}
-                                whileTap={{ scale: 0.9 }}
-                                style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    padding: '0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'var(--text-secondary)',
-                                    background: 'transparent',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '6px',
-                                    boxShadow: 'none'
-                                }}
-                            >
-                                <FaTrash size={12} />
-                            </motion.button>
-
-                            <motion.button
-                                className="button-ghost"
-                                onClick={() => updateRule({ collapsed: !rule.collapsed })}
-                                title={rule.collapsed ? "Expand Billing Rule" : "Collapse Billing Rule"}
-                                whileHover={{ scale: 1.1, rotate: rule.collapsed ? 0 : 5 }}
-                                whileTap={{ scale: 0.9 }}
-                                style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    padding: '0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
-                                    border: '1px solid var(--border-glow)',
-                                    borderRadius: '6px',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                <motion.span
-                                    animate={{ rotate: rule.collapsed ? -90 : 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                    style={{ display: 'flex' }}
+                            <Tooltip title="Delete Rule" content="Remove this billing rule and all its product filters" variant="danger">
+                                <motion.button
+                                    className="button-ghost"
+                                    onClick={async () => {
+                                        if (await confirm({
+                                            title: 'Remove Billing Rule',
+                                            message: `Are you sure you want to remove the billing rule "${rule.name || 'Untitled Rule'}"?`,
+                                            variant: 'danger',
+                                            confirmLabel: 'Remove Rule'
+                                        })) {
+                                            dispatch({ type: 'REMOVE_BILLING_RULE', groupId, ruleId: rule.id });
+                                        }
+                                    }}
+                                    whileHover={{ scale: 1.1, color: '#ef4444' }}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        padding: '0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text-secondary)',
+                                        background: 'transparent',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        borderRadius: '6px',
+                                        boxShadow: 'none'
+                                    }}
                                 >
-                                    ▼
-                                </motion.span>
-                            </motion.button>
+                                    <FaTrash size={12} />
+                                </motion.button>
+                            </Tooltip>
+
+                            <Tooltip title={rule.collapsed ? "Expand" : "Collapse"} content={rule.collapsed ? "Show full rule configuration" : "Hide configuration to save space"}>
+                                <motion.button
+                                    className="button-ghost"
+                                    onClick={() => updateRule({ collapsed: !rule.collapsed })}
+                                    whileHover={{ scale: 1.1, rotate: rule.collapsed ? 0 : 5 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        padding: '0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
+                                        border: '1px solid var(--border-glow)',
+                                        borderRadius: '6px',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    <motion.span
+                                        animate={{ rotate: rule.collapsed ? -90 : 0 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                        style={{ display: 'flex' }}
+                                    >
+                                        ▼
+                                    </motion.span>
+                                </motion.button>
+                            </Tooltip>
                         </div>
                     </div>
                 </div>
@@ -399,7 +414,6 @@ const BillingRule = ({ rule, groupId }) => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onClick={() => dispatch({ type: 'ADD_BILLING_RULE', groupId, afterId: rule.id })}
-                title="Insert Billing Rule Here"
             >
                 <div style={{
                     width: '100%',

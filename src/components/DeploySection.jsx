@@ -5,9 +5,12 @@ import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPr
 import ToggleSwitch from './ToggleSwitch';
 import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate, logDryRun } from '../utils/history/historyLogger';
 import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt } from 'react-icons/fa';
+import Tooltip from './Tooltip';
+import { useConfirm } from '../context/ConfirmContext';
 
 const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
     const { state, dispatch } = usePriceBook();
+    const confirm = useConfirm();
     const [actionType, setActionType] = useState('update'); // 'update' or 'create'
     const [priceBookId, setPriceBookId] = useState(state.priceBook.cxAPIId || '');
     const [newPricebookName, setNewPricebookName] = useState('');
@@ -137,7 +140,15 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 : `Are you sure you want to OVERWRITE Price Book ID: ${priceBookId}?\n\nThis is a destructive action that will completely replace existing mapping rules for this ID.`;
         })();
 
-        if (!window.confirm(confirmMsg)) {
+        const isConfirmed = await confirm({
+            title: isDryRun ? 'Confirm Dry Run' : 'Confirm Deployment',
+            message: confirmMsg,
+            variant: isDryRun ? 'info' : (actionType === 'update' ? 'danger' : 'warning'),
+            confirmLabel: isDryRun ? 'Run Simulation' : (actionType === 'update' ? 'Overwrite & Deploy' : 'Create & Deploy'),
+            cancelLabel: 'Review Settings'
+        });
+
+        if (!isConfirmed) {
             setIsDeploying(false);
             setDeployStatus({ success: false, message: 'Deployment canceled by user.', details: [] });
             return;
@@ -328,9 +339,9 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         <div className="output-section card" style={{ position: 'relative', display: 'flex', flexDirection: 'column', padding: '24px', flex: 1, minHeight: 0, marginTop: '2px', boxSizing: 'border-box' }}>
 
             {/* Live Tenant Warning */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', marginBottom: '20px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', borderRadius: '10px', backdropFilter: 'blur(4px)' }}>
+            <div className="tenant-warning" style={{ marginBottom: '20px' }}>
                 <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>⚠️</span>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: '#f5c518', lineHeight: '1.5' }}>
+                <p>
                     <strong>Live Tenant — Be Cautious:</strong> All actions in this section run directly on your CloudHealth tenant and take effect immediately. Please review your selections carefully before confirming.
                 </p>
             </div>
@@ -509,36 +520,27 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         <div style={{ minHeight: '18px' }} />{/* spacer to match Client ID hint height */}
                                     </div>
                                     <div className="input-group">
-                                        <label>Payer Account ID <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                        <input
-                                            type="text"
-                                            value={dryRunPayerId}
-                                            onChange={(e) => setDryRunPayerId(e.target.value)}
-                                            placeholder="Explicit Payer ID (e.g. 1234)"
-                                        />
-                                        <div style={{ minHeight: '18px' }} />{/* spacer */}
-                                    </div>
-                                    <div className="input-group">
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             Client API ID <span style={{ color: 'var(--danger)' }}>*</span>
-                                            <button
-                                                onClick={async () => {
-                                                    const apiKey = localStorage.getItem('ch_api_key');
-                                                    const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
-                                                    if (!apiKey) return;
-                                                    setIsLoadingCustomers(true);
-                                                    try {
-                                                        const { fetchAllCustomers: _fac } = await import('../utils/chApi');
-                                                        const c = await _fac(apiKey, proxyUrl, true);
-                                                        setCustomerOptions(c || []);
-                                                    } catch (e) { console.warn(e); }
-                                                    finally { setIsLoadingCustomers(false); }
-                                                }}
-                                                title="Refresh customer list"
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
-                                            >
-                                                {isLoadingCustomers ? <span style={{ fontSize: '0.7rem' }}>⏳</span> : <FaSyncAlt size={10} />}
-                                            </button>
+                                            <Tooltip title="Refresh" content="Re-fetch the customer list from CloudHealth API" position="top">
+                                                <button
+                                                    onClick={async () => {
+                                                        const apiKey = localStorage.getItem('ch_api_key');
+                                                        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                        if (!apiKey) return;
+                                                        setIsLoadingCustomers(true);
+                                                        try {
+                                                            const { fetchAllCustomers: _fac } = await import('../utils/chApi');
+                                                            const c = await _fac(apiKey, proxyUrl, true);
+                                                            setCustomerOptions(c || []);
+                                                        } catch (e) { console.warn(e); }
+                                                        finally { setIsLoadingCustomers(false); }
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
+                                                >
+                                                    {isLoadingCustomers ? <span style={{ fontSize: '0.7rem' }}>⏳</span> : <FaSyncAlt size={10} />}
+                                                </button>
+                                            </Tooltip>
                                         </label>
                                         <input
                                             type="text"
@@ -551,6 +553,16 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                             {dryRunCustomer ? dryRunCustomer.name : ''}
                                         </div>
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Payer Account ID <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                        <input
+                                            type="text"
+                                            value={dryRunPayerId}
+                                            onChange={(e) => setDryRunPayerId(e.target.value)}
+                                            placeholder="Explicit Payer ID (e.g. 1234)"
+                                        />
+                                        <div style={{ minHeight: '18px' }} />{/* spacer */}
                                     </div>
                                 </div>
                             </div>

@@ -5,6 +5,7 @@ import {
     FaChevronDown, FaChevronUp, FaLightbulb, FaCode, FaMagic, FaFolderOpen,
     FaBookOpen, FaUserEdit, FaAlignLeft, FaEye, FaTrash, FaPen
 } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -110,11 +111,12 @@ const HelpSection = ({ isOpen, onClose }) => {
                         }}
                     >
                         {/* Resize handle */}
-                        <div
-                            onMouseDown={() => setIsResizing(true)}
-                            style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '5px', cursor: 'ew-resize', zIndex: 1000 }}
-                            title="Drag to resize"
-                        />
+                        <Tooltip title="Resize" content="Drag to resize the help panel" position="left">
+                            <div
+                                onMouseDown={() => setIsResizing(true)}
+                                style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '5px', cursor: 'ew-resize', zIndex: 1000 }}
+                            />
+                        </Tooltip>
 
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>

@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch, FaPlay } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError, performDryRun, fetchAwsAccountAssignments } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState, generateXML } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
 import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete, logDryRun } from '../utils/history/historyLogger';
+import { useConfirm } from '../context/ConfirmContext';
 
 let specCache = new Map(); // bookId → xml string
 
 const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView }) => {
     const { dispatch, state } = usePriceBook();
+    const confirm = useConfirm();
     const [apiData, setApiData] = useState(state.directoryCache || { customers: [], books: [], assignments: [] });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -113,7 +116,15 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         // Strip the trailing " (ID)" portion from the display name for the title
         const cleanName = customerName ? customerName.replace(/\s*\(\d+\)$/, '') : customerName;
         const shortBook = bookName && bookName.length > 25 ? `${bookName.substring(0, 23)}…` : (bookName || 'Pricebook');
-        if (!window.confirm(`Are you sure you want to unassign this Pricebook from ${cleanName}?`)) return;
+
+        const isConfirmed = await confirm({
+            title: 'Unassign Pricebook',
+            message: `Are you sure you want to unassign this Pricebook from ${cleanName}?`,
+            variant: 'warning',
+            confirmLabel: 'Unassign'
+        });
+
+        if (!isConfirmed) return;
         const apiKey = localStorage.getItem('ch_api_key');
         const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
         try {
@@ -142,7 +153,14 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     };
 
     const handleDeleteBook = async (bookId, bookName) => {
-        if (!window.confirm(`CRITICAL: Are you completely sure you want to delete Pricebook "${bookName}" globally? This cannot be undone.`)) return;
+        const isConfirmed = await confirm({
+            title: 'CRITICAL: Delete Pricebook',
+            message: `Are you completely sure you want to delete Pricebook "${bookName}" globally? This cannot be undone.`,
+            variant: 'danger',
+            confirmLabel: 'Delete Globally'
+        });
+
+        if (!isConfirmed) return;
         const apiKey = localStorage.getItem('ch_api_key');
         const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
 
@@ -206,7 +224,16 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     const handleModify = async (bookId, bookName, customerId, payerId) => {
         // Check for existing data in the builder and warn before overwriting
         const hasExistingData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
-        if (hasExistingData && !window.confirm(`You have unsaved configuration in the builder.\n\nLoading "${bookName}" will overwrite it. Continue?`)) return;
+
+        if (hasExistingData) {
+            const isConfirmed = await confirm({
+                title: 'Unsaved Changes',
+                message: `You have unsaved configuration in the builder.\n\nLoading "${bookName}" will overwrite it. Continue?`,
+                variant: 'danger',
+                confirmLabel: 'Overwrite'
+            });
+            if (!isConfirmed) return;
+        }
 
         const apiKey = localStorage.getItem('ch_api_key');
         const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
@@ -226,7 +253,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             if (err instanceof ApiAuthError) {
                 showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
             } else {
-                alert(`Failed to fetch and parse pricebook: ${err.message}`);
+                console.error(err);
+                confirm({ title: 'Error', message: `Failed to fetch and parse pricebook: ${err.message}`, type: 'alert', variant: 'danger' });
             }
         }
     };
@@ -234,7 +262,16 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     const handleEditAssignment = async (bookId, bookName, customerId, payerId) => {
         // Warn if builder already has data
         const hasExistingData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
-        if (hasExistingData && !window.confirm(`You have unsaved configuration in the builder.\n\nLoading "${bookName}" into Deploy will overwrite it. Continue?`)) return;
+
+        if (hasExistingData) {
+            const isConfirmed = await confirm({
+                title: 'Unsaved Changes',
+                message: `You have unsaved configuration in the builder.\n\nLoading "${bookName}" into Deploy will overwrite it. Continue?`,
+                variant: 'danger',
+                confirmLabel: 'Overwrite'
+            });
+            if (!isConfirmed) return;
+        }
 
         try {
             const xml = await getSpec(bookId);
@@ -254,14 +291,22 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             if (err instanceof ApiAuthError) {
                 showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
             } else {
-                alert(`Failed to load assignment into deploy context: ${err.message}`);
+                console.error(err);
+                confirm({ title: 'Error', message: `Failed to load assignment into deploy context: ${err.message}`, type: 'alert', variant: 'danger' });
             }
         }
     };
 
     const handleViewSummary = async (bookId, bookName, customerId, payerId) => {
         const hasExistingData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
-        if (hasExistingData && !window.confirm(`You have unsaved configuration in the builder.\n\nLoading "${bookName}" will overwrite it. Continue?`)) return;
+        const isConfirmed = !hasExistingData || await confirm({
+            title: 'Overwrite Builder Content',
+            message: `You have unsaved configuration in the builder. Loading "${bookName}" will overwrite it. Continue?`,
+            variant: 'warning',
+            confirmLabel: 'Overwrite & Load'
+        });
+
+        if (!isConfirmed) return;
 
         try {
             const xml = await getSpec(bookId);
@@ -279,7 +324,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             if (err instanceof ApiAuthError) {
                 showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
             } else {
-                alert(`Failed to load pricebook summary: ${err.message}`);
+                console.error(err);
+                confirm({ title: 'Error', message: `Failed to load pricebook summary: ${err.message}`, type: 'alert', variant: 'danger' });
             }
         }
     };
@@ -294,7 +340,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             if (err instanceof ApiAuthError) {
                 showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
             } else {
-                alert(`Failed to view XML: ${err.message}`);
+                console.error(err);
+                confirm({ title: 'Error', message: `Failed to view XML: ${err.message}`, type: 'alert', variant: 'danger' });
             }
         }
     };
@@ -310,7 +357,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             if (err instanceof ApiAuthError) {
                 showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
             } else {
-                alert(`Failed to refresh XML: ${err.message}`);
+                console.error(err);
+                confirm({ title: 'Error', message: `Failed to refresh XML: ${err.message}`, type: 'alert', variant: 'danger' });
             }
         } finally {
             setXmlRefreshing(false);
@@ -348,7 +396,12 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
     const handleDryRunSubmit = async () => {
         if (!dryRunData.payerId || dryRunData.payerId.trim() === '') {
-            alert('A specific Payer Account ID is required for a Dry Run.');
+            confirm({
+                title: 'Payer Account ID Required',
+                message: 'A specific Payer Account ID is required for a Dry Run.',
+                type: 'alert',
+                variant: 'warning'
+            });
             return;
         }
 
@@ -483,9 +536,9 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', padding: '0' }}>
 
                 {/* Live Tenant Warning */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', borderRadius: '10px', backdropFilter: 'blur(4px)', margin: '0 16px' }}>
+                <div className="tenant-warning" style={{ margin: '0 16px' }}>
                     <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>⚠️</span>
-                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#f5c518', lineHeight: '1.5' }}>
+                    <p>
                         <strong>Live Tenant — Be Cautious:</strong> All actions in this section run directly on your CloudHealth tenant and take effect immediately. Please review your selections carefully before confirming.
                     </p>
                 </div>
@@ -527,7 +580,9 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     Assigned Customer
-                                                    <button onClick={() => { setOpenFilter(f => f === 'customer' ? null : 'customer'); if (openFilter === 'customer') setFilterCustomer(''); }} style={{ background: 'none', border: 'none', color: filterCustomer ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Filter customer"><FaSearch size={11} /></button>
+                                                    <Tooltip title="Filter Customer" content="Search assignments by customer name or API ID" position="top">
+                                                        <button onClick={() => { setOpenFilter(f => f === 'customer' ? null : 'customer'); if (openFilter === 'customer') setFilterCustomer(''); }} style={{ background: 'none', border: 'none', color: filterCustomer ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><FaSearch size={11} /></button>
+                                                    </Tooltip>
                                                 </div>
                                                 {openFilter === 'customer' && (
                                                     <input autoFocus type="text" placeholder="Search..." value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)} style={{ width: '100%', padding: '4px 8px', fontSize: '0.8rem', boxSizing: 'border-box', borderRadius: '6px', background: 'var(--bg-deep)', color: 'var(--text-main)', border: '1px solid var(--border)' }} />
@@ -538,7 +593,9 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     Pricebook Name
-                                                    <button onClick={() => { setOpenFilter(f => f === 'book' ? null : 'book'); if (openFilter === 'book') setFilterBook(''); }} style={{ background: 'none', border: 'none', color: filterBook ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Filter pricebook"><FaSearch size={11} /></button>
+                                                    <Tooltip title="Filter Pricebook" content="Search assignments by pricebook name or book ID" position="top">
+                                                        <button onClick={() => { setOpenFilter(f => f === 'book' ? null : 'book'); if (openFilter === 'book') setFilterBook(''); }} style={{ background: 'none', border: 'none', color: filterBook ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><FaSearch size={11} /></button>
+                                                    </Tooltip>
                                                 </div>
                                                 {openFilter === 'book' && (
                                                     <input autoFocus type="text" placeholder="Search..." value={filterBook} onChange={e => setFilterBook(e.target.value)} style={{ width: '100%', padding: '4px 8px', fontSize: '0.8rem', boxSizing: 'border-box', borderRadius: '6px', background: 'var(--bg-deep)', color: 'var(--text-main)', border: '1px solid var(--border)' }} />
@@ -549,7 +606,9 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     Payer Mapping
-                                                    <button onClick={() => { setOpenFilter(f => f === 'payer' ? null : 'payer'); if (openFilter === 'payer') setFilterPayer(''); }} style={{ background: 'none', border: 'none', color: filterPayer ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Filter payer"><FaSearch size={11} /></button>
+                                                    <Tooltip title="Filter Payer" content="Search assignments by payer account ID" position="top">
+                                                        <button onClick={() => { setOpenFilter(f => f === 'payer' ? null : 'payer'); if (openFilter === 'payer') setFilterPayer(''); }} style={{ background: 'none', border: 'none', color: filterPayer ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><FaSearch size={11} /></button>
+                                                    </Tooltip>
                                                 </div>
                                                 {openFilter === 'payer' && (
                                                     <input autoFocus type="text" placeholder="Search..." value={filterPayer} onChange={e => setFilterPayer(e.target.value)} style={{ width: '100%', padding: '4px 8px', fontSize: '0.8rem', boxSizing: 'border-box', borderRadius: '6px', background: 'var(--bg-deep)', color: 'var(--text-main)', border: '1px solid var(--border)' }} />
@@ -563,11 +622,12 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                     onMouseEnter={() => setLegendOpen(true)}
                                                     onMouseLeave={() => setLegendOpen(false)}
                                                 >
-                                                    <button
-                                                        onClick={() => setLegendOpen(v => !v)}
-                                                        style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#a78bfa', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1, padding: 0 }}
-                                                        title="Action Legend"
-                                                    >?</button>
+                                                    <Tooltip title="Action Legend" content="View what each icon in the action column represents" position="top">
+                                                        <button
+                                                            onClick={() => setLegendOpen(v => !v)}
+                                                            style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#a78bfa', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1, padding: 0 }}
+                                                        >?</button>
+                                                    </Tooltip>
                                                     {legendOpen && (
                                                         <div style={{ position: 'absolute', top: '24px', right: 0, zIndex: 9999, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 16px 40px rgba(0,0,0,0.55)', minWidth: '215px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '2px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Action Legend</div>
@@ -602,16 +662,15 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                     ) : paginatedData.map((item, idx) => (
                                         <tr key={`${item.id}-${item.assignment_id || 'none'}-${idx}`} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', opacity: item.is_assigned ? 1 : 0.65, background: idx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent' }}>
                                             <td style={{ padding: '16px' }}>
-                                                <div style={{ fontWeight: item.is_assigned ? 600 : 'normal' }}>{item.customer_name ? item.customer_name.replace(/\s*\(\d+\)$/, '') : ''}</div>
+                                                <div style={{ fontWeight: item.is_assigned ? 500 : 'normal', color: 'var(--text-main)' }}>{item.customer_name ? item.customer_name.replace(/\s*\(\d+\)$/, '') : ''}</div>
                                                 {item.target_client_api_id && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>API ID: {item.target_client_api_id}</div>}
                                             </td>
                                             <td style={{ padding: '16px' }}>
                                                 <div
                                                     onClick={() => handleViewXml(item.id, item.book_name)}
-                                                    style={{ fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', display: 'inline-block' }}
-                                                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                                                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                                                    title="Click to Read Raw XML Specification"
+                                                    style={{ fontWeight: 500, color: 'var(--text-main)', cursor: 'pointer', display: 'inline-block', transition: 'color 0.2s' }}
+                                                    onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; e.target.style.color = 'var(--primary)'; }}
+                                                    onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; e.target.style.color = 'var(--text-main)'; }}
                                                 >
                                                     {item.book_name} ( {item.id} )
                                                 </div>
@@ -623,67 +682,76 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                 <div style={{ fontWeight: 600 }}>
                                                     {item.billing_account_owner_id}
                                                     {item.billing_account_owner_id === 'N/A' && (
-                                                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal', fontStyle: 'italic' }} title="Assigned to customer but no payer account mapping yet">(not yet mapped)</span>
+                                                        <Tooltip title="Unmapped" content="Assigned to customer but no specific payer account mapping yet" position="top">
+                                                            <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal', fontStyle: 'italic', cursor: 'help' }}>(not yet mapped)</span>
+                                                        </Tooltip>
                                                     )}
                                                 </div>
                                                 {item.assignment_id && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Assignment ID: {item.assignment_id}</div>}
                                             </td>
                                             <td style={{ padding: '12px 16px' }}>
                                                 <div style={{ display: 'flex', gap: 'clamp(3px, 0.5vw, 6px)', flexWrap: 'wrap', alignItems: 'center' }}>
-                                                    <button
-                                                        onClick={() => handleViewXml(item.id, item.book_name)}
-                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                        title="View Raw XML Specification"
-                                                    >
-                                                        <FaEye size={11} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleModify(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
-                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', borderRadius: '6px', cursor: 'pointer', flexShrink: 0, position: 'relative', overflow: 'visible' }}
-                                                        title="Edit Pricebook Rules"
-                                                    >
-                                                        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px' }}>
-                                                            <FaBookOpen size={12} style={{ position: 'absolute' }} />
-                                                            <FaPen size={6} style={{ position: 'absolute', bottom: '-2px', right: '-4px', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleViewSummary(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
-                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                        title="View Pricebook Summary"
-                                                    >
-                                                        <FaAlignLeft size={11} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDryRunOpen(item)}
-                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                        title="Launch Pricebook Dry Run"
-                                                    >
-                                                        <FaPlay size={11} style={{ marginLeft: '2px' }} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEditAssignment(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
-                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                        title="Edit Assignment (Customer / Payer Account)"
-                                                    >
-                                                        <FaUserEdit size={11} />
-                                                    </button>
-                                                    {item.is_assigned && (
+                                                    <Tooltip title="View XML" content="View raw XML specification" position="top">
                                                         <button
-                                                            onClick={() => handleUnassign(item.assignment_id, item.customer_name, item.book_name)}
-                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', color: '#eab308', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                            title="Unassign from Customer"
+                                                            onClick={() => handleViewXml(item.id, item.book_name)}
+                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
                                                         >
-                                                            <FaTimes size={11} />
+                                                            <FaEye size={11} />
                                                         </button>
+                                                    </Tooltip>
+                                                    <Tooltip title="Edit Rules" content="Import this pricebook into the builder to modify rules" position="top">
+                                                        <button
+                                                            onClick={() => handleModify(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
+                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', borderRadius: '6px', cursor: 'pointer', flexShrink: 0, position: 'relative', overflow: 'visible' }}
+                                                        >
+                                                            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px' }}>
+                                                                <FaBookOpen size={12} style={{ position: 'absolute' }} />
+                                                                <FaPen size={6} style={{ position: 'absolute', bottom: '-2px', right: '-4px', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />
+                                                            </span>
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip title="View Summary" content="View a simplified summary of all rules in this pricebook" position="top">
+                                                        <button
+                                                            onClick={() => handleViewSummary(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
+                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                        >
+                                                            <FaAlignLeft size={11} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip title="Dry Run" content="Simulate applying this pricebook to a specific month and payer" position="top">
+                                                        <button
+                                                            onClick={() => handleDryRunOpen(item)}
+                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                        >
+                                                            <FaPlay size={11} style={{ marginLeft: '2px' }} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip title="Edit Assignment" content="Modify the customer or payer mapping for this pricebook" position="top">
+                                                        <button
+                                                            onClick={() => handleEditAssignment(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
+                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                        >
+                                                            <FaUserEdit size={11} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    {item.is_assigned && (
+                                                        <Tooltip title="Unassign Pricebook" content="Remove this pricebook mapping from the customer" variant="warning" position="top">
+                                                            <button
+                                                                onClick={() => handleUnassign(item.assignment_id, item.customer_name, item.book_name)}
+                                                                style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', color: '#eab308', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                            >
+                                                                <FaTimes size={11} />
+                                                            </button>
+                                                        </Tooltip>
                                                     )}
-                                                    <button
-                                                        onClick={() => handleDeleteBook(item.id, item.book_name)}
-                                                        style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'var(--danger)', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
-                                                        title="Delete Assignment &amp; Pricebook"
-                                                    >
-                                                        <FaTrash size={11} />
-                                                    </button>
+                                                    <Tooltip title="Delete Pricebook" content="Permanently delete this assignment and the pricebook from CloudHealth" variant="danger" position="top">
+                                                        <button
+                                                            onClick={() => handleDeleteBook(item.id, item.book_name)}
+                                                            style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'var(--danger)', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
+                                                        >
+                                                            <FaTrash size={11} />
+                                                        </button>
+                                                    </Tooltip>
                                                 </div>
                                             </td>
                                         </tr>
@@ -767,35 +835,45 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                     <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-deep)' }}>
                                         <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 600 }}>{viewingXmlTitle}</h3>
                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button onClick={() => {
-                                                const blob = new Blob([viewingXml], { type: 'application/xml' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = `${viewingXmlTitle.replace('Specification: ', '')}.xml`;
-                                                document.body.appendChild(a);
-                                                a.click();
-                                                document.body.removeChild(a);
-                                                URL.revokeObjectURL(url);
-                                            }} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title="Download XML">
-                                                <FaDownload />
-                                            </button>
-                                            <button onClick={() => {
-                                                navigator.clipboard.writeText(viewingXml);
-                                                setXmlCopied(true);
-                                                setTimeout(() => setXmlCopied(false), 2000);
-                                            }} style={{ background: xmlCopied ? 'rgba(16,185,129,0.2)' : 'var(--bg-card)', border: `1px solid ${xmlCopied ? 'rgba(16,185,129,0.5)' : 'var(--border)'}`, color: xmlCopied ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title={xmlCopied ? "Copied!" : "Copy XML"}>
-                                                {xmlCopied ? <FaCheck /> : <FaCopy />}
-                                            </button>
-                                            <button onClick={handleRefreshXml} disabled={xmlRefreshing} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: xmlRefreshing ? 'not-allowed' : 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s', opacity: xmlRefreshing ? 0.6 : 1 }} title="Refresh (re-fetch from API)">
-                                                <FaSyncAlt style={{ animation: xmlRefreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-                                            </button>
-                                            <button onClick={() => setXmlExpanded(!xmlExpanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title={xmlExpanded ? "Restore" : "Maximize"}>
-                                                {xmlExpanded ? <FaCompress /> : <FaExpand />}
-                                            </button>
-                                            <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} title="Close">
-                                                <FaTimes />
-                                            </button>
+                                            <Tooltip title="Download XML" content="Save local copy of this specification">
+                                                <button onClick={() => {
+                                                    const blob = new Blob([viewingXml], { type: 'application/xml' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = `${viewingXmlTitle.replace('Specification: ', '')}.xml`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                    URL.revokeObjectURL(url);
+                                                }} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                                                    <FaDownload />
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip title={xmlCopied ? "Copied!" : "Copy XML"} content="Copy the entire XML specification to clipboard">
+                                                <button onClick={() => {
+                                                    navigator.clipboard.writeText(viewingXml);
+                                                    setXmlCopied(true);
+                                                    setTimeout(() => setXmlCopied(false), 2000);
+                                                }} style={{ background: xmlCopied ? 'rgba(16,185,129,0.2)' : 'var(--bg-card)', border: `1px solid ${xmlCopied ? 'rgba(16,185,129,0.5)' : 'var(--border)'}`, color: xmlCopied ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                                                    {xmlCopied ? <FaCheck /> : <FaCopy />}
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip title="Refresh Specification" content="Bypass cache and re-fetch latest data from CloudHealth API">
+                                                <button onClick={handleRefreshXml} disabled={xmlRefreshing} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: xmlRefreshing ? 'not-allowed' : 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s', opacity: xmlRefreshing ? 0.6 : 1 }}>
+                                                    <FaSyncAlt style={{ animation: xmlRefreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip title={xmlExpanded ? "Restore" : "Maximize"} content={xmlExpanded ? "Return to standard view" : "Expand to fit entire screen"}>
+                                                <button onClick={() => setXmlExpanded(!xmlExpanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                                                    {xmlExpanded ? <FaCompress /> : <FaExpand />}
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip title="Close" content="Dismiss this view">
+                                                <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                                                    <FaTimes />
+                                                </button>
+                                            </Tooltip>
                                         </div>
                                     </div>
                                     <div style={{ padding: '24px', overflowX: 'auto', overflowY: 'auto', flexGrow: 1, background: 'var(--bg-code)' }}>

@@ -4,6 +4,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import SettingsModal from '../components/SettingsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCog, FaSyncAlt } from 'react-icons/fa';
+import Tooltip from '../components/Tooltip';
 import { isElectronApp } from '../utils/env';
 
 const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setShowHelp, onCheckUpdates }) => {
@@ -74,46 +75,24 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'absolute', right: '32px' }}>
                         {isElectronApp() && (
                             <>
-                                <button
-                                    onClick={onCheckUpdates}
-                                    className="button-ghost"
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: 'var(--text-secondary)',
-                                        cursor: 'pointer',
-                                        padding: '8px',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '1.1rem',
-                                        transition: 'color 0.2s'
-                                    }}
-                                    title="Check for App Updates"
-                                >
-                                    <FaSyncAlt />
-                                </button>
-                                <button
-                                    onClick={() => setShowSettings(true)}
-                                    className="button-ghost"
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: 'var(--text-secondary)',
-                                        cursor: 'pointer',
-                                        padding: '8px',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '1.2rem',
-                                        transition: 'color 0.2s'
-                                    }}
-                                    title="API Settings"
-                                >
-                                    <FaCog />
-                                </button>
+                                <Tooltip title="Updates" content="Check for newer versions of the app on GitHub" position="bottom">
+                                    <button
+                                        onClick={onCheckUpdates}
+                                        className="header-icon-btn"
+                                        style={{ fontSize: '1.1rem' }}
+                                    >
+                                        <FaSyncAlt />
+                                    </button>
+                                </Tooltip>
+                                <Tooltip title="Settings" content="Configure API keys and connection parameters" position="bottom">
+                                    <button
+                                        onClick={() => setShowSettings(true)}
+                                        className="header-icon-btn"
+                                        style={{ fontSize: '1.2rem' }}
+                                    >
+                                        <FaCog />
+                                    </button>
+                                </Tooltip>
                             </>
                         )}
                         <ThemeToggle />

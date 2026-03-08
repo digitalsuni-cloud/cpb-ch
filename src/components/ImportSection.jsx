@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getAssignedPriceBooks, getPriceBookSpecification, searchCustomerByName, getSingleCustomerAssignment, fetchAllCustomers } from '../utils/chApi';
 import { isElectronApp } from '../utils/env';
 import { FaSyncAlt } from 'react-icons/fa';
+import Tooltip from './Tooltip';
+import { useConfirm } from '../context/ConfirmContext';
 
 const ImportSection = () => {
     const { state, dispatch } = usePriceBook();
+    const confirm = useConfirm();
     const fileInput = useRef(null);
     const containerRef = useRef(null);
     const [activeTab, setActiveTab] = useState('file');
@@ -44,7 +47,7 @@ const ImportSection = () => {
         const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
 
         if (!apiKey) {
-            alert("No API Key configured. Please configure it in the settings.");
+            confirm({ title: 'Configuration Missing', message: 'No API Key configured. Please configure it in the settings.', type: 'alert', variant: 'warning' });
             return;
         }
 
@@ -76,13 +79,13 @@ const ImportSection = () => {
 
         } catch (err) {
             console.error(err);
-            alert("Failed to load assigned price books: " + err.message);
+            confirm({ title: 'Connection Error', message: "Failed to load assigned price books: " + err.message, type: 'alert', variant: 'danger' });
         } finally {
             setIsLoadingBooks(false);
         }
     };
 
-    const performImport = (xml, targetBookId, selectedBookName, customerApiId = '', payerId = '') => {
+    const performImport = async (xml, targetBookId, selectedBookName, customerApiId = '', payerId = '') => {
         const syntheticJsonPayload = {
             book_name: selectedBookName,
             specification: xml,
@@ -91,7 +94,12 @@ const ImportSection = () => {
         const newState = parseXMLToState(xml, syntheticJsonPayload);
         if (newState) {
             const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
-            if (!hasData || confirm("Importing will overwrite current data. Continue?")) {
+            if (!hasData || await confirm({
+                title: 'Confirm Import',
+                message: "Importing will overwrite current data. Continue?",
+                variant: 'danger',
+                confirmLabel: 'Overwrite Data'
+            })) {
                 newState.cxAPIId = targetBookId;
                 newState.bookName = selectedBookName;
                 newState.customerApiId = customerApiId;
@@ -99,7 +107,7 @@ const ImportSection = () => {
                 dispatch({ type: 'IMPORT_DATA', payload: newState });
             }
         } else {
-            alert("Failed to parse the fetched specification.");
+            confirm({ title: 'Parse Error', message: "Failed to parse the fetched specification.", type: 'alert', variant: 'danger' });
         }
     };
 
@@ -134,7 +142,7 @@ const ImportSection = () => {
         const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
 
         if (!apiKey) {
-            alert("No API Key configured. Please configure it in the settings.");
+            confirm({ title: 'Configuration Missing', message: 'No API Key configured. Please configure it in the settings.', type: 'alert', variant: 'warning' });
             return;
         }
 
@@ -198,7 +206,7 @@ const ImportSection = () => {
             performImport(xml, lookupResult.price_book_id.toString(), lookupResult.book_name, lookupResult.target_client_api_id.toString(), lookupResult.billing_account_owner_id || 'ALL');
         } catch (err) {
             console.error(err);
-            alert("Failed to import from API: " + err.message);
+            confirm({ title: 'Sync Error', message: "Failed to import from API: " + err.message, type: 'alert', variant: 'danger' });
         } finally {
             setIsImporting(false);
         }
@@ -233,13 +241,13 @@ const ImportSection = () => {
             performImport(xml, targetBookId, selectedBookName, importedCustomer, importedPayer);
         } catch (err) {
             console.error(err);
-            alert("Failed to import from API: " + err.message);
+            confirm({ title: 'Sync Error', message: "Failed to import from API: " + err.message, type: 'alert', variant: 'danger' });
         } finally {
             setIsImporting(false);
         }
     };
 
-    const processContent = (content) => {
+    const processContent = async (content) => {
         try {
             let newState;
             const trimmed = content.trim();
@@ -302,7 +310,12 @@ const ImportSection = () => {
                 if (json && json.specification) {
                     newState = parseXMLToState(json.specification, json);
                 } else {
-                    alert("Failed to parse JSON. Please ensure it contains a valid 'specification' field.");
+                    confirm({
+                        title: 'Parse Error',
+                        message: "Failed to parse JSON. Please ensure it contains a valid 'specification' field.",
+                        type: 'alert',
+                        variant: 'danger'
+                    });
                     return;
                 }
             } else {
@@ -313,14 +326,19 @@ const ImportSection = () => {
                 // Check if current state has meaningful data
                 const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
 
-                if (!hasData || confirm("Importing will overwrite current data. Continue?")) {
+                if (!hasData || await confirm({
+                    title: 'Confirm Import',
+                    message: "Importing will overwrite current data. Continue?",
+                    variant: 'danger',
+                    confirmLabel: 'Overwrite Data'
+                })) {
                     dispatch({ type: 'IMPORT_DATA', payload: newState });
                     setTextInput('');
                 }
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to import: " + err.message);
+            confirm({ title: 'Import Error', message: "Failed to import: " + err.message, type: 'alert', variant: 'danger' });
         }
     };
 
@@ -408,59 +426,80 @@ const ImportSection = () => {
                 {/* Body */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 }}>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 24px' }}>
-                        <div style={{ flex: '0 0 auto', display: 'flex', gap: '16px', marginBottom: '24px', padding: '4px', background: 'var(--bg-deep)', borderRadius: '12px' }}>
-                            <button
-                                onClick={() => setActiveTab('file')}
-                                style={{
-                                    flex: 1,
-                                    padding: '8px 12px',
-                                    background: activeTab === 'file' ? 'var(--bg-card)' : 'transparent',
-                                    color: activeTab === 'file' ? 'var(--primary)' : 'var(--text-muted)',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    transition: 'all 0.2s',
-                                    boxShadow: activeTab === 'file' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                            >
-                                📂 Upload File
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('text')}
-                                style={{
-                                    flex: 1,
-                                    padding: '8px 12px',
-                                    background: activeTab === 'text' ? 'var(--bg-card)' : 'transparent',
-                                    color: activeTab === 'text' ? 'var(--primary)' : 'var(--text-muted)',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    transition: 'all 0.2s',
-                                    boxShadow: activeTab === 'text' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                            >
-                                📝 Paste Pricebook content
-                            </button>
-                            {isElectronApp() && (
+                        <div style={{ flex: '0 0 auto', display: 'flex', gap: '8px', marginBottom: '24px', padding: '4px', background: 'var(--bg-deep)', borderRadius: '12px' }}>
+                            <Tooltip style={{ flex: 1, display: 'flex' }} title="File Upload" content="Select an XML or JSON pricebook specification from your computer" position="top">
                                 <button
-                                    onClick={() => setActiveTab('api')}
+                                    onClick={() => setActiveTab('file')}
                                     style={{
                                         flex: 1,
                                         padding: '8px 12px',
-                                        background: activeTab === 'api' ? 'var(--bg-card)' : 'transparent',
-                                        color: activeTab === 'api' ? 'var(--primary)' : 'var(--text-muted)',
+                                        background: activeTab === 'file' ? 'var(--bg-card)' : 'transparent',
+                                        color: activeTab === 'file' ? 'var(--primary)' : 'var(--text-muted)',
                                         border: 'none',
                                         borderRadius: '8px',
                                         cursor: 'pointer',
                                         fontWeight: 600,
                                         transition: 'all 0.2s',
-                                        boxShadow: activeTab === 'api' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
+                                        boxShadow: activeTab === 'file' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px'
                                     }}
                                 >
-                                    ☁️ CloudHealth Live Sync
+                                    📂 Upload File
                                 </button>
+                            </Tooltip>
+                            <Tooltip style={{ flex: 1, display: 'flex' }} title="Text Import" content="Paste raw XML or JSON content directly to parse it into the builder" position="top">
+                                <button
+                                    onClick={() => setActiveTab('text')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px 12px',
+                                        background: activeTab === 'text' ? 'var(--bg-card)' : 'transparent',
+                                        color: activeTab === 'text' ? 'var(--primary)' : 'var(--text-muted)',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s',
+                                        boxShadow: activeTab === 'text' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    📝 Paste Pricebook content
+                                </button>
+                            </Tooltip>
+                            {isElectronApp() && (
+                                <Tooltip style={{ flex: 1, display: 'flex' }} title="Live Sync" content="Browse and import your existing pricebooks directly from CloudHealth API" position="top">
+                                    <button
+                                        onClick={() => setActiveTab('api')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 12px',
+                                            background: activeTab === 'api' ? 'var(--bg-card)' : 'transparent',
+                                            color: activeTab === 'api' ? 'var(--primary)' : 'var(--text-muted)',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            fontWeight: 600,
+                                            transition: 'all 0.2s',
+                                            boxShadow: activeTab === 'api' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                                            width: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        ☁️ CloudHealth Live Sync
+                                    </button>
+                                </Tooltip>
                             )}
                         </div>
 
@@ -729,35 +768,36 @@ const ImportSection = () => {
                                                             🌍 List all active Pricebooks
                                                         </div>
                                                         {apiData.assignments.length > 0 && (
-                                                            <button
-                                                                onClick={loadApiBooks}
-                                                                disabled={isLoadingBooks}
-                                                                style={{
-                                                                    padding: '6px 12px',
-                                                                    fontSize: '0.85rem',
-                                                                    borderRadius: '8px',
-                                                                    background: 'rgba(139, 92, 246, 0.1)',
-                                                                    color: 'var(--primary)',
-                                                                    border: '1px solid rgba(139, 92, 246, 0.2)',
-                                                                    cursor: isLoadingBooks ? 'not-allowed' : 'pointer',
-                                                                    opacity: isLoadingBooks ? 0.6 : 1,
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '6px',
-                                                                    fontWeight: 600,
-                                                                    transition: 'all 0.2s ease',
-                                                                    boxShadow: 'none'
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    if (!isLoadingBooks) e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    if (!isLoadingBooks) e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
-                                                                }}
-                                                                title="Refresh Directory Dataset"
-                                                            >
-                                                                <FaSyncAlt className={isLoadingBooks ? 'spin' : ''} /> Refresh
-                                                            </button>
+                                                            <Tooltip title="Refresh" content="Re-fetch the entire directory catalog from CloudHealth API" position="top">
+                                                                <button
+                                                                    onClick={loadApiBooks}
+                                                                    disabled={isLoadingBooks}
+                                                                    style={{
+                                                                        padding: '6px 12px',
+                                                                        fontSize: '0.85rem',
+                                                                        borderRadius: '8px',
+                                                                        background: 'rgba(139, 92, 246, 0.1)',
+                                                                        color: 'var(--primary)',
+                                                                        border: '1px solid rgba(139, 92, 246, 0.2)',
+                                                                        cursor: isLoadingBooks ? 'not-allowed' : 'pointer',
+                                                                        opacity: isLoadingBooks ? 0.6 : 1,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '6px',
+                                                                        fontWeight: 600,
+                                                                        transition: 'all 0.2s ease',
+                                                                        boxShadow: 'none'
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        if (!isLoadingBooks) e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        if (!isLoadingBooks) e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
+                                                                    }}
+                                                                >
+                                                                    <FaSyncAlt className={isLoadingBooks ? 'spin' : ''} /> Refresh
+                                                                </button>
+                                                            </Tooltip>
                                                         )}
                                                     </h3>
                                                     <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>

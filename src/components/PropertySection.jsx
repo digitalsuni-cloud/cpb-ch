@@ -2,6 +2,7 @@ import React from 'react';
 import { propertyTypes } from '../constants/propertyTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrash, FaChevronDown, FaTimes, FaPlus } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const PropertySection = ({ type, values, onChange, onRemove, expanded: controlledExpanded, onToggle }) => {
     const config = propertyTypes[type];
@@ -105,59 +106,61 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                     </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <motion.button
-                        className="button-ghost"
-                        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                        whileHover={{ scale: 1.1, color: '#f43f5e', borderColor: '#f43f5e', background: 'rgba(244, 63, 94, 0.1)' }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            width: '24px',
-                            height: '24px',
-                            padding: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--text-muted)',
-                            background: 'transparent',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            boxSizing: 'border-box'
-                        }}
-                        title="Remove Filter"
-                    >
-                        <FaTrash size={10} />
-                    </motion.button>
-                    <motion.button
-                        className="button-ghost"
-                        onClick={(e) => { e.stopPropagation(); handleToggle(); }}
-                        whileHover={{ scale: 1.1, rotate: isExpanded ? 5 : 0, color: 'var(--primary)', borderColor: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)' }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            width: '24px',
-                            height: '24px',
-                            padding: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--text-muted)',
-                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
-                            border: '1px solid var(--border-glow)',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            boxSizing: 'border-box'
-                        }}
-                        title={isExpanded ? "Collapse" : "Expand"}
-                    >
-                        <motion.span
-                            animate={{ rotate: isExpanded ? 0 : -90 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                            style={{ display: 'flex', fontSize: '0.6rem' }}
+                    <Tooltip title="Remove Filter" content={`Completely remove the ${config.name} filter type from this product scope`} variant="danger">
+                        <motion.button
+                            className="button-ghost"
+                            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                            whileHover={{ scale: 1.1, color: '#f43f5e', borderColor: '#f43f5e', background: 'rgba(244, 63, 94, 0.1)' }}
+                            whileTap={{ scale: 0.95 }}
+                            style={{
+                                width: '24px',
+                                height: '24px',
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-muted)',
+                                background: 'transparent',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                boxSizing: 'border-box'
+                            }}
                         >
-                            ▼
-                        </motion.span>
-                    </motion.button>
+                            <FaTrash size={10} />
+                        </motion.button>
+                    </Tooltip>
+                    <Tooltip title={isExpanded ? "Collapse" : "Expand"} content={isExpanded ? "Hide filter details" : "Show filter details"}>
+                        <motion.button
+                            className="button-ghost"
+                            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+                            whileHover={{ scale: 1.1, rotate: isExpanded ? 5 : 0, color: 'var(--primary)', borderColor: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)' }}
+                            whileTap={{ scale: 0.95 }}
+                            style={{
+                                width: '24px',
+                                height: '24px',
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-muted)',
+                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
+                                border: '1px solid var(--border-glow)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                boxSizing: 'border-box'
+                            }}
+                        >
+                            <motion.span
+                                animate={{ rotate: isExpanded ? 0 : -90 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                style={{ display: 'flex', fontSize: '0.6rem' }}
+                            >
+                                ▼
+                            </motion.span>
+                        </motion.button>
+                    </Tooltip>
                 </div>
             </div>
 
@@ -212,47 +215,17 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                                     )}
 
                                     <div style={{ display: 'flex', gap: '6px' }}>
-                                        <button
-                                            onClick={() => removeValue(index)}
-                                            style={{
-                                                width: '32px',
-                                                height: '32px',
-                                                padding: 0,
-                                                borderRadius: '50%',
-                                                border: '1px solid var(--accent)',
-                                                background: 'rgba(244, 63, 94, 0.1)',
-                                                color: 'var(--accent)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                fontSize: '1.2rem',
-                                                fontWeight: 'bold',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = 'var(--accent)';
-                                                e.currentTarget.style.color = 'white';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
-                                                e.currentTarget.style.color = 'var(--accent)';
-                                            }}
-                                            title="Remove value"
-                                        >
-                                            <FaTimes size={14} />
-                                        </button>
-                                        {index === values.length - 1 && (
+                                        <Tooltip title="Remove Value" content="Delete this specific filter value" variant="danger">
                                             <button
-                                                onClick={addValue}
+                                                onClick={() => removeValue(index)}
                                                 style={{
                                                     width: '32px',
                                                     height: '32px',
                                                     padding: 0,
                                                     borderRadius: '50%',
-                                                    border: '1px solid var(--success)',
-                                                    background: 'rgba(16, 185, 129, 0.1)',
-                                                    color: 'var(--success)',
+                                                    border: '1px solid var(--accent)',
+                                                    background: 'rgba(244, 63, 94, 0.1)',
+                                                    color: 'var(--accent)',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
@@ -262,50 +235,83 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                                                     transition: 'all 0.2s'
                                                 }}
                                                 onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = 'var(--success)';
+                                                    e.currentTarget.style.background = 'var(--accent)';
                                                     e.currentTarget.style.color = 'white';
                                                 }}
                                                 onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
-                                                    e.currentTarget.style.color = 'var(--success)';
+                                                    e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
+                                                    e.currentTarget.style.color = 'var(--accent)';
                                                 }}
-                                                title="Add another value"
                                             >
-                                                <FaPlus size={14} />
+                                                <FaTimes size={14} />
                                             </button>
+                                        </Tooltip>
+                                        {index === values.length - 1 && (
+                                            <Tooltip title="Add Value" content={`Add another ${config.name} filter`}>
+                                                <button
+                                                    onClick={addValue}
+                                                    style={{
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        padding: 0,
+                                                        borderRadius: '50%',
+                                                        border: '1px solid var(--success)',
+                                                        background: 'rgba(16, 185, 129, 0.1)',
+                                                        color: 'var(--success)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        fontSize: '1.2rem',
+                                                        fontWeight: 'bold',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'var(--success)';
+                                                        e.currentTarget.style.color = 'white';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+                                                        e.currentTarget.style.color = 'var(--success)';
+                                                    }}
+                                                >
+                                                    <FaPlus size={14} />
+                                                </button>
+                                            </Tooltip>
                                         )}
                                     </div>
                                 </motion.div>
                             ))}
                             {values.length === 0 && (
-                                <button
-                                    onClick={addValue}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        borderRadius: '8px',
-                                        border: '2px dashed var(--success)',
-                                        background: 'rgba(16, 185, 129, 0.05)',
-                                        color: 'var(--success)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 600,
-                                        gap: '6px',
-                                        transition: 'all 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)';
-                                    }}
-                                    title="Add first value"
-                                >
-                                    <span style={{ fontSize: '1.2rem' }}>+</span> Add Value
-                                </button>
+                                <Tooltip title="Add Filter" content={`Begin adding ${config.name} filters`}>
+                                    <button
+                                        onClick={addValue}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            border: '2px dashed var(--success)',
+                                            background: 'rgba(16, 185, 129, 0.05)',
+                                            color: 'var(--success)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 600,
+                                            gap: '6px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)';
+                                        }}
+                                    >
+                                        <span style={{ fontSize: '1.2rem' }}>+</span> Add Value
+                                    </button>
+                                </Tooltip>
                             )}
                         </div>
                     </motion.div>

@@ -2,12 +2,15 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { usePriceBook } from '../context/PriceBookContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import BillingRuleList from './BillingRuleList';
 import { FaPlus, FaTrash } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const RuleGroup = ({ group, index }) => {
     const { dispatch } = usePriceBook();
+    const confirm = useConfirm();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
 
     const style = {
@@ -82,24 +85,15 @@ const RuleGroup = ({ group, index }) => {
     const renderAdjustmentTagForRule = (rule) => {
         if (!rule.adjustment || isNaN(parseFloat(rule.adjustment))) return null;
         let label = '';
-        let color = '';
+        let className = '';
         switch (rule.type) {
-            case 'percentDiscount': label = `-${rule.adjustment}%`; color = 'var(--success)'; break;
-            case 'percentIncrease': label = `+${rule.adjustment}%`; color = '#ef4444'; break;
-            case 'fixedRate': label = `$${rule.adjustment}`; color = 'var(--secondary)'; break;
+            case 'percentDiscount': label = `-${rule.adjustment}%`; className = 'adj-tag-discount'; break;
+            case 'percentIncrease': label = `+${rule.adjustment}%`; className = 'adj-tag-markup'; break;
+            case 'fixedRate': label = `$${rule.adjustment}`; className = 'adj-tag-fixed'; break;
             default: return null;
         }
         return (
-            <span style={{
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                color: color,
-                background: `${color}15`,
-                padding: '1px 6px',
-                borderRadius: '4px',
-                border: `1px solid ${color}30`,
-                whiteSpace: 'nowrap'
-            }}>
+            <span className={`adj-tag-mini ${className}`}>
                 {label}
             </span>
         );
@@ -178,78 +172,88 @@ const RuleGroup = ({ group, index }) => {
                 <div className="rule-group-header" style={{ borderBottom: 'none', paddingBottom: group.collapsed ? '0' : '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                            <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '1.5rem', lineHeight: 1 }} title="Drag to reorder">
-                                ⋮⋮
-                            </span>
+                            <Tooltip title="Reorder" content="Drag to reorder this rule group in the Price Book" position="right">
+                                <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '1.5rem', lineHeight: 1 }}>
+                                    ⋮⋮
+                                </span>
+                            </Tooltip>
                             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
                                 Rule Group {index + 1}
                             </h3>
-                            <span
-                                className={`status-badge ${status === 'ACTIVE' ? 'enabled' : 'disabled'}`}
-                                style={{ ...getStatusStyle(status), padding: '2px 10px', fontSize: '0.7rem' }}
-                                title={getStatusTooltip(status)}
-                            >
-                                {status}
-                            </span>
+                            <Tooltip title="Group Status" content={getStatusTooltip(status)} variant="info">
+                                <span
+                                    className={`status-badge ${status === 'ACTIVE' ? 'enabled' : 'disabled'}`}
+                                    style={{ ...getStatusStyle(status), padding: '2px 10px', fontSize: '0.7rem' }}
+                                >
+                                    {status}
+                                </span>
+                            </Tooltip>
                             {renderRulesSummary()}
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <motion.button
-                                className="button-ghost"
-                                onClick={() => {
-                                    if (confirm('Remove this entire rule group?')) {
-                                        dispatch({ type: 'REMOVE_RULE_GROUP', id: group.id });
-                                    }
-                                }}
-                                title="Delete Rule Group"
-                                whileHover={{ scale: 1.1, color: '#ef4444' }}
-                                whileTap={{ scale: 0.9 }}
-                                style={{
-                                    width: '36px',
-                                    height: '36px',
-                                    padding: '0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'var(--text-muted)',
-                                    marginRight: '8px',
-                                    background: 'transparent',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '8px',
-                                    boxShadow: 'none'
-                                }}
-                            >
-                                <FaTrash size={14} />
-                            </motion.button>
-
-                            <motion.button
-                                className="button-ghost"
-                                onClick={toggleCollapse}
-                                title={group.collapsed ? "Expand Rule Group" : "Collapse Rule Group"}
-                                whileHover={{ scale: 1.1, rotate: group.collapsed ? 0 : 5 }}
-                                whileTap={{ scale: 0.9 }}
-                                style={{
-                                    width: '36px',
-                                    height: '36px',
-                                    padding: '0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
-                                    border: '1px solid var(--border-glow)',
-                                    borderRadius: '8px',
-                                    fontSize: '1rem'
-                                }}
-                            >
-                                <motion.span
-                                    animate={{ rotate: group.collapsed ? -90 : 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                    style={{ display: 'flex' }}
+                            <Tooltip title="Delete Group" content={`Permanently remove Rule Group ${index + 1} and its rules`} variant="danger">
+                                <motion.button
+                                    className="button-ghost"
+                                    onClick={async () => {
+                                        if (await confirm({
+                                            title: 'Remove Rule Group',
+                                            message: `Are you sure you want to remove Rule Group ${index + 1}? This will delete all rules within this group.`,
+                                            variant: 'danger',
+                                            confirmLabel: 'Remove Group'
+                                        })) {
+                                            dispatch({ type: 'REMOVE_RULE_GROUP', id: group.id });
+                                        }
+                                    }}
+                                    whileHover={{ scale: 1.1, color: '#ef4444' }}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        padding: '0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text-muted)',
+                                        marginRight: '8px',
+                                        background: 'transparent',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        borderRadius: '8px',
+                                        boxShadow: 'none'
+                                    }}
                                 >
-                                    ▼
-                                </motion.span>
-                            </motion.button>
+                                    <FaTrash size={14} />
+                                </motion.button>
+                            </Tooltip>
+
+                            <Tooltip title={group.collapsed ? "Expand" : "Collapse"} content={group.collapsed ? "Show all rules in this group" : "Hide rules to save space"}>
+                                <motion.button
+                                    className="button-ghost"
+                                    onClick={toggleCollapse}
+                                    whileHover={{ scale: 1.1, rotate: group.collapsed ? 0 : 5 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        padding: '0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
+                                        border: '1px solid var(--border-glow)',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                >
+                                    <motion.span
+                                        animate={{ rotate: group.collapsed ? -90 : 0 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                        style={{ display: 'flex' }}
+                                    >
+                                        ▼
+                                    </motion.span>
+                                </motion.button>
+                            </Tooltip>
                         </div>
                     </div>
 
