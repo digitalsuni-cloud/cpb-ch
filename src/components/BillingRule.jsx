@@ -47,23 +47,28 @@ const BillingRule = ({ rule, groupId }) => {
         setSelectedProp('');
     };
     const renderAdjustmentTag = () => {
-        if (!rule.adjustment || isNaN(parseFloat(rule.adjustment))) return null;
+        const val = parseFloat(rule.adjustment);
+        if (!rule.adjustment || isNaN(val)) return null;
+
+        // Format to avoid scientific notation (e.g., 7.5e-7 -> 0.00000075)
+        const formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
+
         let label = '';
         let color = '';
         let bgColor = '';
         switch (rule.type) {
             case 'percentDiscount':
-                label = `-${rule.adjustment}%`;
+                label = `-${formattedVal}%`;
                 color = 'var(--success)';
                 bgColor = 'rgba(16, 185, 129, 0.1)';
                 break;
             case 'percentIncrease':
-                label = `+${rule.adjustment}%`;
+                label = `+${formattedVal}%`;
                 color = 'var(--danger)';
                 bgColor = 'rgba(239, 68, 68, 0.1)';
                 break;
             case 'fixedRate':
-                label = `$${rule.adjustment} Fixed`;
+                label = `$${formattedVal} Fixed`;
                 color = 'var(--secondary)';
                 bgColor = 'rgba(6, 182, 212, 0.1)';
                 break;
@@ -103,7 +108,7 @@ const BillingRule = ({ rule, groupId }) => {
                         <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {rule.collapsed ? (
                                 <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={() => updateRule({ collapsed: false })}>
-                                    <Tooltip title="Rule Name" content={rule.name || "Untitled Rule"}>
+                                    <Tooltip title="Rule Name" content={rule.name || "Untitled Rule"} style={{ flex: 1, display: 'flex', minWidth: 0 }}>
                                         <div
                                             style={{
                                                 fontSize: '0.85rem',
@@ -113,7 +118,7 @@ const BillingRule = ({ rule, groupId }) => {
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis',
                                                 padding: '8px 0',
-                                                maxWidth: '200px'
+                                                flex: 1
                                             }}
                                         >
                                             {rule.name || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Untitled Rule</span>}
@@ -167,7 +172,7 @@ const BillingRule = ({ rule, groupId }) => {
                                 </div>
                             ) : (
                                 <>
-                                    <Tooltip title="Billing Rule Name" content="Enter a descriptive name for this rule (e.g. 'AWS Lambda Discount')">
+                                    <Tooltip title="Billing Rule Name" content="Enter a descriptive name for this rule (e.g. 'AWS Lambda Discount')" style={{ flex: 1, display: 'flex' }}>
                                         <input
                                             type="text"
                                             name="name"

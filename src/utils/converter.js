@@ -49,7 +49,8 @@ export const generateXML = (priceBook) => {
             if (rule.includeRIPurchases === "false") ruleTag += ` includeRIPurchases="false"`;
             groupXml += ruleTag + `>\n`;
 
-            groupXml += `\t\t\t<BasicBillingRule billingAdjustment="${rule.adjustment || '0.00'}" billingRuleType="${rule.type || 'percentDiscount'}" />\n`;
+            const ruleAdjustment = rule.adjustment ? parseFloat(rule.adjustment).toFixed(12).replace(/\.?0+$/, '') : '0.00';
+            groupXml += `\t\t\t<BasicBillingRule billingAdjustment="${ruleAdjustment}" billingRuleType="${rule.type || 'percentDiscount'}" />\n`;
 
             (rule.products || []).forEach(prod => {
                 const productName = prod.productName || 'ANY';

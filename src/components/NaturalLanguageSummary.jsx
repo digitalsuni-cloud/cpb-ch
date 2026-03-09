@@ -14,10 +14,14 @@ const NaturalLanguageSummary = () => {
         const val = parseFloat(adj);
         if (isNaN(val)) return { text: adj, className: '' };
 
-        if (type === 'percentDiscount') return { text: `-${val}% Discount`, className: 'adj-tag-discount' };
-        if (type === 'percentIncrease') return { text: `+${val}% Markup`, className: 'adj-tag-markup' };
-        if (type === 'fixedRate') return { text: `$${val} Fixed Rate`, className: 'adj-tag-fixed' };
-        return { text: `${adj} (${type})`, className: '' };
+        // Format to avoid scientific notation (e.g., 7.5e-7 -> 0.00000075)
+        // Using toFixed(10) covers the user's example precision, then trimming trailing zeros
+        const formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
+
+        if (type === 'percentDiscount') return { text: `-${formattedVal}% Discount`, className: 'adj-tag-discount' };
+        if (type === 'percentIncrease') return { text: `+${formattedVal}% Markup`, className: 'adj-tag-markup' };
+        if (type === 'fixedRate') return { text: `$${formattedVal} Fixed Rate`, className: 'adj-tag-fixed' };
+        return { text: `${formattedVal} (${type})`, className: '' };
     };
 
     const formatList = (items) => {
