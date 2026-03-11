@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import SettingsModal from '../components/SettingsModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCog, FaSyncAlt } from 'react-icons/fa';
+import { FaCog, FaCloudDownloadAlt } from 'react-icons/fa';
 import Tooltip from '../components/Tooltip';
 import { isElectronApp } from '../utils/env';
 
@@ -79,16 +79,16 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                                     <button
                                         onClick={onCheckUpdates}
                                         className="header-icon-btn"
-                                        style={{ fontSize: '1.1rem' }}
+                                        style={{ fontSize: '1.2rem', color: '#38bdf8' }}
                                     >
-                                        <FaSyncAlt />
+                                        <FaCloudDownloadAlt />
                                     </button>
                                 </Tooltip>
                                 <Tooltip title="Settings" content="Configure API keys and connection parameters" position="bottom">
                                     <button
                                         onClick={() => setShowSettings(true)}
                                         className="header-icon-btn"
-                                        style={{ fontSize: '1.2rem' }}
+                                        style={{ fontSize: '1.2rem', color: '#f59e0b' }}
                                     >
                                         <FaCog />
                                     </button>
