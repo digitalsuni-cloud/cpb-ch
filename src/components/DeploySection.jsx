@@ -346,6 +346,11 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 </p>
             </div>
 
+            <datalist id="customer-suggestions">
+                {customerOptions.map(c => (
+                    <option key={c.id} value={c.id}>{`${c.name} (${c.id})`}</option>
+                ))}
+            </datalist>
 
             {!localStorage.getItem('ch_api_key') ? (
                 <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)' }}>
@@ -464,11 +469,6 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         placeholder="Target Client ID (e.g. 42346)"
                                         autoComplete="off"
                                     />
-                                    <datalist id="customer-suggestions">
-                                        {customerOptions.map(c => (
-                                            <option key={c.id} value={c.id}>{`${c.name} (${c.id})`}</option>
-                                        ))}
-                                    </datalist>
                                     {selectedCustomer && (
                                         <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                             {selectedCustomer.name}
