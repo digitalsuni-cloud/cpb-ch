@@ -149,8 +149,56 @@ const getHeaders = (apiKey) => ({
     'Content-Type': 'application/json'
 });
 
-export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUrl = '') => {
-    // Note: This uses v2 API as requested
+// Per-customer AWS account assignments cache (keyed by customer ID)
+let awsAssignmentsCache = {};        // { [customerId]: { data: [...], expiry: timestamp } }
+const AWS_CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+
+// Re-hydrate from sessionStorage on module load
+try {
+    const saved = sessionStorage.getItem('ch_aws_assignments_cache');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        const now = Date.now();
+        // Drop any expired entries on load
+        Object.keys(parsed).forEach(id => {
+            if (parsed[id].expiry > now) awsAssignmentsCache[id] = parsed[id];
+        });
+    }
+} catch (e) {
+    console.warn('Failed to restore AWS assignments cache from storage', e);
+}
+
+const persistAwsCache = () => {
+    try {
+        sessionStorage.setItem('ch_aws_assignments_cache', JSON.stringify(awsAssignmentsCache));
+    } catch (e) {
+        console.warn('Failed to persist AWS assignments cache', e);
+    }
+};
+
+export const isAwsCacheValid = (targetClientId) => {
+    const entry = awsAssignmentsCache[String(targetClientId)];
+    return !!entry && entry.expiry > Date.now();
+};
+
+export const clearAwsCache = (targetClientId) => {
+    if (targetClientId) {
+        delete awsAssignmentsCache[String(targetClientId)];
+    } else {
+        awsAssignmentsCache = {};
+    }
+    persistAwsCache();
+};
+
+export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUrl = '', forceRefresh = false) => {
+    const cacheKey = String(targetClientId);
+
+    // Return cached data if valid and not forced
+    if (!forceRefresh && isAwsCacheValid(cacheKey)) {
+        return awsAssignmentsCache[cacheKey].data;
+    }
+
+    // Fetch from API (uses v2 endpoint)
     const url = getUrl(`/v2/aws_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
     const response = await fetch(url, {
         method: 'GET',
@@ -159,7 +207,13 @@ export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUr
 
     if (!response.ok) return [];
     const data = await response.json();
-    return data.aws_account_assignments || [];
+    const assignments = data.aws_account_assignments || [];
+
+    // Store in cache
+    awsAssignmentsCache[cacheKey] = { data: assignments, expiry: Date.now() + AWS_CACHE_TTL };
+    persistAwsCache();
+
+    return assignments;
 };
 
 export const getPriceBooks = async (apiKey, proxyUrl = '') => {

@@ -274,11 +274,11 @@
 }
 
 .header-icon-btn:hover {
-  background: var(--primary);
-  color: white !important;
-  border-color: var(--primary);
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 8px 15px rgba(79, 70, 229, 0.2);
+  filter: brightness(1.2);
 }
 
 .header-icon-btn:active {

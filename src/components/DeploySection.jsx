@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
-import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, ApiAuthError } from '../utils/chApi';
+import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, fetchAwsAccountAssignments, clearAwsCache, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
 import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate, logDryRun } from '../utils/history/historyLogger';
 import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt } from 'react-icons/fa';
@@ -19,6 +19,10 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     const [billingAccountOwnerId, setBillingAccountOwnerId] = useState(state.priceBook.cxPayerId || 'ALL');
     const [customerOptions, setCustomerOptions] = useState([]);
     const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+    const [assignPayerOptions, setAssignPayerOptions] = useState([]);
+    const [isLoadingAssignPayers, setIsLoadingAssignPayers] = useState(false);
+    const [dryRunPayerOptions, setDryRunPayerOptions] = useState([]);
+    const [isLoadingDryRunPayers, setIsLoadingDryRunPayers] = useState(false);
 
     // Fetch customers
     useEffect(() => {
@@ -68,6 +72,39 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     const [dryRunStartDate, setDryRunStartDate] = useState(monthOptions[0].value);
     const [dryRunPayerId, setDryRunPayerId] = useState(() => String(extractPayerId(state.priceBook.cxPayerId) || ''));
     const [dryRunCustomerId, setDryRunCustomerId] = useState(String(state.priceBook.customerApiId || ''));
+
+    // Helper: fetch payer options for a given customer, optionally force-refreshing the cache.
+    // Only fires the API call if 'cid' exactly matches a known customer ID — ignores partial text input.
+    const loadPayerOptions = async (cid, setter, loadingSetter, forceRefresh = false) => {
+        if (!cid || cid.trim() === '') { setter([]); return; }
+        // Guard: only proceed if the entered value is a known customer ID (prevents per-keystroke calls)
+        const isKnown = customerOptions.some(c => String(c.id) === cid.trim());
+        if (!isKnown && !forceRefresh) { setter([]); return; }
+        const apiKey = localStorage.getItem('ch_api_key');
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        if (!apiKey) return;
+        if (forceRefresh) clearAwsCache(cid.trim());
+        loadingSetter(true);
+        try {
+            const assignments = await fetchAwsAccountAssignments(cid.trim(), apiKey, proxyUrl, forceRefresh);
+            const opts = [...new Set(assignments.map(a => a.payer_account_owner_id).filter(Boolean))];
+            setter(opts);
+        } catch (e) {
+            console.warn('Failed to load payer options', e);
+        } finally {
+            loadingSetter(false);
+        }
+    };
+
+    // Fetch payer options when Assign-section customer ID changes
+    useEffect(() => {
+        loadPayerOptions(customerId, setAssignPayerOptions, setIsLoadingAssignPayers);
+    }, [customerId, customerOptions]);
+
+    // Fetch payer options when Dry Run customer ID changes
+    useEffect(() => {
+        loadPayerOptions(dryRunCustomerId, setDryRunPayerOptions, setIsLoadingDryRunPayers);
+    }, [dryRunCustomerId, customerOptions]);
 
     // Auto-generate incremented version name for "Create New" on mount or bookName change
     useEffect(() => {
@@ -476,15 +513,38 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                     )}
                                 </div>
                                 <div className="input-group">
-                                    <label>Payer Account ID</label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Payer Account ID
+                                        {isLoadingAssignPayers
+                                            ? <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
+                                            : <Tooltip title="Refresh Payers" content="Re-fetch payer accounts from CloudHealth (clears cache for this customer)" position="top">
+                                                <button
+                                                    onClick={() => loadPayerOptions(customerId, setAssignPayerOptions, setIsLoadingAssignPayers, true)}
+                                                    disabled={!customerId}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: customerId ? 'pointer' : 'not-allowed', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px', opacity: customerId ? 1 : 0.4 }}
+                                                >
+                                                    <FaSyncAlt size={10} />
+                                                </button>
+                                            </Tooltip>
+                                        }
+                                    </label>
                                     <input
                                         type="text"
+                                        list="assign-payer-suggestions"
                                         value={billingAccountOwnerId}
                                         onChange={(e) => setBillingAccountOwnerId(e.target.value)}
-                                        placeholder="Enter 'ALL' or specific account string"
+                                        placeholder="Enter 'ALL' or select a Payer ID"
+                                        autoComplete="off"
                                     />
+                                    <datalist id="assign-payer-suggestions">
+                                        {assignPayerOptions.map(opt => (
+                                            <option key={opt} value={opt} />
+                                        ))}
+                                    </datalist>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                        Default is 'ALL'. Specify a string if assigning to a distinct payer account instead of universal mapping.
+                                        {assignPayerOptions.length > 0
+                                            ? `${assignPayerOptions.length} payer account(s) found for this customer.`
+                                            : "Default is 'ALL'. Specify a string if assigning to a distinct payer account."}
                                     </span>
                                 </div>
                             </div>
@@ -555,14 +615,37 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         </div>
                                     </div>
                                     <div className="input-group">
-                                        <label>Payer Account ID <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            Payer Account ID <span style={{ color: 'var(--danger)' }}>*</span>
+                                            {isLoadingDryRunPayers
+                                                ? <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
+                                                : <Tooltip title="Refresh Payers" content="Re-fetch payer accounts from CloudHealth (clears cache for this customer)" position="top">
+                                                    <button
+                                                        onClick={() => loadPayerOptions(dryRunCustomerId, setDryRunPayerOptions, setIsLoadingDryRunPayers, true)}
+                                                        disabled={!dryRunCustomerId}
+                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: dryRunCustomerId ? 'pointer' : 'not-allowed', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px', opacity: dryRunCustomerId ? 1 : 0.4 }}
+                                                    >
+                                                        <FaSyncAlt size={10} />
+                                                    </button>
+                                                </Tooltip>
+                                            }
+                                        </label>
                                         <input
                                             type="text"
+                                            list="dryrun-payer-suggestions"
                                             value={dryRunPayerId}
                                             onChange={(e) => setDryRunPayerId(e.target.value)}
-                                            placeholder="Explicit Payer ID (e.g. 1234)"
+                                            placeholder="Select or enter Payer ID"
+                                            autoComplete="off"
                                         />
-                                        <div style={{ minHeight: '18px' }} />{/* spacer */}
+                                        <datalist id="dryrun-payer-suggestions">
+                                            {dryRunPayerOptions.map(opt => (
+                                                <option key={opt} value={opt} />
+                                            ))}
+                                        </datalist>
+                                        <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {dryRunPayerOptions.length > 0 ? `${dryRunPayerOptions.length} payer account(s) found.` : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
