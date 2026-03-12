@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Key for local storage
 const HISTORY_STORAGE_KEY = 'cpb_history_log';
-const MAX_HISTORY_ITEMS = 200; // Keep the last 200 actions
+const MAX_HISTORY_ITEMS = 2000; // Keep the last 2000 actions
 
 /**
  * Structure of a history item:
