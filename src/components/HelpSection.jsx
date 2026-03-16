@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaExternalLinkAlt, FaTimes, FaBook, FaPuzzlePiece, FaFilter, FaRocket,
     FaChevronDown, FaChevronUp, FaLightbulb, FaCode, FaMagic, FaFolderOpen,
-    FaBookOpen, FaUserEdit, FaAlignLeft, FaEye, FaTrash, FaPen
+    FaBookOpen, FaUserEdit, FaAlignLeft, FaEye, FaTrash, FaPen, FaHistory, FaPlay,
+    FaSearch, FaSyncAlt, FaLayerGroup, FaCog, FaCheckCircle
 } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
@@ -180,9 +181,21 @@ const HelpSection = ({ isOpen, onClose }) => {
                                         <li style={{ marginBottom: '5px' }}><Tag color="#f59e0b">percentIncrease</Tag> — Add a % surcharge.</li>
                                         <li style={{ marginBottom: '5px' }}><Tag color="#38bdf8">fixedRate</Tag> — Override usage price to a specific dollar rate.</li>
                                         <li style={{ marginBottom: '5px' }}>Toggle <strong>Include Data Transfer</strong> and <strong>Include RI Purchases</strong> per rule.</li>
-                                        <li>Target any AWS product using the integrated product search.</li>
+                                        <li style={{ marginBottom: '5px' }}>Target any AWS product using the integrated product search.</li>
+                                        <li>Use the <strong>🔍 Rule Search</strong> at the top of the builder to quickly find rules in large configurations.</li>
                                     </ul>
                                 </div>
+                            </HelpAccordion>
+
+                            {/* ── SUMMARY ─────────────────────────────────── */}
+                            <HelpAccordion title="Price Book Summary — English Overview" icon={<FaAlignLeft />}>
+                                <p style={{ marginTop: 0 }}>The <strong>Price Book Summary</strong> tab converts your complex XML/JSON configuration into a human-readable "natural language" format.</p>
+                                <ul style={{ paddingLeft: '18px' }}>
+                                    <li style={{ marginBottom: '8px' }}><strong>Execution Timeline</strong> — Rules are displayed in order of priority (Rule Groups).</li>
+                                    <li style={{ marginBottom: '8px' }}><strong>Visual Logic</strong> — Includes product icons, adjustment color-coding (+Markups, -Discounts), and clear filter descriptions.</li>
+                                    <li style={{ marginBottom: '8px' }}><strong>Metadata Overview</strong> — Displays the Pricebook Name, Author, and Comments for final review.</li>
+                                    <li><strong>Validation Check</strong> — Highlights if required fields (like Group Start Dates) are missing before you export.</li>
+                                </ul>
                             </HelpAccordion>
 
                             {/* ── PROPERTY FILTERS ────────────────────────── */}
@@ -205,11 +218,14 @@ const HelpSection = ({ isOpen, onClose }) => {
                                 {!isBrowser && (
                                     <Step n="3">
                                         <div>
-                                            <strong>CloudHealth Live Sync</strong> <em>(Desktop App only)</em> — Scan all pricebooks in your organisation and import any book directly into the Builder.
+                                            <strong>CloudHealth Live Sync</strong> <em>(Desktop App only)</em> — Scan and search for pricebooks directly from your organization.
                                             <ul style={{ paddingLeft: '18px', marginTop: '8px' }}>
-                                                <li style={{ marginBottom: '4px' }}>Click <strong>Scan All Connected Pricebooks</strong> to pull the full directory.</li>
-                                                <li style={{ marginBottom: '4px' }}>Filter by <strong>Customer</strong>, <strong>Price Book</strong>, or <strong>Billing Account</strong> using the three cascading dropdowns.</li>
-                                                <li>Click <strong>Import Selected Price Book</strong> to load it into the Builder.</li>
+                                                <li style={{ marginBottom: '8px' }}>
+                                                    <strong>🎯 Quick Customer Search</strong> — Instantly find a customer by name or API ID. The tool automatically finds their active custom pricebook and lets you import it with one click.
+                                                </li>
+                                                <li style={{ marginBottom: '8px' }}>
+                                                    <strong>🌍 Global Browser</strong> — Scan the entire organizational directory to browse all customer assignments, filter by Pricebook, and import any mapped specification.
+                                                </li>
                                             </ul>
                                         </div>
                                     </Step>
@@ -312,6 +328,11 @@ const HelpSection = ({ isOpen, onClose }) => {
                                                     desc: 'Loads the pricebook into the Builder and navigates directly to the Price Book Summary tab — a human-readable, plain English view of all rules.'
                                                 },
                                                 {
+                                                    icon: <FaPlay size={11} />, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.35)',
+                                                    label: 'Dry Run',
+                                                    desc: 'Initiate a financial impact evaluation for a specific month and payer account directly from the directory record.'
+                                                },
+                                                {
                                                     icon: <FaUserEdit size={11} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.35)',
                                                     label: 'Edit Assignment',
                                                     desc: 'Loads the pricebook into Deploy and automatically opens the "Assign Pricebook to Customer" panel with all fields pre-filled, ready to update the Customer ID or Payer Account.'
@@ -343,6 +364,21 @@ const HelpSection = ({ isOpen, onClose }) => {
                                 </HelpAccordion>
                             )}
 
+                            {/* ── ACTION HISTORY ──────────────────────────── */}
+                            {!isBrowser && (
+                                <HelpAccordion title="Action History & Audit Log" icon={<FaHistory />}>
+                                    <p style={{ marginTop: 0 }}>
+                                        The <strong>Action History</strong> tab tracks every significant operation performed within the tool, providing a searchable audit trail of your changes.
+                                    </p>
+                                    <ul style={{ paddingLeft: '18px', marginTop: '6px' }}>
+                                        <li style={{ marginBottom: '8px' }}><strong>Automatic Logging</strong> — Every pricebook creation, update, deletion, and deployment is automatically timestamped and logged.</li>
+                                        <li style={{ marginBottom: '8px' }}><strong>Diff Viewer</strong> — For pricebook updates, click the history row to see a line-by-line XML diff between the previous and current versions.</li>
+                                        <li style={{ marginBottom: '8px' }}><strong>2,000 Entry Capacity</strong> — The tool stores up to 2,000 persistent records in your local storage, ensuring a deep history is preserved between sessions.</li>
+                                        <li style={{ marginBottom: '8px' }}><strong>Search & Filter</strong> — Quickly find specific actions by searching for pricebook names or customer IDs.</li>
+                                    </ul>
+                                </HelpAccordion>
+                            )}
+
                             {/* ── WEB vs DESKTOP ──────────────────────────── */}
                             <HelpAccordion title="Web vs. Desktop Application" icon={<FaMagic />}>
                                 <ul style={{ paddingLeft: '18px', marginTop: 0 }}>
@@ -365,6 +401,22 @@ const HelpSection = ({ isOpen, onClose }) => {
                                 </ul>
                             </HelpAccordion>
 
+                            <HelpAccordion title="Dashboard & Maintenance" icon={<FaLayerGroup />}>
+                                <ul style={{ paddingLeft: '18px', margin: 0 }}>
+                                    <li style={{ marginBottom: '8px' }}><strong>Quick Stats</strong> — Monitor rule counts, markups vs discounts, and last-updated timestamps from the Dashboard.</li>
+                                    <li style={{ marginBottom: '8px' }}><strong>Reset Price Book</strong> — Click <em>Start Over</em> on the dashboard to permanently clear the current builder state and begin a fresh configuration.</li>
+                                    {!isBrowser && <li><strong>Update Notifications</strong> — The desktop app automatically checks GitHub for newer versions on startup and notifies you with a "What's New" release summary.</li>}
+                                </ul>
+                            </HelpAccordion>
+
+                            <HelpAccordion title="Settings & Advanced Debugging" icon={<FaCog />}>
+                                <ul style={{ paddingLeft: '18px', margin: 0 }}>
+                                    <li style={{ marginBottom: '8px' }}><strong>API Credentials</strong> — Store your API key locally. Credentials never leave your machine except when talking to CloudHealth.</li>
+                                    {isBrowser && <li style={{ marginBottom: '8px' }}><strong>CORS Proxy</strong> — Essential for using API features in the web version of the tool.</li>}
+                                    {!isBrowser && <li><strong>Developer Tools</strong> — Enable the <em>Network Inspector</em> in Settings to debug raw CloudHealth API payloads and troubleshoot failed deployments.</li>}
+                                </ul>
+                            </HelpAccordion>
+
                             {/* ── BEST PRACTICES ──────────────────────────── */}
                             <HelpAccordion title="Best Practices & Tips" icon={<FaLightbulb />}>
                                 <ul style={{ paddingLeft: '18px', margin: 0 }}>
@@ -379,35 +431,41 @@ const HelpSection = ({ isOpen, onClose }) => {
                             </HelpAccordion>
 
                             {/* ── API REFERENCE ───────────────────────────── */}
-                            <HelpAccordion title="API Reference & XML Schema" icon={<FaCode />}>
-                                <div style={{ fontSize: '0.85rem' }}>
-                                    <p style={{ marginTop: 0 }}>
-                                        Based on the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-                                            CloudHealth Price Book API Docs <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
-                                        </a>:
-                                    </p>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {[
-                                            { tag: '<CHTBillingRules>', desc: 'Root element. Requires date and createdBy attributes.' },
-                                            { tag: '<RuleGroup>', desc: 'Groups rules by date range (startDate, endDate) and optional payerAccounts scope. Can be enabled/disabled.' },
-                                            { tag: '<BillingRule>', desc: 'A single pricing action. Key attributes: billingRuleType (percentDiscount | percentIncrease | fixedRate), billingAdjustment, includeDataTransfer, includeRIPurchases.' },
-                                            { tag: '<PropertyFilter>', desc: 'Restricts which usage line items a BillingRule applies to (Region, UsageType, InstanceType, etc.).' },
-                                        ].map(({ tag, desc }) => (
-                                            <div key={tag}>
-                                                <Tag color="var(--primary)">{tag}</Tag>
-                                                <div style={{ marginTop: '4px', paddingLeft: '4px', color: 'var(--text-muted)' }}>{desc}</div>
-                                            </div>
-                                        ))}
+                            {!isBrowser && (
+                                <HelpAccordion title="API Reference & XML Schema" icon={<FaCode />}>
+                                    <div style={{ fontSize: '0.85rem' }}>
+                                        <p style={{ marginTop: 0 }}>
+                                            Based on the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
+                                                CloudHealth Price Book API Docs <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
+                                            </a>:
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            {[
+                                                { tag: '<CHTBillingRules>', desc: 'Root element. Requires date and createdBy attributes.' },
+                                                { tag: '<RuleGroup>', desc: 'Groups rules by date range (startDate, endDate) and optional payerAccounts scope. Can be enabled/disabled.' },
+                                                { tag: '<BillingRule>', desc: 'A single pricing action. Key attributes: billingRuleType (percentDiscount | percentIncrease | fixedRate), billingAdjustment, includeDataTransfer, includeRIPurchases.' },
+                                                { tag: '<PropertyFilter>', desc: 'Restricts which usage line items a BillingRule applies to (Region, UsageType, InstanceType, etc.).' },
+                                            ].map(({ tag, desc }) => (
+                                                <div key={tag}>
+                                                    <Tag color="var(--primary)">{tag}</Tag>
+                                                    <div style={{ marginTop: '4px', paddingLeft: '4px', color: 'var(--text-muted)' }}>{desc}</div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            </HelpAccordion>
+                                </HelpAccordion>
+                            )}
 
                         </div>
 
                         {/* Footer */}
                         <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                            <p>Need more help? Visit the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Official Documentation</a>.</p>
-                            <p style={{ marginTop: '8px' }}>✨ Vibe Coded with ☕☕☕☕☕ &amp; 🎧 by Sunil@CloudHealth 🚀</p>
+                            <p>
+                                <a href="https://github.com/digitalsuni-cloud/cpb-ch/issues" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', marginRight: '15px' }}>Report Issue on GitHub</a>
+                                <a href="mailto:sunil-ac.kumar@broadcom.com?subject=Cloud Pricebook Studio Feedback" style={{ color: 'var(--primary)' }}>Contact Developer</a>
+                            </p>
+                            <p style={{ marginTop: '12px' }}>Need more help? Visit the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Official Documentation</a>.</p>
+                            <p style={{ marginTop: '12px' }}>✨ Vibe Coded with ☕ &amp; 🎧 by Sunil Gowda @ CloudHealth 🚀</p>
                         </div>
                         <div style={{ height: '30px', width: '100%', flexShrink: 0 }} />
                     </motion.div>
