@@ -177,18 +177,55 @@ const NaturalLanguageSummary = () => {
                                                                                         const propConfig = propertyTypes[key];
                                                                                         const propName = propConfig?.name || key;
 
-                                                                                        let details = '';
-                                                                                        if (propConfig?.type === 'standard') details = vals.join(', ');
-                                                                                        else if (propConfig?.type === 'instance') details = vals.map(v => `${v.type || '*'}.${v.size || '*'}`).join(', ');
-                                                                                        else details = `${vals.length} filter(s)`;
+                                                                                        // Filter out empty entries
+                                                                                        const activeVals = vals.filter(v => {
+                                                                                            if (propConfig?.type === 'standard') return v && v.trim() !== '';
+                                                                                            if (propConfig?.type === 'instance') return v.type || v.size;
+                                                                                            if (propConfig?.type === 'lineItem') return v.value && v.value.trim() !== '';
+                                                                                            return true;
+                                                                                        });
+
+                                                                                        if (activeVals.length === 0) return null;
+
+                                                                                        let details;
+                                                                                        if (propConfig?.type === 'standard') details = activeVals.join(', ');
+                                                                                        else if (propConfig?.type === 'instance') details = activeVals.map(v => `${v.type || '*'}.${v.size || '*'}${v.reserved === 'true' ? ' (Reserved)' : ''}`).join(', ');
+                                                                                        else if (propConfig?.type === 'lineItem') {
+                                                                                            details = (
+                                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', paddingLeft: '8px', borderLeft: '2px solid var(--border)' }}>
+                                                                                                    {activeVals.map((v, vIdx) => (
+                                                                                                        <div key={vIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                                            <span style={{ opacity: 0.7, fontSize: '0.7rem', color: 'var(--primary)' }}>•</span>
+                                                                                                            <span style={{ opacity: 0.8 }}>{v.matchType === 'matchesRegex' ? 'regex' : v.matchType === 'startsWith' ? 'starts with' : 'contains'}</span>
+                                                                                                            <code style={{ background: 'var(--bg-card)', padding: '1px 4px', borderRadius: '3px', color: 'var(--primary)', fontWeight: 600 }}>
+                                                                                                                {v.matchType === 'matchesRegex' ? `/${v.value}/` : `"${v.value}"`}
+                                                                                                            </code>
+                                                                                                        </div>
+                                                                                                    ))}
+                                                                                                </div>
+                                                                                            );
+                                                                                        }
+                                                                                        else details = `${activeVals.length} filter(s)`;
+
+                                                                                        const isFullWidth = propConfig?.type === 'lineItem';
 
                                                                                         return (
-                                                                                            <div key={key} style={{ fontSize: '0.75rem', padding: '3px 8px', background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: '5px', color: 'var(--text-secondary)' }}>
-                                                                                                <strong style={{ color: 'var(--text-main)' }}>{propName}:</strong> {details}
+                                                                                            <div key={key} style={{ 
+                                                                                                fontSize: '0.75rem', 
+                                                                                                padding: isFullWidth ? '10px 12px' : '4px 10px', 
+                                                                                                background: 'var(--bg-deep)', 
+                                                                                                border: '1px solid var(--border)', 
+                                                                                                borderRadius: '6px', 
+                                                                                                color: 'var(--text-secondary)',
+                                                                                                flex: isFullWidth ? '1 1 100%' : '0 1 auto'
+                                                                                            }}>
+                                                                                                <strong style={{ color: 'var(--text-main)', display: isFullWidth ? 'block' : 'inline', marginBottom: isFullWidth ? '4px' : '0' }}>{propName}:</strong> {details}
                                                                                             </div>
                                                                                         )
+
                                                                                     })}
                                                                                 </div>
+
                                                                             ) : (
                                                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No specific filters applied (Global scope)</div>
                                                                             )}
