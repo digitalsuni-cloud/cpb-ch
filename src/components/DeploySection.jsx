@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
-import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, fetchAwsAccountAssignments, clearAwsCache, ApiAuthError } from '../utils/chApi';
+import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, fetchAllPriceBooks, getAssignedPriceBooks, fetchAwsAccountAssignments, clearAwsCache, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
 import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate, logDryRun } from '../utils/history/historyLogger';
 import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt } from 'react-icons/fa';
@@ -19,6 +19,9 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     const [billingAccountOwnerId, setBillingAccountOwnerId] = useState(state.priceBook.cxPayerId || 'ALL');
     const [customerOptions, setCustomerOptions] = useState([]);
     const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+    const [priceBookOptions, setPriceBookOptions] = useState([]);
+    const [isLoadingPriceBooks, setIsLoadingPriceBooks] = useState(false);
+    const [priceBookAssignments, setPriceBookAssignments] = useState([]);
     const [assignPayerOptions, setAssignPayerOptions] = useState([]);
     const [isLoadingAssignPayers, setIsLoadingAssignPayers] = useState(false);
     const [dryRunPayerOptions, setDryRunPayerOptions] = useState([]);
@@ -42,6 +45,33 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
             }
         };
         loadCustomers();
+        return () => { mounted = false; };
+    }, []);
+
+    // Fetch pricebooks + their assignments
+    useEffect(() => {
+        let mounted = true;
+        const loadPriceBooks = async () => {
+            const apiKey = localStorage.getItem('ch_api_key');
+            if (!apiKey) return;
+            setIsLoadingPriceBooks(true);
+            try {
+                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const [books, assignments] = await Promise.all([
+                    fetchAllPriceBooks(apiKey, proxyUrl),
+                    getAssignedPriceBooks(apiKey, proxyUrl).catch(() => [])
+                ]);
+                if (mounted) {
+                    setPriceBookOptions(books || []);
+                    setPriceBookAssignments(assignments || []);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch pricebooks', e);
+            } finally {
+                if (mounted) setIsLoadingPriceBooks(false);
+            }
+        };
+        loadPriceBooks();
         return () => { mounted = false; };
     }, []);
 
@@ -129,6 +159,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
 
     const selectedCustomer = customerOptions && customerOptions.find ? customerOptions.find(c => String(c.id) === String(customerId)) : null;
     const dryRunCustomer = customerOptions && customerOptions.find ? customerOptions.find(c => String(c.id) === String(dryRunCustomerId)) : null;
+    const selectedPriceBook = priceBookOptions && priceBookOptions.find ? priceBookOptions.find(pb => String(pb.id) === String(priceBookId)) : null;
 
     // When navigated from Directory's "Edit Assignment" action, auto-open the assign section
     useEffect(() => {
@@ -172,9 +203,19 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 const monthName = new Date(parts[0], parseInt(parts[1]) - 1).toLocaleString('default', { month: 'short' });
                 return `Are you sure you want to run a Dry Run spanning since ${monthName} ${parts[0]} (${dryRunStartDate})?\n\nThis will evaluate the payload against CloudHealth backend asynchronously.`;
             }
-            return actionType === 'create'
-                ? `Are you sure you want to CREATE a new Price Book on CloudHealth?\n\nThis will provision a fresh resource on your account.`
-                : `Are you sure you want to OVERWRITE Price Book ID: ${priceBookId}?\n\nThis is a destructive action that will completely replace existing mapping rules for this ID.`;
+            if (actionType === 'create') {
+                return `Are you sure you want to CREATE a new Price Book on CloudHealth?\n\nThis will provision a fresh resource on your account.`;
+            }
+            // For update: show pricebook name and assigned customer from directory data
+            const pbName = selectedPriceBook?.book_name || `Price Book ${priceBookId}`;
+            const pbAssignment = priceBookAssignments.find(a => String(a.id) === String(priceBookId) && a.is_assigned);
+            const assignedTo = pbAssignment ? pbAssignment.customer_name : null;
+            let msg = `Are you sure you want to OVERWRITE "${pbName}" (ID: ${priceBookId})`;
+            if (assignedTo) {
+                msg += ` assigned to "${assignedTo}"`;
+            }
+            msg += `?\n\nThis is a destructive action that will completely replace existing mapping rules for this pricebook.`;
+            return msg;
         })();
 
         const isConfirmed = await confirm({
@@ -261,7 +302,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 addLog(`Creating new pricebook: ${safeBookName}...`);
                 const response = await createPriceBook(safeBookName, generatedXml, apiKey, proxyUrl);
                 deployedBookId = response.price_book ? response.price_book.id : response.id;
-                addLog(`✅ Created successfully. New Price Book ID: ${deployedBookId}`);
+                addLog(`✅ Created successfully. New Price Book: ${safeBookName} (ID: ${deployedBookId})`);
 
                 // Update local Context API structure
                 dispatch({ type: 'UPDATE_METADATA', payload: { field: 'cxAPIId', value: deployedBookId.toString() } });
@@ -286,9 +327,10 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                     addLog(`ℹ️ Specification is identical to current version. Skipping API update and history log.`);
                     pricebookActionDone = true; // Mark as done since we explicitly skipped it
                 } else {
-                    addLog(`Updating existing pricebook ID: ${deployedBookId}...`);
+                    const safeBookNameForUpdate = selectedPriceBook?.book_name || state.priceBook.bookName || 'Pricebook';
+                    addLog(`Updating existing pricebook: ${safeBookNameForUpdate} (ID: ${deployedBookId})...`);
                     await updatePriceBook(deployedBookId, generatedXml, apiKey, proxyUrl);
-                    addLog(`✅ Updated successfully.`);
+                    addLog(`✅ Updated successfully: ${safeBookNameForUpdate} (ID: ${deployedBookId})`);
 
                     const safeBookName = state.priceBook.bookName || 'Pricebook';
                     logPricebookUpdate(deployedBookId, safeBookName, previousXml, generatedXml, true);
@@ -325,7 +367,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 assignmentActionDone = true;
             }
 
-            setDeployStatus(prev => ({ success: true, inProgress: false, message: 'Deployment completed successfully!', details: prev.details }));
+            const finalBookName = actionType === 'create' ? (newPricebookName || 'New Pricebook') : (selectedPriceBook?.book_name || state.priceBook.bookName || 'Pricebook');
+            setDeployStatus(prev => ({ success: true, inProgress: false, message: `Deployment completed successfully! — ${finalBookName} (ID: ${deployedBookId})`, details: prev.details }));
         } catch (error) {
             console.error(error);
 
@@ -455,15 +498,60 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         <div style={{ background: 'var(--bg-deep)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                             <h4 style={{ margin: '0 0 16px', color: 'var(--text-main)' }}>2. Target Price Book ID</h4>
                             <div className="input-group">
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    Select Pricebook {isLoadingPriceBooks && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}
+                                    {!isLoadingPriceBooks && (
+                                        <Tooltip title="Refresh Pricebooks" content="Re-fetch the pricebook list from CloudHealth API" position="top">
+                                            <button
+                                                onClick={async () => {
+                                                    const apiKey = localStorage.getItem('ch_api_key');
+                                                    const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                    if (!apiKey) return;
+                                                    setIsLoadingPriceBooks(true);
+                                                    try {
+                                                        const [books, assignments] = await Promise.all([
+                                                            fetchAllPriceBooks(apiKey, proxyUrl, true),
+                                                            getAssignedPriceBooks(apiKey, proxyUrl).catch(() => [])
+                                                        ]);
+                                                        setPriceBookOptions(books || []);
+                                                        setPriceBookAssignments(assignments || []);
+                                                    } catch (e) { console.warn(e); }
+                                                    finally { setIsLoadingPriceBooks(false); }
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
+                                            >
+                                                <FaSyncAlt size={10} />
+                                            </button>
+                                        </Tooltip>
+                                    )}
+                                </label>
                                 <input
                                     type="text"
+                                    list="pricebook-suggestions"
                                     value={priceBookId}
                                     onChange={(e) => setPriceBookId(e.target.value)}
-                                    placeholder="e.g. 137438954493"
+                                    placeholder="Select or enter Price Book ID (e.g. 137438954493)"
+                                    autoComplete="off"
                                 />
+                                <datalist id="pricebook-suggestions">
+                                    {priceBookOptions.map(pb => (
+                                        <option key={pb.id} value={pb.id}>{`${pb.book_name} (${pb.id})`}</option>
+                                    ))}
+                                </datalist>
                             </div>
+                            {selectedPriceBook && (
+                                <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem' }}>📖</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {selectedPriceBook.book_name}
+                                    </span>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                        (ID: {selectedPriceBook.id})
+                                    </span>
+                                </div>
+                            )}
                             <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                Enter the CloudHealth Price Book ID that you want to overwrite with your current payload ({generatedXml ? (new Blob([generatedXml]).size / 1024).toFixed(2) + ' KB' : 'Empty'}).
+                                Select or enter the CloudHealth Price Book ID to overwrite with your current payload ({generatedXml ? (new Blob([generatedXml]).size / 1024).toFixed(2) + ' KB' : 'Empty'}).
                             </p>
                         </div>
                     )}

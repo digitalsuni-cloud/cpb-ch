@@ -216,6 +216,50 @@ export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUr
     return assignments;
 };
 
+// Price Book Cache System with persistence (similar to customer cache)
+let cachedPriceBooks = [];
+let priceBookCacheExpiry = 0;
+const PB_CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+
+// Re-hydrate from session storage on module load
+try {
+    const saved = sessionStorage.getItem('ch_pricebook_cache');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.expiry > Date.now()) {
+            cachedPriceBooks = parsed.data || [];
+            priceBookCacheExpiry = parsed.expiry;
+        }
+    }
+} catch (e) {
+    console.warn('Failed to restore pricebook cache from storage', e);
+}
+
+export const getCachedPriceBooks = () => cachedPriceBooks;
+export const setPriceBookCache = (books) => {
+    cachedPriceBooks = books || [];
+    priceBookCacheExpiry = Date.now() + PB_CACHE_TTL;
+    try {
+        sessionStorage.setItem('ch_pricebook_cache', JSON.stringify({
+            data: cachedPriceBooks,
+            expiry: priceBookCacheExpiry
+        }));
+    } catch (e) {
+        console.warn('Failed to save pricebook cache to storage', e);
+    }
+};
+export const isPriceBookCacheValid = () => cachedPriceBooks.length > 0 && Date.now() < priceBookCacheExpiry;
+
+export const fetchAllPriceBooks = async (apiKey, proxyUrl = '', forceRefresh = false) => {
+    if (!forceRefresh && isPriceBookCacheValid()) {
+        return cachedPriceBooks;
+    }
+
+    const books = await fetchAllPages('/price_books', 'price_books', apiKey, proxyUrl);
+    setPriceBookCache(books);
+    return books;
+};
+
 export const getPriceBooks = async (apiKey, proxyUrl = '') => {
     const url = getUrl('/price_books', proxyUrl);
     const response = await fetch(url, {
