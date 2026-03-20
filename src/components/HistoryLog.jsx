@@ -1,146 +1,162 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getHistoryOptions, clearHistory } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
 import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { createPortal } from 'react-dom';
+import { diffLines, diffChars } from 'diff';
 
-// ─── Diff Viewer with line-level highlighting ──────────────────────────────────
+// ─── Diff Viewer: LCS alignment + intra-line char diff + sync scroll ───────────
 const DiffViewer = ({ before, after, title, onClose }) => {
     const [expanded, setExpanded] = useState(false);
+    const leftRef = useRef(null);
+    const rightRef = useRef(null);
+    const syncing = useRef(false);
 
-    // Compute per-line diff for highlighting
-    const computeDiff = (a, b) => {
-        if (!a && !b) return { left: [], right: [] };
-        const leftLines = (a || '').split('\n');
-        const rightLines = (b || '').split('\n');
-
-        // Simple set-based diffing that ignores leading/trailing whitespace for comparison
-        const leftSet = new Set(leftLines.map(l => l.trim()).filter(Boolean));
-        const rightSet = new Set(rightLines.map(l => l.trim()).filter(Boolean));
-
-        const left = leftLines.map(line => ({
-            text: line,
-            changed: line.trim() !== '' && !rightSet.has(line.trim())
-        }));
-        const right = rightLines.map(line => ({
-            text: line,
-            changed: line.trim() !== '' && !leftSet.has(line.trim())
-        }));
-        return { left, right };
+    const syncScroll = (src, dst) => () => {
+        if (syncing.current) return;
+        syncing.current = true;
+        if (dst.current) {
+            dst.current.scrollTop = src.current.scrollTop;
+            dst.current.scrollLeft = src.current.scrollLeft;
+        }
+        requestAnimationFrame(() => { syncing.current = false; });
     };
 
-    const { left, right } = computeDiff(before, after);
+    // LCS-aligned rows via diffLines
+    const alignedRows = useMemo(() => {
+        if (!before && !after) return [];
+        const changes = diffLines(before || '', after || '', { newlineIsToken: false });
+        const rows = [];
+        const rBuf = [], aBuf = [];
+        const flush = () => {
+            const len = Math.max(rBuf.length, aBuf.length);
+            for (let i = 0; i < len; i++) {
+                const l = rBuf[i] ?? null;
+                const r = aBuf[i] ?? null;
+                rows.push({ l, r, type: l !== null && r !== null ? 'changed' : l !== null ? 'removed' : 'added' });
+            }
+            rBuf.length = 0; aBuf.length = 0;
+        };
+        changes.forEach(part => {
+            const partLines = part.value.replace(/\n$/, '').split('\n');
+            if (part.removed) partLines.forEach(x => rBuf.push(x));
+            else if (part.added) partLines.forEach(x => aBuf.push(x));
+            else { flush(); partLines.forEach(x => rows.push({ l: x, r: x, type: 'equal' })); }
+        });
+        flush();
+        return rows;
+    }, [before, after]);
 
-    const renderLines = (lines, side) => (
-        <div style={{
-            flexGrow: 1,
-            overflow: 'auto',
-            background: 'var(--bg-code)',
-            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-            fontSize: '0.8rem',
-            lineHeight: '1.5'
-        }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
-                <tbody>
-                    {lines.map((l, i) => (
-                        <tr
-                            key={i}
-                            className={l.changed ? (side === 'left' ? 'diff-row-removed' : 'diff-row-added') : ''}
-                        >
-                            {/* Line Number Gutter */}
-                            <td style={{
-                                width: '40px',
-                                minWidth: '40px',
-                                textAlign: 'right',
-                                padding: '0 12px 0 4px',
-                                color: 'rgba(255,255,255,0.2)',
-                                userSelect: 'none',
-                                borderRight: '1px solid rgba(255,255,255,0.05)',
-                                fontSize: '0.7rem'
-                            }}>
-                                {i + 1}
-                            </td>
-                            {/* Code Content */}
-                            <td
-                                className={l.changed ? (side === 'left' ? 'diff-text-removed' : 'diff-text-added') : ''}
-                                style={{
-                                    padding: '0 16px',
-                                    whiteSpace: 'pre',
-                                    color: l.changed ? 'inherit' : 'var(--text-secondary)'
-                                }}
-                            >
-                                {l.text || '\u00a0'}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+    // Intra-line char diffs for changed pairs
+    const charDiffs = useMemo(() => alignedRows.map(row => {
+        if (row.type !== 'changed') return null;
+        const changes = diffChars(row.l ?? '', row.r ?? '');
+        const left = [], right = [];
+        changes.forEach(p => {
+            if (p.removed) left.push({ text: p.value, hl: true });
+            else if (p.added) right.push({ text: p.value, hl: true });
+            else { left.push({ text: p.value, hl: false }); right.push({ text: p.value, hl: false }); }
+        });
+        return { left, right };
+    }), [alignedRows]);
+
+    let leftN = 0, rightN = 0;
+    const lineNums = alignedRows.map(row => ({
+        l: row.l !== null ? ++leftN : null,
+        r: row.r !== null ? ++rightN : null,
+    }));
+
+    const changedCount = alignedRows.filter(r => r.type !== 'equal').length;
+
+    const renderPane = (side) => {
+        const isLeft = side === 'left';
+        const ref = isLeft ? leftRef : rightRef;
+        const onScroll = isLeft ? syncScroll(leftRef, rightRef) : syncScroll(rightRef, leftRef);
+        return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: isLeft && after ? '1px solid var(--border)' : 'none' }}>
+                <div className={isLeft ? 'diff-header-removed' : 'diff-header-added'}
+                    style={{ padding: '8px 16px', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
+                    {isLeft ? 'BEFORE' : (before ? 'AFTER' : 'CURRENT SPECIFICATION')}
+                </div>
+                <div ref={ref} onScroll={onScroll}
+                    style={{ flexGrow: 1, overflow: 'auto', background: 'var(--bg-code)', fontFamily: '"JetBrains Mono", "Fira Code", monospace', fontSize: '0.8rem', lineHeight: '1.5' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+                        <tbody>
+                            {alignedRows.map((row, i) => {
+                                const line = isLeft ? row.l : row.r;
+                                const isEmpty = line === null;
+                                const { type } = row;
+                                const cd = charDiffs[i];
+                                const spans = cd ? (isLeft ? cd.left : cd.right) : null;
+                                const lineNo = isLeft ? lineNums[i].l : lineNums[i].r;
+                                let rowClass = '';
+                                if (!isEmpty) {
+                                    if (type === 'removed' && isLeft) rowClass = 'diff-row-removed';
+                                    else if (type === 'added' && !isLeft) rowClass = 'diff-row-added';
+                                    else if (type === 'changed') rowClass = isLeft ? 'diff-row-removed' : 'diff-row-added';
+                                }
+                                const textClass = rowClass === 'diff-row-removed' ? 'diff-text-removed' : rowClass === 'diff-row-added' ? 'diff-text-added' : '';
+                                return (
+                                    <tr key={i} className={rowClass} style={isEmpty ? { background: 'rgba(255,255,255,0.015)' } : {}}>
+                                        <td style={{ width: '44px', minWidth: '44px', textAlign: 'right', padding: '0 10px 0 4px', color: 'rgba(255,255,255,0.2)', userSelect: 'none', borderRight: '1px solid rgba(255,255,255,0.05)', fontSize: '0.7rem', verticalAlign: 'top' }}>
+                                            {isEmpty ? '' : lineNo}
+                                        </td>
+                                        <td style={{ width: '16px', minWidth: '16px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, verticalAlign: 'top', padding: '0 2px', userSelect: 'none', color: rowClass === 'diff-row-removed' ? '#f87171' : rowClass === 'diff-row-added' ? '#34d399' : 'transparent' }}>
+                                            {isEmpty ? '' : rowClass === 'diff-row-removed' ? '\u2212' : rowClass === 'diff-row-added' ? '+' : ' '}
+                                        </td>
+                                        <td className={!spans ? textClass : ''}
+                                            style={{ padding: '0 16px', whiteSpace: 'pre', color: !rowClass ? 'var(--text-secondary)' : 'inherit', verticalAlign: 'top' }}>
+                                            {isEmpty ? '\u00a0' : (
+                                                spans
+                                                    ? <span>{spans.map((s, si) => (
+                                                        <span key={si} style={s.hl ? {
+                                                            background: isLeft ? 'rgba(239,68,68,0.45)' : 'rgba(16,185,129,0.45)',
+                                                            outline: `1px solid ${isLeft ? 'rgba(239,68,68,0.7)' : 'rgba(16,185,129,0.7)'}`,
+                                                            borderRadius: '2px', padding: '0 1px'
+                                                        } : {}}>{s.text}</span>
+                                                    ))}</span>
+                                                    : (line || '\u00a0')
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
 
     return createPortal(
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-            zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: expanded ? '0' : '2vh 2vw'
-        }}>
-            <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: expanded ? '0' : '12px',
-                    width: '100%',
-                    maxWidth: expanded ? '100%' : '1400px',
-                    height: expanded ? '100%' : '90vh',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    boxShadow: '0 30px 60px -12px rgba(0,0,0,0.8)'
-                }}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: expanded ? '0' : '2vh 2vw' }}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: expanded ? '0' : '12px', width: '100%', maxWidth: expanded ? '100%' : '1400px', height: expanded ? '100%' : '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 30px 60px -12px rgba(0,0,0,0.8)' }}
             >
-                {/* Header */}
                 <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-deep)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                     <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.5px' }}>{title}</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => setExpanded(!expanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button onClick={() => setExpanded(!expanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
                             {expanded ? <FaCompressAlt /> : <FaExpandAlt />}
                         </button>
-                        <button onClick={onClose} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button onClick={onClose} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
                             <FaTimes />
                         </button>
                     </div>
                 </div>
-
-                {/* Legend */}
-                <div style={{ display: 'flex', gap: '24px', padding: '10px 20px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ width: 12, height: 12, background: 'rgba(239,68,68,0.4)', border: '1px solid #ef4444', borderRadius: 2, display: 'inline-block' }} /> Removed / Changed</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ width: 12, height: 12, background: 'rgba(16,185,129,0.4)', border: '1px solid #10b981', borderRadius: 2, display: 'inline-block' }} /> Added / New</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ width: 12, height: 12, background: 'transparent', border: '1px solid var(--border)', borderRadius: 2, display: 'inline-block' }} /> Unchanged</span>
+                <div style={{ display: 'flex', gap: '24px', padding: '10px 20px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-secondary)', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 12, height: 12, background: 'rgba(239,68,68,0.4)', border: '1px solid #ef4444', borderRadius: 2, display: 'inline-block' }} /> Removed</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 12, height: 12, background: 'rgba(16,185,129,0.4)', border: '1px solid #10b981', borderRadius: 2, display: 'inline-block' }} /> Added</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 12, height: 12, background: 'transparent', border: '1px solid var(--border)', borderRadius: 2, display: 'inline-block' }} /> Unchanged</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 600, color: changedCount > 0 ? '#f59e0b' : 'var(--success)' }}>
+                        {changedCount === 0 ? '\u2713 No differences' : `${changedCount} line${changedCount !== 1 ? 's' : ''} changed`}
+                    </span>
                 </div>
-
-                {/* Panes */}
                 <div style={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
-                    {before && (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: after ? '1px solid var(--border)' : 'none', overflow: 'hidden' }}>
-                            <div className="diff-header-removed" style={{ padding: '8px 16px', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
-                                BEFORE
-                            </div>
-                            {renderLines(left, 'left')}
-                        </div>
-                    )}
-                    {after && (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <div className="diff-header-added" style={{ padding: '8px 16px', fontWeight: 600, borderBottom: '1px solid var(--border)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
-                                {before ? 'AFTER' : 'CURRENT SPECIFICATION'}
-                            </div>
-                            {renderLines(right, 'right')}
-                        </div>
-                    )}
+                    {before && renderPane('left')}
+                    {after && renderPane('right')}
                 </div>
             </motion.div>
         </div>,
