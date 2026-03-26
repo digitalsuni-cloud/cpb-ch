@@ -42,6 +42,16 @@ export const clearHistory = () => {
     localStorage.removeItem(HISTORY_STORAGE_KEY);
 };
 
+export const setHistoryOptions = (newHistory) => {
+    try {
+        const limitedHistory = newHistory.slice(0, MAX_HISTORY_ITEMS);
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
+        window.dispatchEvent(new CustomEvent('historyUpdated', { detail: { action: 'FULL_RELOAD' } }));
+    } catch (e) {
+        console.error('Failed to set history:', e);
+    }
+};
+
 export const logHistoryEvent = (event) => {
     try {
         const history = getHistoryOptions();

@@ -14,7 +14,8 @@ import {
     FaFolderOpen,
     FaAlignLeft,
     FaHistory,
-    FaBug
+    FaBug,
+    FaBookmark
 } from 'react-icons/fa';
 import { isElectronApp } from '../utils/env';
 import Tooltip from '../components/Tooltip';
@@ -24,6 +25,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <FaHome /> },
         { id: 'builder', label: 'Rule Builder', icon: <FaLayerGroup /> },
+        { id: 'templates', label: 'Template Library', icon: <FaBookmark /> },
         { id: 'preview', label: 'Price Book Summary', icon: <FaAlignLeft /> },
         { id: 'export', label: 'Export', icon: <FaFileExport /> },
         ...(isElectronApp() ? [

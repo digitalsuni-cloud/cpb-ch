@@ -7,7 +7,7 @@ import { propertyTypes } from '../constants/propertyTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import PropertySection from './PropertySection';
 import { AWSProducts } from '../constants/products';
-import { FaGripVertical, FaTrash, FaPlus, FaChevronDown } from 'react-icons/fa';
+import { FaGripVertical, FaTrash, FaPlus, FaChevronDown, FaCopy } from 'react-icons/fa';
 import CreatableSelect from 'react-select/creatable';
 import ProductItem from './ProductItem';
 import ToggleSwitch from './ToggleSwitch';
@@ -189,6 +189,30 @@ const BillingRule = ({ rule, groupId }) => {
                             )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Tooltip title="Duplicate Rule" content={`Duplicate "${rule.name || 'Untitled Rule'}" with all its product filters below`}>
+                                <motion.button
+                                    className="button-ghost"
+                                    onClick={() => dispatch({ type: 'DUPLICATE_BILLING_RULE', groupId, ruleId: rule.id })}
+                                    whileHover={{ scale: 1.1, color: 'var(--secondary)' }}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        padding: '0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text-muted)',
+                                        background: 'transparent',
+                                        border: '1px solid rgba(6, 182, 212, 0.3)',
+                                        borderRadius: '6px',
+                                        boxShadow: 'none'
+                                    }}
+                                >
+                                    <FaCopy size={11} />
+                                </motion.button>
+                            </Tooltip>
+
                             <Tooltip title="Delete Rule" content="Remove this billing rule and all its product filters" variant="danger">
                                 <motion.button
                                     className="button-ghost"
