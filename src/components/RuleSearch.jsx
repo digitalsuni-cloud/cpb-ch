@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Select from 'react-select';
+import Select, { components } from 'react-select';
 import { usePriceBook } from '../context/PriceBookContext';
 
 const RuleSearch = () => {
@@ -45,25 +45,12 @@ const RuleSearch = () => {
         </div>
     );
 
-    const CustomSingleValue = ({ innerProps, children }) => (
-        <div
-            {...innerProps}
-            title={children}
-            style={{
-                color: 'var(--text-main)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '95%',
-                background: 'transparent',
-                border: 'none',
-                boxShadow: 'none',
-                padding: 0,
-                margin: 0
-            }}
-        >
-            {children}
-        </div>
+    const CustomSingleValue = (props) => (
+        <components.SingleValue {...props}>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={props.children}>
+                {props.children}
+            </span>
+        </components.SingleValue>
     );
 
     const handleChange = (selectedOption) => {

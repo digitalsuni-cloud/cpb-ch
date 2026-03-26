@@ -10,6 +10,7 @@ import { useToast } from './hooks/useToast';
 import PriceBookForm from './components/PriceBookForm';
 import RuleSearch from './components/RuleSearch';
 import ImportSection from './components/ImportSection';
+import TemplateSection from './components/TemplateSection';
 import RuleGroupList from './components/RuleGroupList';
 import NaturalLanguageSummary from './components/NaturalLanguageSummary';
 import ExportSection from './components/ExportSection';
@@ -469,6 +470,20 @@ function App() {
                 <p style={{ color: 'var(--text-secondary)' }}>Click the button above to start building your price book logic.</p>
               </div>
             )}
+          </div>
+        )}
+
+
+        {/* VIEW: TEMPLATES */}
+        {activeView === 'templates' && (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            padding: '10px 20px 60px 20px',
+            margin: '0 -20px'
+          }}>
+            <TemplateSection setActiveView={setActiveView} />
           </div>
         )}
 

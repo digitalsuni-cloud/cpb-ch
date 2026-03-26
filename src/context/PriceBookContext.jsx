@@ -107,6 +107,26 @@ function priceBookReducer(state, action) {
                     lastUpdated: new Date().toISOString().split('T')[0]
                 }
             };
+        case 'DUPLICATE_RULE_GROUP': {
+            const srcGroup = state.priceBook.ruleGroups.find(g => g.id === action.id);
+            if (!srcGroup) return state;
+            const clonedGroup = {
+                ...srcGroup,
+                id: uuidv4(),
+                rules: srcGroup.rules.map(r => ({
+                    ...r,
+                    id: uuidv4(),
+                    products: (r.products || []).map(p => ({ ...p, id: uuidv4() }))
+                }))
+            };
+            const idx = state.priceBook.ruleGroups.findIndex(g => g.id === action.id);
+            const newGroups = [...state.priceBook.ruleGroups];
+            newGroups.splice(idx + 1, 0, clonedGroup);
+            return {
+                ...state,
+                priceBook: { ...state.priceBook, ruleGroups: newGroups, lastUpdated: new Date().toISOString().split('T')[0] }
+            };
+        }
         case 'REMOVE_RULE_GROUP':
             return {
                 ...state,
@@ -161,6 +181,28 @@ function priceBookReducer(state, action) {
                             return { ...g, rules: [...g.rules, createBillingRule()] };
                         }
                         return g;
+                    }),
+                    lastUpdated: new Date().toISOString().split('T')[0]
+                }
+            };
+        case 'DUPLICATE_BILLING_RULE':
+            return {
+                ...state,
+                priceBook: {
+                    ...state.priceBook,
+                    ruleGroups: state.priceBook.ruleGroups.map(g => {
+                        if (g.id !== action.groupId) return g;
+                        const srcRule = g.rules.find(r => r.id === action.ruleId);
+                        if (!srcRule) return g;
+                        const clonedRule = {
+                            ...srcRule,
+                            id: uuidv4(),
+                            products: (srcRule.products || []).map(p => ({ ...p, id: uuidv4() }))
+                        };
+                        const idx = g.rules.findIndex(r => r.id === action.ruleId);
+                        const newRules = [...g.rules];
+                        newRules.splice(idx + 1, 0, clonedRule);
+                        return { ...g, rules: newRules };
                     }),
                     lastUpdated: new Date().toISOString().split('T')[0]
                 }

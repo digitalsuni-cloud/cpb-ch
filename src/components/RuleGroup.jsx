@@ -5,7 +5,7 @@ import { usePriceBook } from '../context/PriceBookContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import BillingRuleList from './BillingRuleList';
-import { FaPlus, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaCopy } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
 const RuleGroup = ({ group, index }) => {
@@ -192,6 +192,31 @@ const RuleGroup = ({ group, index }) => {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <Tooltip title="Duplicate Group" content={`Duplicate Rule Group ${index + 1} with all its billing rules below`}>
+                                <motion.button
+                                    className="button-ghost"
+                                    onClick={() => dispatch({ type: 'DUPLICATE_RULE_GROUP', id: group.id })}
+                                    whileHover={{ scale: 1.1, color: 'var(--secondary)' }}
+                                    whileTap={{ scale: 0.9 }}
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        padding: '0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text-muted)',
+                                        marginRight: '8px',
+                                        background: 'transparent',
+                                        border: '1px solid rgba(6, 182, 212, 0.3)',
+                                        borderRadius: '8px',
+                                        boxShadow: 'none'
+                                    }}
+                                >
+                                    <FaCopy size={13} />
+                                </motion.button>
+                            </Tooltip>
+
                             <Tooltip title="Delete Group" content={`Permanently remove Rule Group ${index + 1} and its rules`} variant="danger">
                                 <motion.button
                                     className="button-ghost"

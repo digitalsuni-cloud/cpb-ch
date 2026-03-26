@@ -51,6 +51,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                         }}>
                             {activeView === 'dashboard' && 'Price Book Dashboard'}
                             {activeView === 'builder' && 'Rules Builder'}
+                            {activeView === 'templates' && 'Template Library'}
                             {activeView === 'preview' && 'Price Book Summary'}
                             {activeView === 'export' && 'Export Configuration'}
                             {activeView === 'deploy' && 'Deployment Center'}
@@ -64,6 +65,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                         }}>
                             {activeView === 'dashboard' && 'Manage metadata and global settings.'}
                             {activeView === 'builder' && 'Define custom rates, discounts logic, and product scopes.'}
+                            {activeView === 'templates' && 'Save and apply standardized pricebook configurations.'}
                             {activeView === 'preview' && 'Review your configuration in a readable natural language format.'}
                             {activeView === 'export' && 'Download and deploy your price book.'}
                             {activeView === 'deploy' && 'Deploy live updates to CloudHealth.'}

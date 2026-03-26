@@ -179,17 +179,27 @@ export const parseXMLToState = (xmlString, fallbackJson = {}) => {
     const sanitizedXml = xmlString.replace(/&(?!amp;|lt;|gt;|apos;|quot;|#x?[0-9a-fA-F]+;|#\d+;)/g, '&amp;');
 
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(sanitizedXml, 'application/xml');
+    let xmlDoc = parser.parseFromString(sanitizedXml, 'application/xml');
 
+    // If the strict XML parser fails (e.g. unclosed tags), fall back to the lenient
+    // HTML parser which auto-recovers from structural errors. getElementsByTagName
+    // still works correctly on the resulting document.
     if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-        throw new Error('Invalid XML');
+        const htmlDoc = parser.parseFromString(sanitizedXml, 'text/html');
+        if (htmlDoc.getElementsByTagName('CHTBillingRules').length > 0) {
+            xmlDoc = htmlDoc;
+        } else {
+            throw new Error('Invalid XML – could not find a valid CHTBillingRules document.');
+        }
     }
 
-    const root = xmlDoc.documentElement;
-    const createdBy = root.getAttribute('createdBy') || fallbackJson.created_by || '';
+    // Use getElementsByTagName so it works in both XML-doc and HTML-doc modes
+    const root = xmlDoc.getElementsByTagName('CHTBillingRules')[0] || xmlDoc.documentElement;
+    // HTML parser lowercases attribute names, so check both cases
+    const createdBy = root.getAttribute('createdby') || root.getAttribute('createdBy') || fallbackJson.created_by || '';
     const bookName = root.getAttribute('name') || fallbackJson.book_name || '';
     const date = root.getAttribute('date') || '';
-    const comment = root.getAttribute('comment') || root.querySelector('Comment')?.textContent || '';
+    const comment = root.getAttribute('comment') || root.querySelector('Comment,comment')?.textContent || '';
 
     const ruleGroups = Array.from(xmlDoc.getElementsByTagName('RuleGroup')).map(groupEl => {
         const group = createRuleGroup();

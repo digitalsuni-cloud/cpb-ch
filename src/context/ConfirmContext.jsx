@@ -20,6 +20,7 @@ export const ConfirmProvider = ({ children }) => {
         type: 'confirm', // 'confirm' or 'alert'
         variant: 'warning', // 'warning', 'danger', 'info', 'success'
         resolve: null,
+        tertiaryLabel: undefined,
     });
 
     const confirm = useCallback((options) => {
@@ -29,7 +30,8 @@ export const ConfirmProvider = ({ children }) => {
             type = 'confirm',
             variant = 'warning',
             confirmLabel = 'Confirm',
-            cancelLabel = 'Cancel'
+            cancelLabel = 'Cancel',
+            tertiaryLabel = undefined
         } = typeof options === 'string' ? { message: options } : options;
 
         return new Promise((resolve) => {
@@ -41,6 +43,7 @@ export const ConfirmProvider = ({ children }) => {
                 variant,
                 confirmLabel,
                 cancelLabel,
+                tertiaryLabel,
                 resolve
             });
         });
@@ -202,6 +205,26 @@ export const ConfirmProvider = ({ children }) => {
                                         onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
                                         {state.cancelLabel}
+                                    </button>
+                                )}
+                                {state.tertiaryLabel && (
+                                    <button
+                                        onClick={() => handleClose('tertiary')}
+                                        style={{
+                                            padding: '10px 20px',
+                                            borderRadius: '10px',
+                                            border: '1px solid var(--primary)',
+                                            background: 'transparent',
+                                            color: 'var(--primary)',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => { e.target.style.background = 'var(--primary)'; e.target.style.color = 'white'; }}
+                                        onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--primary)'; }}
+                                    >
+                                        {state.tertiaryLabel}
                                     </button>
                                 )}
                                 <button

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getHistoryOptions, clearHistory } from '../utils/history/historyLogger';
+import { getHistoryOptions, clearHistory, setHistoryOptions } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
-import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight, FaFileExport, FaFileImport } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { createPortal } from 'react-dom';
 import { diffLines, diffChars } from 'diff';
@@ -188,6 +188,7 @@ const HistoryLog = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const confirm = useConfirm();
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         const loadHistory = () => setHistory(getHistoryOptions());
@@ -210,6 +211,62 @@ const HistoryLog = () => {
             setHistory([]);
             setExpandedItems(new Set());
         }
+    };
+
+    const handleExport = () => {
+        if (history.length === 0) return;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(history, null, 2));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `cpb_action_history_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const importedData = JSON.parse(event.target.result);
+                if (!Array.isArray(importedData)) throw new Error("Invalid format: Must be a JSON array.");
+                
+                const isConfirmed = await confirm({
+                    title: 'Import History Logs',
+                    message: `You are about to import ${importedData.length} logs. This will merge them with your current history. Continue?`,
+                    confirmLabel: 'Import Logs'
+                });
+
+                if (isConfirmed) {
+                    // Merge based on unique IDs
+                    const currentMap = new Map(history.map(item => [item.id, item]));
+                    importedData.forEach(item => {
+                        if (item.id) currentMap.set(item.id, item);
+                    });
+                    
+                    const merged = Array.from(currentMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+                    setHistoryOptions(merged);
+                    // The historyUpdated effect will pick up the change, but let's eagerly set it
+                    setHistory(merged);
+                }
+            } catch(err) {
+                console.error("Failed to import", err);
+                await confirm({
+                    title: 'Import Error',
+                    message: 'Could not read the JSON file properly. Ensure it is a valid logs export.',
+                    variant: 'danger',
+                    confirmLabel: 'Close',
+                    hideCancel: true
+                });
+            } finally {
+                // Clear the input so you can select the same file again if needed
+                if (e.target) e.target.value = '';
+            }
+        };
+        reader.readAsText(file);
     };
 
     const toggleExpand = (id) => {
@@ -388,9 +445,18 @@ const HistoryLog = () => {
             <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)' }}>
                 <FaHistory size={32} style={{ marginBottom: '16px', opacity: 0.5 }} />
                 <h3>No History Available</h3>
-                <p style={{ fontSize: '0.9rem', maxWidth: '300px', margin: '0 auto' }}>
+                <p style={{ fontSize: '0.9rem', maxWidth: '300px', margin: '0 auto', marginBottom: '24px' }}>
                     Modifications, updates, and deletions applied to the CloudHealth tenant will appear here.
                 </p>
+                <input type="file" ref={fileInputRef} accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ background: 'transparent', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(139, 92, 246, 0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                    <FaFileImport size={14} /> Import Logs from File
+                </button>
             </div>
         );
     }
@@ -412,12 +478,32 @@ const HistoryLog = () => {
                             This log only tracks changes made <strong style={{ color: 'var(--text-secondary)' }}>through this app</strong> and on this PC only. It includes pricebook creates, updates, and deletes; customer assignments and unassignments; and payer account mappings. Changes made directly via the CloudHealth portal or API will not appear here.
                         </p>
                     </div>
-                    <button
-                        onClick={handleClear}
-                        style={{ flexShrink: 0, background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
-                    >
-                        <FaTrash size={12} /> Clear Log
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                        <input type="file" ref={fileInputRef} accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{ flexShrink: 0, background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.background = 'var(--bg-card)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            <FaFileImport size={12} /> Import
+                        </button>
+                        <button
+                            onClick={handleExport}
+                            disabled={history.length === 0}
+                            style={{ flexShrink: 0, background: 'transparent', color: history.length === 0 ? 'var(--text-muted)' : 'var(--text-secondary)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: history.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 600, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                            onMouseEnter={e => { if (history.length) { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.background = 'var(--bg-card)'; } }}
+                            onMouseLeave={e => { if (history.length) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; } }}
+                        >
+                            <FaFileExport size={12} /> Export
+                        </button>
+                        <button
+                            onClick={handleClear}
+                            style={{ flexShrink: 0, background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', whiteSpace: 'nowrap', marginLeft: '4px' }}
+                        >
+                            <FaTrash size={12} /> Clear Log
+                        </button>
+                    </div>
                 </div>
 
                 {/* Table Container */}
