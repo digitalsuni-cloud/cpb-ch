@@ -3,11 +3,11 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch, FaPlay } from 'react-icons/fa';
 import Tooltip from './Tooltip';
-import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError, performDryRun, fetchAwsAccountAssignments } from '../utils/chApi';
+import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError, performDryRun, fetchAwsAccountAssignments, assignPriceBook, getCachedCustomers, fetchAllCustomers } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState, generateXML } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
-import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete, logDryRun } from '../utils/history/historyLogger';
+import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete, logDryRun, logAssignmentUpdate } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
 
 let specCache = new Map(); // bookId → xml string
@@ -42,6 +42,9 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     // Dry Run state
     const [dryRunData, setDryRunData] = useState(null); // { assignment, month, payerId, payerOptions, isLoadingOptions }
     const [isDryRunExecuting, setIsDryRunExecuting] = useState(false);
+
+    // Quick Assignment Edit state
+    const [assignmentEditData, setAssignmentEditData] = useState(null); // { bookId, bookName, customerId, payerId, customerOptions, payerOptions, isLoadingOptions }
 
     // Overlay state for destructive actions
     const [actionProgress, setActionProgress] = useState({ active: false, title: '', status: '', logs: [], done: false, error: false });
@@ -148,6 +151,17 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             await loadDirectory();
             setActionProgress(prev => ({ ...prev, status: 'Successfully completed.', done: true }));
         } catch (err) {
+            const asgn = apiData.assignments.find(a => a.assignment_id === assignmentId);
+            logCustomerUnassign(
+                asgn?.id || null,
+                bookName,
+                asgn?.target_client_api_id || null,
+                cleanName,
+                assignmentId,
+                asgn?.billing_account_owner_id || null,
+                false,
+                err.message
+            );
             setActionProgress(prev => ({ ...prev, status: `Failed: ${err.message}`, logs: [...prev.logs, `❌ Error: ${err.message}`], done: true, error: true }));
         }
     };
@@ -259,41 +273,210 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         }
     };
 
-    const handleEditAssignment = async (bookId, bookName, customerId, payerId) => {
-        // Warn if builder already has data
-        const hasExistingData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
+    const handleEditAssignment = async (bookId, bookName, customerId, payerId, assignmentId) => {
+        // Find existing customer name for prefill logging
+        const allCust = getCachedCustomers();
+        const customer = allCust.find(c => String(c.id) === String(customerId));
+        setAssignmentEditData({
+            bookId,
+            bookName,
+            customerId: customerId || '',
+            customerName: customer?.name || '',
+            payerId: (payerId === 'ALL' || payerId === 'N/A' || !payerId) ? '' : payerId,
+            originalAssignmentId: assignmentId,
+            originalCustomerId: customerId,
+            originalPayerId: payerId,
+            payerOptions: [],
+            customerOptions: allCust,
+            isLoadingOptions: !!customerId,
+            isLoadingCustomers: false
+        });
 
-        if (hasExistingData) {
-            const isConfirmed = await confirm({
-                title: 'Unsaved Changes',
-                message: `You have unsaved configuration in the builder.\n\nLoading "${bookName}" into Deploy will overwrite it. Continue?`,
-                variant: 'danger',
-                confirmLabel: 'Overwrite'
-            });
-            if (!isConfirmed) return;
+        // If customer exists, pre-fetch their payer account mappings
+        if (customerId) {
+            const apiKey = localStorage.getItem('ch_api_key');
+            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+            try {
+                const results = await fetchAwsAccountAssignments(customerId, apiKey, proxyUrl);
+                const options = [...new Set(results.map(a => a.payer_account_owner_id).filter(Boolean))];
+                setAssignmentEditData(prev => prev ? { ...prev, payerOptions: options, isLoadingOptions: false } : null);
+            } catch (e) {
+                console.error('Failed to fetch payer options for assignment edit', e);
+                setAssignmentEditData(prev => prev ? { ...prev, isLoadingOptions: false } : null);
+            }
+        }
+    };
+
+    // Debounced fetch for payer options to avoid spamming 404s on every keystroke
+    useEffect(() => {
+        if (!assignmentEditData?.customerId) return;
+        
+        const timer = setTimeout(async () => {
+            const val = assignmentEditData.customerId;
+            const allCust = getCachedCustomers();
+            const exists = allCust.some(c => String(c.id) === String(val));
+            
+            if (exists) {
+                const apiKey = localStorage.getItem('ch_api_key');
+                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                try {
+                    const res = await fetchAwsAccountAssignments(val, apiKey, proxyUrl);
+                    const opts = [...new Set(res.map(a => a.payer_account_owner_id).filter(Boolean))];
+                    setAssignmentEditData(prev => (prev && prev.customerId === val) ? { ...prev, payerOptions: opts, isLoadingOptions: false } : prev);
+                } catch (err) {
+                    setAssignmentEditData(prev => (prev && prev.customerId === val) ? { ...prev, isLoadingOptions: false } : prev);
+                }
+            } else {
+                setAssignmentEditData(prev => ({ ...prev, isLoadingOptions: false, payerOptions: [] }));
+            }
+        }, 600);
+
+        return () => clearTimeout(timer);
+    }, [assignmentEditData?.customerId]);
+
+    const handleAssignmentSubmit = async () => {
+        const { bookId, bookName, customerId, payerId, originalAssignmentId, originalCustomerId, originalPayerId, keepExisting } = assignmentEditData;
+        
+        if (!customerId) {
+            confirm({ title: 'Customer Required', message: 'You must select a customer to link this pricebook to.', type: 'alert', variant: 'warning' });
+            return;
         }
 
+        const apiKey = localStorage.getItem('ch_api_key');
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        
+        setIsDryRunExecuting(true); // Reusing dry run spinner state for overall UI lock
+        setActionProgress({
+            active: true,
+            title: 'Updating Assignment',
+            status: 'Processing...',
+            logs: [`Starting clean reconfiguration for "${bookName}"...`],
+            done: false,
+            error: false
+        });
+
+        let disconnected = false;
+
+        // Resolve names BEFORE the try block so they are accessible in the catch block for the restore dialog
+        const customer = apiData.customers.find(c => String(c.id) === String(customerId));
+        const customerName = customer?.name || 'Customer';
+        const effectivePayer = (!payerId || payerId.trim() === '' || payerId.trim().toUpperCase() === 'ALL') ? 'ALL' : payerId;
+        const origCust = apiData.customers.find(c => String(c.id) === String(originalCustomerId));
+        const origCustName = origCust?.name || 'Previous Customer';
+
         try {
-            const xml = await getSpec(bookId);
-            const syntheticJsonPayload = {
-                book_name: bookName,
-                specification: xml,
-                cxAPIId: bookId,
-                customerApiId: customerId,
-                cxPayerId: payerId === 'ALL' || payerId === 'N/A' ? '' : payerId
-            };
-            const newState = parseXMLToState(xml, syntheticJsonPayload);
-            dispatch({ type: 'IMPORT_DATA', payload: newState });
-            // Signal DeploySection to auto-open the Assign to Customer panel
-            if (setDeployHint) setDeployHint(true);
-            setActiveView('deploy');
-        } catch (err) {
-            if (err instanceof ApiAuthError) {
-                showToast && showToast({ type: 'error', title: 'API Key Error', message: err.message, duration: 10000, dedupeKey: 'api-auth-error' });
-            } else {
-                console.error(err);
-                confirm({ title: 'Error', message: `Failed to load assignment into deploy context: ${err.message}`, type: 'alert', variant: 'danger' });
+
+            // 1. Disconnect existing if it exists AND user did not choose to keep it
+            if (originalAssignmentId && !keepExisting) {
+                setActionProgress(prev => ({ ...prev, status: 'Disconnecting current assignment...', logs: [...prev.logs, `Deleting assignment ID: ${originalAssignmentId}...`] }));
+                try {
+                    await deleteBaseAssignment(originalAssignmentId, apiKey, proxyUrl);
+                    disconnected = true;
+                    setActionProgress(prev => ({ ...prev, logs: [...prev.logs, '✅ Previous assignment disconnected.'] }));
+                    logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, true);
+                } catch (e) {
+                    setActionProgress(prev => ({ ...prev, logs: [...prev.logs, `⚠️ Notice: Could not delete old assignment (may have been moved): ${e.message}`] }));
+                    disconnected = true;
+                    logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, false, e.message);
+                }
+            } else if (keepExisting) {
+                setActionProgress(prev => ({ ...prev, logs: [...prev.logs, `ℹ️ Keeping existing assignment for ${origCustName}.`] }));
             }
+
+            // 2. Re-assign
+            setActionProgress(prev => ({ ...prev, status: `Linking ${bookName} to ${customerName}...`, logs: [...prev.logs, 'Creating new assignment...'] }));
+            
+            const response = await assignPriceBook(bookId, customerId, effectivePayer, apiKey, proxyUrl);
+            const finalAssignmentId = response.assignmentId || '(new)';
+
+            setActionProgress(prev => ({ ...prev, status: 'Finalizing...', logs: [...prev.logs, `✅ New assignment successful (ID: ${finalAssignmentId})`] }));
+            
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, null, effectivePayer, true);
+            
+            setActionProgress(prev => ({
+                ...prev,
+                title: 'Assignment Updated',
+                status: `"${bookName}" has been successfully reconfigured for "${customerName}".`,
+                done: true
+            }));
+
+            // Refresh directory after small delay to reflect new mapping
+            setTimeout(loadDirectory, 1000);
+            setAssignmentEditData(null);
+
+        } catch (err) {
+            console.error(err);
+
+            // Always log the failed reassignment attempt, regardless of whether the user restores
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, null, effectivePayer, null, effectivePayer, false, err.message);
+
+            if (disconnected) {
+                const restore = await confirm({
+                    title: 'Restoration Required?',
+                    message: `The new assignment failed: "${err.message}".\n\nSince the previous assignment was already deleted, would you like to restore the mapping back to "${origCustName}"?`,
+                    variant: 'warning',
+                    confirmLabel: 'Restore Previous',
+                    cancelLabel: 'Leave Unassigned'
+                });
+
+                if (restore) {
+                    try {
+                        const restorePayer = (!originalPayerId || originalPayerId === 'N/A' || originalPayerId === 'ALL') ? 'ALL' : originalPayerId;
+                        setActionProgress(prev => ({ 
+                            ...prev, 
+                            active: true, 
+                            title: 'Restoring Previous Assignment', 
+                            status: 'Reconnecting...', 
+                            logs: [...prev.logs, `Attempting to restore mapping to "${origCustName}"...`], 
+                            done: false, 
+                            error: false 
+                        }));
+                        
+                        const res = await assignPriceBook(bookId, originalCustomerId, restorePayer, apiKey, proxyUrl);
+                        const restAssignmentId = res.assignmentId || '(restored)';
+                        
+                        // Log successful restoration
+                        logAssignmentUpdate(bookId, bookName, originalCustomerId, origCustName, restAssignmentId, restorePayer, null, restorePayer, true);
+                        
+                        setActionProgress(prev => ({ 
+                            ...prev, 
+                            title: 'Restored Successfully', 
+                            status: `Pricebook has been restored back to "${origCustName}".`,
+                            logs: [...prev.logs, '✅ Restoration complete.'],
+                            done: true 
+                        }));
+                        
+                        setTimeout(loadDirectory, 1000);
+                        setAssignmentEditData(null);
+                        return;
+                    } catch (restError) {
+                        // Log failed restoration attempt
+                        logAssignmentUpdate(bookId, bookName, originalCustomerId, origCustName, null, originalPayerId, null, originalPayerId, false, `Restore failed: ${restError.message}`);
+                        
+                        setActionProgress(prev => ({ 
+                            ...prev, 
+                            title: 'Critical Failure', 
+                            status: `Could not restore older assignment: ${restError.message}`, 
+                            done: true, 
+                            error: true,
+                            logs: [...prev.logs, `❌ Final Error: ${restError.message}`]
+                        }));
+                        return;
+                    }
+                }
+                // User chose "Leave Unassigned" — no additional logging needed, failure already logged above
+            }
+
+            setActionProgress(prev => ({
+                ...prev,
+                title: 'Operation Failed',
+                status: err.message,
+                done: true,
+                error: true,
+                logs: [...prev.logs, `❌ Error: ${err.message}`]
+            }));
+        } finally {
+            setIsDryRunExecuting(false);
         }
     };
 
@@ -387,7 +570,12 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         try {
             const assignments = await fetchAwsAccountAssignments(item.target_client_api_id, apiKey, proxyUrl);
             const options = [...new Set(assignments.map(a => a.payer_account_owner_id).filter(Boolean))];
-            setDryRunData(prev => prev ? { ...prev, payerOptions: options, isLoadingOptions: false } : null);
+            setDryRunData(prev => prev ? { 
+                ...prev, 
+                payerOptions: options, 
+                payerId: prev.payerId || (options.length > 0 ? options[0] : ''),
+                isLoadingOptions: false 
+            } : null);
         } catch (e) {
             console.error('Failed to fetch payer options', e);
             setDryRunData(prev => prev ? { ...prev, isLoadingOptions: false } : null);
@@ -728,7 +916,7 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                     </Tooltip>
                                                     <Tooltip title="Edit Assignment" content="Modify the customer or payer mapping for this pricebook" position="top">
                                                         <button
-                                                            onClick={() => handleEditAssignment(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id)}
+                                                            onClick={() => handleEditAssignment(item.id, item.book_name, item.target_client_api_id || '', item.billing_account_owner_id, item.assignment_id)}
                                                             style={{ width: 'clamp(24px, 2.2vw, 32px)', height: 'clamp(24px, 2.2vw, 32px)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }}
                                                         >
                                                             <FaUserEdit size={11} />
@@ -920,7 +1108,6 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                 <select
                                                     value={dryRunData.month}
                                                     onChange={(e) => setDryRunData({ ...dryRunData, month: e.target.value })}
-                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--bg-deep)', border: '1px solid var(--border)', color: 'var(--text-main)', outline: 'none' }}
                                                 >
                                                     {getMonthOptions(13).map(opt => (
                                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -935,27 +1122,16 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                         <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
                                                     )}
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    list="dry-run-payer-suggestions"
+                                                <select
                                                     value={dryRunData.payerId}
                                                     onChange={(e) => setDryRunData({ ...dryRunData, payerId: e.target.value })}
                                                     disabled={isDryRunExecuting}
-                                                    placeholder="Select or enter Payer ID"
-                                                    style={{
-                                                        width: '100%', padding: '10px', borderRadius: '8px',
-                                                        background: 'var(--bg-deep)',
-                                                        border: '1px solid var(--border)',
-                                                        color: 'var(--text-main)',
-                                                        outline: 'none',
-                                                        cursor: isDryRunExecuting ? 'not-allowed' : 'text'
-                                                    }}
-                                                />
-                                                <datalist id="dry-run-payer-suggestions">
+                                                >
+                                                    <option value="" disabled>Select Payer ID</option>
                                                     {dryRunData.payerOptions.map(opt => (
-                                                        <option key={opt} value={opt} />
+                                                        <option key={opt} value={opt}>{opt}</option>
                                                     ))}
-                                                </datalist>
+                                                </select>
                                                 {!dryRunData.isAllOrNone && (
                                                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                                         Pre-populated from assignment (Editable).
@@ -992,6 +1168,176 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                         )}
                     </AnimatePresence>
 
+                    {/* Quick Assignment Edit Modal */}
+                    <AnimatePresence>
+                        {assignmentEditData && (() => {
+                            const origCust = assignmentEditData.customerOptions?.find(c => String(c.id) === String(assignmentEditData.originalCustomerId));
+                            const origCustName = origCust?.name || `Customer ${assignmentEditData.originalCustomerId}`;
+                            const selectedCust = assignmentEditData.customerOptions?.find(c => String(c.id) === String(assignmentEditData.customerId));
+                            const isChangingCustomer = String(assignmentEditData.customerId) !== String(assignmentEditData.originalCustomerId) && assignmentEditData.originalCustomerId;
+
+                            return (
+                                <motion.div
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', zIndex: 9005, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0.92, opacity: 0, y: 24 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0, y: 24 }}
+                                        style={{ background: 'var(--bg-card)', padding: '28px', borderRadius: '16px', border: '1px solid var(--border)', maxWidth: '480px', width: '100%', boxShadow: '0 32px 64px -16px rgba(0,0,0,0.8)' }}
+                                    >
+                                        {/* Header */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
+                                                    <FaUserEdit size={18} />
+                                                </div>
+                                                <div>
+                                                    <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.1rem', fontWeight: 700 }}>Quick Edit Assignment</h3>
+                                                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>Update mapping for &quot;{assignmentEditData.bookName}&quot;</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => setAssignmentEditData(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}><FaTimes /></button>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            {/* Target Customer — type-and-search via datalist */}
+                                            <div className="input-group">
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    Target Customer
+                                                    <button
+                                                        onClick={async () => {
+                                                            setAssignmentEditData(prev => ({ ...prev, isLoadingCustomers: true }));
+                                                            const apiKey = localStorage.getItem('ch_api_key');
+                                                            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                            try {
+                                                                const full = await fetchAllCustomers(apiKey, proxyUrl, true);
+                                                                setAssignmentEditData(prev => ({ ...prev, customerOptions: full, isLoadingCustomers: false }));
+                                                            } catch (e) { setAssignmentEditData(prev => ({ ...prev, isLoadingCustomers: false })); }
+                                                        }}
+                                                        title="Refresh customer list"
+                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                                                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                                                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                                    >
+                                                        <FaSyncAlt className={assignmentEditData.isLoadingCustomers ? 'spin' : ''} size={10} />
+                                                    </button>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    list="edit-customer-suggestions"
+                                                    value={assignmentEditData.customerSearch ?? (selectedCust ? `${selectedCust.name} (${selectedCust.id})` : assignmentEditData.customerId)}
+                                                    onChange={e => {
+                                                        const raw = e.target.value;
+                                                        // Try to pick a real match from the option value pattern "Name (id)"
+                                                        const match = assignmentEditData.customerOptions.find(
+                                                            c => raw === `${c.name} (${c.id})` || raw === String(c.id)
+                                                        );
+                                                        setAssignmentEditData(prev => ({
+                                                            ...prev,
+                                                            customerSearch: raw,
+                                                            customerId: match ? String(match.id) : '',
+                                                            payerId: match ? '' : prev.payerId,           // (b) clear payer on customer change
+                                                            payerOptions: match ? [] : prev.payerOptions,
+                                                            keepExisting: match && isChangingCustomer ? true : prev.keepExisting  // (a) auto-check
+                                                        }));
+                                                    }}
+                                                    placeholder="Search by name or ID..."
+                                                />
+                                                <datalist id="edit-customer-suggestions">
+                                                    {assignmentEditData.customerOptions.map(c => (
+                                                        <option key={c.id} value={`${c.name} (${c.id})`} />
+                                                    ))}
+                                                </datalist>
+                                                {selectedCust && <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {selectedCust.id}</p>}
+                                            </div>
+
+                                            {/* Keep Existing checkbox — auto-checked, shown only when changing customer */}
+                                            {isChangingCustomer && (
+                                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!assignmentEditData.keepExisting}
+                                                        onChange={e => setAssignmentEditData(prev => ({ ...prev, keepExisting: e.target.checked }))}
+                                                        style={{ marginTop: '2px', accentColor: 'var(--primary)', width: '14px', height: '14px', flexShrink: 0, cursor: 'pointer' }}
+                                                    />
+                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                                        Also keep existing assignment for <strong style={{ color: 'var(--text-main)' }}>{origCustName}</strong>
+                                                        <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>The pricebook will be linked to both customers simultaneously.</span>
+                                                    </span>
+                                                </label>
+                                            )}
+
+                                            {/* Payer Account ID */}
+                                            <div className="input-group">
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    Payer Account ID
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!assignmentEditData.customerId) return;
+                                                            setAssignmentEditData(prev => ({ ...prev, isLoadingOptions: true }));
+                                                            const apiKey = localStorage.getItem('ch_api_key');
+                                                            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                            try {
+                                                                const res = await fetchAwsAccountAssignments(assignmentEditData.customerId, apiKey, proxyUrl, true);
+                                                                const opts = [...new Set(res.map(a => a.payer_account_owner_id).filter(Boolean))];
+                                                                setAssignmentEditData(prev => ({ ...prev, payerOptions: opts, isLoadingOptions: false }));
+                                                            } catch (e) { setAssignmentEditData(prev => ({ ...prev, isLoadingOptions: false })); }
+                                                        }}
+                                                        title="Refresh payer options"
+                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                                                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                                                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                                                    >
+                                                        <FaSyncAlt className={assignmentEditData.isLoadingOptions ? 'spin' : ''} size={10} />
+                                                    </button>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    list="edit-payer-suggestions"
+                                                    value={assignmentEditData.payerId}
+                                                    onChange={e => setAssignmentEditData(prev => ({ ...prev, payerId: e.target.value }))}
+                                                    placeholder="Enter Payer ID or 'ALL'..."
+                                                />
+                                                <datalist id="edit-payer-suggestions">
+                                                    <option value="ALL" />
+                                                    {assignmentEditData.payerOptions.map(opt => (
+                                                        <option key={opt} value={opt} />
+                                                    ))}
+                                                </datalist>
+                                                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Leave empty or enter 'ALL' for global assignment.</p>
+                                            </div>
+
+                                            {/* Action buttons */}
+                                            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                                <button
+                                                    onClick={() => setAssignmentEditData(null)}
+                                                    style={{ flex: 1, padding: '11px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-deep)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-deep)'}
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleAssignmentSubmit}
+                                                    disabled={isDryRunExecuting || !assignmentEditData.customerId}
+                                                    style={{
+                                                        flex: 2, padding: '11px', borderRadius: '8px', border: 'none',
+                                                        background: (isDryRunExecuting || !assignmentEditData.customerId) ? 'var(--bg-deep)' : 'var(--primary)',
+                                                        color: 'white', cursor: (isDryRunExecuting || !assignmentEditData.customerId) ? 'not-allowed' : 'pointer',
+                                                        fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                        opacity: (isDryRunExecuting || !assignmentEditData.customerId) ? 0.5 : 1, transition: 'opacity 0.2s'
+                                                    }}
+                                                >
+                                                    {isDryRunExecuting ? <><FaSyncAlt className="spin" /> Updating...</> : <><FaCheckCircle size={14} /> Update Assignment</>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            );
+                        })()}
+                    </AnimatePresence>
+
                     {/* Action Progress Overlay Modal */}
                     <AnimatePresence>
                         {actionProgress.active && (
@@ -1011,7 +1357,7 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{actionProgress.status}</p>
                                     </div>
                                     {actionProgress.logs.length > 0 && (
-                                        <div style={{ width: '100%', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', maxHeight: '150px', overflowY: 'auto' }}>
+                                        <div style={{ width: '100%', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', maxHeight: '150px', overflowY: 'auto' }}>
                                             {actionProgress.logs.map((L, i) => (
                                                 <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontFamily: 'monospace' }}>{L}</div>
                                             ))}

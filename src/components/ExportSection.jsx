@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML, getDeploymentSteps } from '../utils/converter';
-import { FaDownload, FaCopy, FaCheck, FaRocket, FaSmile, FaSlash } from 'react-icons/fa';
+import { FaDownload, FaCopy, FaCheck, FaRocket, FaSmile, FaSlash, FaFileCsv } from 'react-icons/fa';
 import { productIconMapping } from '../utils/awsIconMapping';
 import { getIconForProduct } from '../utils/awsIcons';
 import CalendarIcon from './CalendarIcon';
@@ -9,6 +9,76 @@ import { createPriceBook, updatePriceBook } from '../utils/chApi';
 import { isElectronApp } from '../utils/env';
 import { FaWindows, FaApple, FaLinux } from 'react-icons/fa';
 import Tooltip from './Tooltip';
+
+// ── CSV generator ────────────────────────────────────────────────────────────
+const generateCSV = (priceBook) => {
+    const csvEscape = (v) => {
+        if (v === null || v === undefined) return '';
+        const s = String(v);
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+            ? `"${s.replace(/"/g, '""')}"`
+            : s;
+    };
+
+    const headers = [
+        'Rule Group #', 'Start Date', 'End Date', 'Payer Accounts',
+        'Billing Rule Name', 'Billing Adjustment', 'Rule Type',
+        'Include Data Transfer (Rule)', 'Include RI Purchases (Rule)',
+        'Product Name', 'Include Data Transfer (Product)', 'Include RI Purchases (Product)',
+        'Regions', 'Usage Types', 'Operations', 'Record Types',
+        'Savings Plan Offering Types', 'Instance Type', 'Instance Size', 'Instance Reserved',
+        'Line Item Description'
+    ];
+
+    const join = (arr) => (arr || []).join(' | ');
+
+    const rows = [headers.map(csvEscape).join(',')];
+
+    (priceBook.ruleGroups || []).forEach((group, gIdx) => {
+        (group.rules || []).forEach(rule => {
+            (rule.products || []).forEach(product => {
+                const props = product.properties || {};
+
+                // Standard (flat string) property types — keys match propertyTypes.js
+                const regions      = join((props.region                   || []).map(v => String(v)));
+                const usageTypes   = join((props.usageType                || []).map(v => String(v)));
+                const operations   = join((props.operation                || []).map(v => String(v)));
+                const recordTypes  = join((props.recordType               || []).map(v => String(v)));
+                const savingsPlans = join((props.savingsPlanOfferingType  || []).map(v => String(v)));
+
+                // Instance property — complex { type, size, reserved }
+                const instTypes    = join((props.instanceProperty || []).map(v => v.type     || ''));
+                const instSizes    = join((props.instanceProperty || []).map(v => v.size     || ''));
+                const instReserved = join((props.instanceProperty || []).map(v => v.reserved || ''));
+
+                // Line item description — complex { matchType, value }
+                const lineItems = join(
+                    (props.lineItemDescription || []).map(l => l.value ? `${l.matchType}:${l.value}` : '')
+                );
+
+                rows.push([
+                    gIdx + 1,
+                    group.startDate     || '',
+                    group.endDate       || '',
+                    group.payerAccounts || '',
+                    rule.name           || '',
+                    rule.adjustment     || '',
+                    rule.type           || '',
+                    rule.includeDataTransfer || '',
+                    rule.includeRIPurchases  || '',
+                    product.productName      || '',
+                    product.includeDataTransfer !== 'inherit' ? (product.includeDataTransfer || '') : '',
+                    product.includeRIPurchases  !== 'inherit' ? (product.includeRIPurchases  || '') : '',
+                    regions, usageTypes, operations, recordTypes, savingsPlans,
+                    instTypes, instSizes, instReserved,
+                    lineItems
+                ].map(csvEscape).join(','));
+            });
+        });
+    });
+
+    return rows.join('\n');
+};
 
 const ExportSection = () => {
     const { state } = usePriceBook();
@@ -479,6 +549,38 @@ const ExportSection = () => {
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '1.2rem' }}>📤</span> Export Center
                 </h3>
+                <Tooltip title="Export to CSV" content="Download all billing rules as a flat CSV spreadsheet" variant="glass">
+                    <button
+                        onClick={() => {
+                            const csv = generateCSV(state.priceBook);
+                            const dateStr = new Date().toISOString().split('T')[0];
+                            const safe = state.priceBook.bookName
+                                ? state.priceBook.bookName.replace(/[^a-z0-9-_]/gi, '_')
+                                : 'pricebook';
+                            handleDownload(csv, `${safe}_${dateStr}.csv`);
+                        }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '7px 14px', fontSize: '0.78rem', fontWeight: 600,
+                            borderRadius: '8px', border: '1px solid var(--border)',
+                            background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)',
+                            cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                            e.currentTarget.style.borderColor = 'var(--primary)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                            e.currentTarget.style.borderColor = 'var(--border)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <FaFileCsv size={13} color="#10b981" />
+                        Download CSV
+                    </button>
+                </Tooltip>
             </div>
 
             <div className="tabs" style={{ background: 'var(--bg-deep)', padding: '4px', borderRadius: '8px', display: 'flex', gap: '4px', maxWidth: '300px', marginBottom: '24px', flexShrink: 0 }}>

@@ -105,14 +105,27 @@ const fetchAllPages = async (basePath, resultKey, apiKey, proxyUrl) => {
     return allItems;
 };
 
+let customerFetchInProgress = null;
+
 export const fetchAllCustomers = async (apiKey, proxyUrl = '', forceRefresh = false) => {
     if (!forceRefresh && isCustomerCacheValid()) {
         return cachedCustomers;
     }
 
-    const customers = await fetchAllPages('/customers', 'customers', apiKey, proxyUrl);
-    setCustomerCache(customers);
-    return customers;
+    // Coalesce parallel requests to the same endpoint
+    if (customerFetchInProgress) return customerFetchInProgress;
+
+    customerFetchInProgress = (async () => {
+        try {
+            const customers = await fetchAllPages('/customers', 'customers', apiKey, proxyUrl);
+            setCustomerCache(customers);
+            return customers;
+        } finally {
+            customerFetchInProgress = null;
+        }
+    })();
+
+    return customerFetchInProgress;
 };
 
 // Normalize billing_account_owner_id: null/[] → 'N/A', array → joined string
@@ -190,6 +203,8 @@ export const clearAwsCache = (targetClientId) => {
     persistAwsCache();
 };
 
+let awsFetchInProgress = {}; // { [clientId]: Promise }
+
 export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUrl = '', forceRefresh = false) => {
     const cacheKey = String(targetClientId);
 
@@ -198,22 +213,32 @@ export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUr
         return awsAssignmentsCache[cacheKey].data;
     }
 
-    // Fetch from API (uses v2 endpoint)
-    const url = getUrl(`/v2/aws_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
-    const response = await fetch(url, {
-        method: 'GET',
-        headers: getHeaders(apiKey)
-    });
+    if (awsFetchInProgress[cacheKey]) return awsFetchInProgress[cacheKey];
 
-    if (!response.ok) return [];
-    const data = await response.json();
-    const assignments = data.aws_account_assignments || [];
+    awsFetchInProgress[cacheKey] = (async () => {
+        try {
+            // Fetch from API (uses v2 endpoint)
+            const url = getUrl(`/v2/aws_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: getHeaders(apiKey)
+            });
 
-    // Store in cache
-    awsAssignmentsCache[cacheKey] = { data: assignments, expiry: Date.now() + AWS_CACHE_TTL };
-    persistAwsCache();
+            if (!response.ok) return [];
+            const data = await response.json();
+            const assignments = data.aws_account_assignments || [];
 
-    return assignments;
+            // Store in cache
+            awsAssignmentsCache[cacheKey] = { data: assignments, expiry: Date.now() + AWS_CACHE_TTL };
+            persistAwsCache();
+
+            return assignments;
+        } finally {
+            delete awsFetchInProgress[cacheKey];
+        }
+    })();
+
+    return awsFetchInProgress[cacheKey];
 };
 
 // Price Book Cache System with persistence (similar to customer cache)
@@ -250,14 +275,41 @@ export const setPriceBookCache = (books) => {
 };
 export const isPriceBookCacheValid = () => cachedPriceBooks.length > 0 && Date.now() < priceBookCacheExpiry;
 
+let pbFetchInProgress = null;
+let pbaFetchInProgress = null;
+
 export const fetchAllPriceBooks = async (apiKey, proxyUrl = '', forceRefresh = false) => {
     if (!forceRefresh && isPriceBookCacheValid()) {
         return cachedPriceBooks;
     }
 
-    const books = await fetchAllPages('/price_books', 'price_books', apiKey, proxyUrl);
-    setPriceBookCache(books);
-    return books;
+    if (pbFetchInProgress) return pbFetchInProgress;
+
+    pbFetchInProgress = (async () => {
+        try {
+            const books = await fetchAllPages('/price_books', 'price_books', apiKey, proxyUrl);
+            setPriceBookCache(books);
+            return books;
+        } finally {
+            pbFetchInProgress = null;
+        }
+    })();
+
+    return pbFetchInProgress;
+};
+
+export const fetchAllPriceBookAssignments = async (apiKey, proxyUrl = '') => {
+    if (pbaFetchInProgress) return pbaFetchInProgress;
+
+    pbaFetchInProgress = (async () => {
+        try {
+            return await fetchAllPages('/price_book_assignments', 'price_book_assignments', apiKey, proxyUrl);
+        } finally {
+            pbaFetchInProgress = null;
+        }
+    })();
+
+    return pbaFetchInProgress;
 };
 
 export const getPriceBooks = async (apiKey, proxyUrl = '') => {
@@ -281,6 +333,18 @@ export const getPriceBookSpecification = async (id, apiKey, proxyUrl = '') => {
     await checkResponse(response, 'Fetch price book specification');
     const data = await response.json();
     return data.specification;
+};
+
+export const fetchPriceBookById = async (id, apiKey, proxyUrl = '') => {
+    const url = getUrl(`/price_books/${id}`, proxyUrl);
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(apiKey)
+    });
+    
+    await checkResponse(response, 'Fetch price book details');
+    const data = await response.json();
+    return data.price_book || data;
 };
 
 export const createPriceBook = async (bookName, xml, apiKey, proxyUrl = '') => {
@@ -336,6 +400,7 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
     };
 
     let assignmentId;
+    let wasNewlyCreated = false;
 
     // Attempt the Customer assignment safely. If they are already assigned, parse and catch.
     const response = await fetch(assignUrl, {
@@ -344,9 +409,28 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
         body: JSON.stringify(assignPayload)
     });
 
-    await checkResponse(response, 'Assign price book to customer');
-    const assignData = await response.json();
-    assignmentId = assignData.price_book_assignment ? assignData.price_book_assignment.id : assignData.id;
+    if (response.status === 422) {
+        let body = '';
+        try { body = await response.text(); } catch(_) {}
+        if (body.includes('already exists')) {
+            // Find existing assignment ID via GET
+            const fetchUrl = getUrl(`/price_book_assignments?target_client_api_id=${clientId}`, proxyUrl);
+            const res = await fetch(fetchUrl, { headers: getHeaders(apiKey) });
+            if (res.ok) {
+                const data = await res.json();
+                const list = data.price_book_assignments || [];
+                const match = list.find(a => String(a.price_book_id) === String(pbId));
+                if (match) assignmentId = match.id;
+            }
+            // wasNewlyCreated remains false — we found a pre-existing assignment
+        }
+        if (!assignmentId) throw new Error(`Assign price book to customer: HTTP 422 — ${body}`);
+    } else {
+        await checkResponse(response, 'Assign price book to customer');
+        const assignData = await response.json();
+        assignmentId = assignData.price_book_assignment ? assignData.price_book_assignment.id : (assignData.id);
+        wasNewlyCreated = true;
+    }
 
     // 2. Map explicitly required payer accounts by string parsing comma separations
     if (assignmentId) {
@@ -362,9 +446,18 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
             body: JSON.stringify(accPayload)
         });
 
-        await checkResponse(accResponse, 'Map payer account subsets');
-        const accData = await accResponse.json();
-        return { assignmentId, ...accData };
+        try {
+            await checkResponse(accResponse, 'Map payer account subsets');
+            const accData = await accResponse.json();
+            return { assignmentId, ...accData };
+        } catch (err) {
+            // Only delete the base assignment if we freshly created it.
+            // If it already existed (resolved from 422 "already exists"), leave it intact.
+            if (wasNewlyCreated) {
+                await deleteBaseAssignment(assignmentId, apiKey, proxyUrl).catch(() => {});
+            }
+            throw err;
+        }
     }
     return { assignmentId };
 };
@@ -373,7 +466,7 @@ export const getAssignedPriceBooks = async (apiKey, proxyUrl = '') => {
     // 1. Fetch BOTH assignment endpoints and pricebooks in parallel
     // Also fetch all customers to prime the cache and get proper names
     const [baseAssignments, accountAssignments, allBooks, allCustomers] = await Promise.all([
-        fetchAllPages('/price_book_assignments', 'price_book_assignments', apiKey, proxyUrl),
+        fetchAllPriceBookAssignments(apiKey, proxyUrl),
         fetchAllPages('/price_book_account_assignments', 'price_book_account_assignments', apiKey, proxyUrl),
         fetchAllPages('/price_books', 'price_books', apiKey, proxyUrl),
         fetchAllCustomers(apiKey, proxyUrl, true) // PRIMES THE CACHE — force refresh to get latest
@@ -547,16 +640,23 @@ export const performDryRun = async (priceBookId, generatedXml, startMonthDate, t
         payload.billing_account_owner_id = "";
     }
 
-    const response = await fetch(url, {
-        method: 'PUT',
-        headers: getHeaders(apiKey),
-        body: JSON.stringify(payload)
-    });
+    try {
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: getHeaders(apiKey),
+            body: JSON.stringify(payload)
+        });
 
-    await checkResponse(response, 'Initiate dry run');
-    const data = await response.json();
-    return { ...data, tempPriceBookId };
+        await checkResponse(response, 'Initiate dry run');
+        const data = await response.json();
+        return { ...data, tempPriceBookId };
+    } catch (err) {
+        // Attach tempPriceBookId to the error so the caller can log/clean it up
+        err.tempPriceBookId = tempPriceBookId;
+        throw err;
+    }
 };
+
 
 export const deletePriceBook = async (id, apiKey, proxyUrl = '') => {
     const url = getUrl(`/price_books/${id}`, proxyUrl);

@@ -562,12 +562,6 @@ const ImportSection = () => {
                                         placeholder="Paste your JSON or XML content here..."
                                         style={{
                                             flex: 1,
-                                            width: '100%',
-                                            padding: '16px',
-                                            background: 'var(--bg-deep)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: '12px',
-                                            color: 'var(--text-main)',
                                             fontFamily: 'monospace',
                                             resize: 'vertical',
                                             marginBottom: '16px',
@@ -649,13 +643,7 @@ const ImportSection = () => {
                                                         style={{
                                                             flex: 1,
                                                             height: '42px',
-                                                            padding: '0 14px',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid var(--border)',
-                                                            background: 'var(--bg-deep)',
-                                                            color: 'var(--text-main)',
-                                                            fontSize: '0.9rem',
-                                                            boxSizing: 'border-box'
+                                                            fontSize: '0.9rem'
                                                         }}
                                                         onKeyDown={(e) => e.key === 'Enter' && handleSingleLookup()}
                                                     />
@@ -861,12 +849,6 @@ const ImportSection = () => {
                                                                     }
                                                                 }}
                                                                 style={{
-                                                                    width: '100%',
-                                                                    padding: '10px 14px',
-                                                                    borderRadius: '8px',
-                                                                    border: '1px solid var(--border)',
-                                                                    background: 'var(--bg-deep)',
-                                                                    color: 'var(--text-main)',
                                                                     fontSize: '0.9rem'
                                                                 }}
                                                             >
@@ -894,12 +876,6 @@ const ImportSection = () => {
                                                                     }
                                                                 }}
                                                                 style={{
-                                                                    width: '100%',
-                                                                    padding: '10px 14px',
-                                                                    borderRadius: '8px',
-                                                                    border: '1px solid var(--border)',
-                                                                    background: 'var(--bg-deep)',
-                                                                    color: 'var(--text-main)',
                                                                     fontSize: '0.9rem'
                                                                 }}
                                                             >
@@ -936,12 +912,6 @@ const ImportSection = () => {
                                                                     }
                                                                 }}
                                                                 style={{
-                                                                    width: '100%',
-                                                                    padding: '10px 14px',
-                                                                    borderRadius: '8px',
-                                                                    border: '1px solid var(--border)',
-                                                                    background: 'var(--bg-deep)',
-                                                                    color: 'var(--text-main)',
                                                                     fontSize: '0.9rem'
                                                                 }}
                                                             >

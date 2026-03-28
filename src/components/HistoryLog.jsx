@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getHistoryOptions, clearHistory, setHistoryOptions } from '../utils/history/historyLogger';
+import { getHistoryOptions, clearHistory, setHistoryOptions, logAssignmentUpdate, logHistoryEvent } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
-import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight, FaFileExport, FaFileImport } from 'react-icons/fa';
+import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight, FaFileExport, FaFileImport, FaUndo, FaSyncAlt, FaTimesCircle } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { createPortal } from 'react-dom';
 import { diffLines, diffChars } from 'diff';
+import { createPriceBook, updatePriceBook, assignPriceBook } from '../utils/chApi';
 
 // ─── Diff Viewer: LCS alignment + intra-line char diff + sync scroll ───────────
 const DiffViewer = ({ before, after, title, onClose }) => {
@@ -27,7 +28,16 @@ const DiffViewer = ({ before, after, title, onClose }) => {
     // LCS-aligned rows via diffLines
     const alignedRows = useMemo(() => {
         if (!before && !after) return [];
-        const changes = diffLines(before || '', after || '', { newlineIsToken: false });
+
+        // Normalize XML: strip trailing zeros after decimal in numeric attribute values
+        // e.g.  billingAdjustment="0.0000009800"  →  billingAdjustment="0.00000098"
+        //        billingAdjustment="2.0"           →  billingAdjustment="2"
+        // Uses pure string regex (no parseFloat) to avoid scientific notation for very small numbers
+        const normalizeXml = (xml) => (xml || '')
+            .replace(/="(\d+\.\d*[1-9])0+"/g, (_, num) => `="${num}"`)  // strip trailing zeros after last significant digit
+            .replace(/="(\d+)\.0+"/g, (_, num) => `="${num}"`);          // strip pure .0 / .00 decimals (e.g. 2.0 → 2)
+
+        const changes = diffLines(normalizeXml(before), normalizeXml(after), { newlineIsToken: false });
         const rows = [];
         const rBuf = [], aBuf = [];
         const flush = () => {
@@ -146,7 +156,7 @@ const DiffViewer = ({ before, after, title, onClose }) => {
                         </button>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '24px', padding: '10px 20px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-secondary)', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '24px', padding: '10px 20px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-secondary)', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 12, height: 12, background: 'rgba(239,68,68,0.4)', border: '1px solid #ef4444', borderRadius: 2, display: 'inline-block' }} /> Removed</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 12, height: 12, background: 'rgba(16,185,129,0.4)', border: '1px solid #10b981', borderRadius: 2, display: 'inline-block' }} /> Added</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: 12, height: 12, background: 'transparent', border: '1px solid var(--border)', borderRadius: 2, display: 'inline-block' }} /> Unchanged</span>
@@ -189,6 +199,220 @@ const HistoryLog = () => {
     const [pageSize, setPageSize] = useState(20);
     const confirm = useConfirm();
     const fileInputRef = useRef(null);
+
+    // Progress Overlay state
+    const [actionProgress, setActionProgress] = useState({ active: false, title: '', status: '', logs: [], done: false, error: false });
+
+    // ── Rollback handler ─────────────────────────────────────────────────────
+    const handleRollback = async (item) => {
+        const d = item.details || {};
+        const apiKey = localStorage.getItem('ch_api_key');
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+
+        if (!apiKey) {
+            await confirm({
+                title: 'API Key Required',
+                message: 'No CloudHealth API key found. Please configure API access in Settings.',
+                variant: 'danger', confirmLabel: 'OK', hideCancel: true
+            });
+            return;
+        }
+
+        // ── UPDATE rollback: push beforeXml back ──────────────────────────────
+        if (item.type === 'PRICEBOOK_UPDATE') {
+            if (!d.beforeXml) {
+                await confirm({ title: 'Cannot Rollback', message: 'No previous specification was captured for this entry.', variant: 'danger', confirmLabel: 'OK', hideCancel: true });
+                return;
+            }
+            const ok = await confirm({
+                title: 'Rollback Pricebook Update',
+                message: `This will revert "${d.bookName}" (ID: ${d.bookId}) to its specification BEFORE this update.\n\nThis action CANNOT be undone.`,
+                variant: 'warning', confirmLabel: 'Yes, Rollback', cancelLabel: 'Cancel'
+            });
+            if (!ok) return;
+
+            const bookName = d.bookName || 'Pricebook';
+            setActionProgress({ active: true, title: `Rolling back "${bookName}"`, status: 'Initializing...', logs: [`Starting rollback for Pricebook ID: ${d.bookId}`], done: false, error: false });
+
+            try {
+                setActionProgress(prev => ({ ...prev, status: 'Re-pushing previous specification...', logs: [...prev.logs, 'Connecting to CloudHealth API...'] }));
+                await updatePriceBook(d.bookId, d.beforeXml, apiKey, proxyUrl);
+                setActionProgress(prev => ({ ...prev, status: 'Logging action to history...', logs: [...prev.logs, '✅ API Update Successful'] }));
+                logHistoryEvent({
+                    type: 'PRICEBOOK_UPDATE',
+                    title: `[Rollback] Reverted "${bookName}" (ID: ${d.bookId}) to its previous specification`,
+                    status: 'SUCCESS',
+                    details: { bookId: d.bookId, bookName: bookName, beforeXml: d.afterXml, afterXml: d.beforeXml }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Rollback Successful', status: `"${bookName}" has been reverted to its previous specification.`, done: true }));
+            } catch (err) {
+                logHistoryEvent({
+                    type: 'PRICEBOOK_UPDATE',
+                    title: `[Rollback Failed] Could not revert "${bookName}" (ID: ${d.bookId})`,
+                    status: 'ERROR', errorMessage: err.message,
+                    details: { bookId: d.bookId, bookName: bookName, beforeXml: d.afterXml, afterXml: d.beforeXml }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Rollback Failed', status: err.message, done: true, error: true, logs: [...prev.logs, `❌ Error: ${err.message}`] }));
+            }
+        }
+
+        else if (item.type === 'PRICEBOOK_DELETE') {
+            if (!d.beforeXml) {
+                await confirm({ title: 'Cannot Restore', message: 'No specification was captured before deletion. Cannot restore.', variant: 'danger', confirmLabel: 'OK', hideCancel: true });
+                return;
+            }
+            const bookName = d.bookName || 'Pricebook';
+            const ok = await confirm({
+                title: 'Restore Deleted Pricebook',
+                message: `This will recreate "${bookName}" with its specification from before it was deleted.\n\nA new Pricebook ID will be assigned by CloudHealth.`,
+                variant: 'warning', confirmLabel: 'Restore Pricebook', cancelLabel: 'Cancel'
+            });
+            if (!ok) return;
+
+            setActionProgress({ active: true, title: `Restoring "${bookName}"`, status: 'Recreating pricebook...', logs: [`Connecting to CloudHealth to recreate "${bookName}"...`], done: false, error: false });
+            try {
+                const result = await createPriceBook(bookName, d.beforeXml, apiKey, proxyUrl);
+                const newId = result?.id || result?.price_book?.id || result?.data?.id || '(new)';
+                setActionProgress(prev => ({ ...prev, status: `Created successfully (New ID: ${newId}). Logging history...`, logs: [...prev.logs, `✅ Created with ID: ${newId}`] }));
+                logHistoryEvent({
+                    type: 'PRICEBOOK_CREATE',
+                    title: `[Restore] Recreated deleted pricebook "${bookName}" with new ID: ${newId}`,
+                    status: 'SUCCESS',
+                    details: { bookId: newId, bookName: bookName, beforeXml: null, afterXml: d.beforeXml }
+                });
+                setHistory(getHistoryOptions());
+
+                // Offer to reassign to last known customer
+                if (d.customerId || d.customerName) {
+                    setActionProgress(prev => ({ ...prev, title: 'Restore Successful', status: `"${bookName}" has been recreated with ID: ${newId}.`, done: true }));
+                    const reassign = await confirm({
+                        title: 'Reassign Pricebook?',
+                        message: `The pricebook "${bookName}" was restored with new ID: ${newId}.\n\nWould you like to reassign it back to "${d.customerName || d.customerId}"?`,
+                        confirmLabel: 'Reassign Now', cancelLabel: 'Done'
+                    });
+                    if (reassign) {
+                        // Recurse into the reassignment logic
+                        handleRollback({
+                            type: 'CUSTOMER_UNASSIGN',
+                            details: {
+                                bookId: newId, bookName: bookName,
+                                customerId: d.customerId, customerName: d.customerName,
+                                payerAccountId: d.payerAccountId || 'ALL'
+                            }
+                        });
+                    }
+                } else {
+                    setActionProgress(prev => ({ ...prev, title: 'Restore Successful', status: `"${bookName}" has been recreated with ID: ${newId}.`, done: true }));
+                }
+            } catch (err) {
+                logHistoryEvent({
+                    type: 'PRICEBOOK_CREATE',
+                    title: `[Restore Failed] Could not recreate pricebook "${bookName}"`,
+                    status: 'ERROR', errorMessage: err.message,
+                    details: { bookId: null, bookName: bookName, beforeXml: null, afterXml: d.beforeXml }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Restore Failed', status: err.message, done: true, error: true, logs: [...prev.logs, `❌ Error: ${err.message}`] }));
+            }
+        }
+
+        // ── CREATE rollback: warn strongly then delete ────────────────────────
+        else if (item.type === 'PRICEBOOK_CREATE') {
+            const step1 = await confirm({
+                title: '⚠️ Undo Pricebook Creation',
+                message: `This will permanently DELETE "${d.bookName}" (ID: ${d.bookId}) from CloudHealth.\n\nIf any customers are currently assigned to it, they will lose access to this pricebook.`,
+                variant: 'danger', confirmLabel: 'Delete Pricebook', cancelLabel: 'Cancel'
+            });
+            if (!step1) return;
+            const step2 = await confirm({
+                title: 'Final Confirmation',
+                message: `Type-check: You are about to permanently delete "${d.bookName}". Are you absolutely sure?`,
+                variant: 'danger', confirmLabel: 'Yes, Delete It', cancelLabel: 'Cancel'
+            });
+            if (!step2) return;
+
+            setActionProgress({ active: true, title: `Undoing creation of "${d.bookName}"`, status: 'Deleting pricebook...', logs: [`Connecting to CloudHealth to delete ID: ${d.bookId}...`], done: false, error: false });
+            try {
+                const { deletePriceBook } = await import('../utils/chApi');
+                await deletePriceBook(d.bookId, apiKey, proxyUrl);
+                setActionProgress(prev => ({ ...prev, status: 'Logging action to history...', logs: [...prev.logs, '✅ Successfully deleted from CloudHealth'] }));
+                logHistoryEvent({
+                    type: 'PRICEBOOK_DELETE',
+                    title: `[Undo] Deleted pricebook "${d.bookName}" (ID: ${d.bookId}) — creation was undone`,
+                    status: 'SUCCESS',
+                    details: { bookId: d.bookId, bookName: d.bookName, beforeXml: d.afterXml }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Undo Successful', status: `"${d.bookName}" (ID: ${d.bookId}) has been permanently deleted.`, done: true }));
+            } catch (err) {
+                logHistoryEvent({
+                    type: 'PRICEBOOK_DELETE',
+                    title: `[Undo Failed] Could not delete pricebook "${d.bookName}" (ID: ${d.bookId})`,
+                    status: 'ERROR', errorMessage: err.message,
+                    details: { bookId: d.bookId, bookName: d.bookName, beforeXml: d.afterXml }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Undo Failed', status: err.message, done: true, error: true, logs: [...prev.logs, `❌ Error: ${err.message}`] }));
+            }
+        }
+
+        // ── CUSTOMER_UNASSIGN / ASSIGNMENT_DELETE rollback: re-assign ─────────
+        else if (item.type === 'CUSTOMER_UNASSIGN' || item.type === 'ASSIGNMENT_DELETE') {
+            if (!d.bookId || !d.customerId) {
+                await confirm({ title: 'Cannot Reassign', message: 'Not enough information was captured in this log entry to perform a reassignment.', variant: 'danger', confirmLabel: 'OK', hideCancel: true });
+                return;
+            }
+            const ok = await confirm({
+                title: 'Reassign Pricebook',
+                message: `This will reassign "${d.bookName}" (ID: ${d.bookId}) back to "${d.customerName || d.customerId}".\n\nPayer Account: ${d.payerAccountId || 'ALL'}`,
+                variant: 'warning',
+                confirmLabel: 'Yes, Reassign',
+                cancelLabel: 'Cancel'
+            });
+            if (!ok) return;
+
+            setActionProgress({ active: true, title: `Reassigning "${d.bookName}"`, status: 'Creating assignment...', logs: [`Connecting to CloudHealth to link "${d.bookName}" to "${d.customerName || d.customerId}"...`], done: false, error: false });
+            try {
+                const result = await assignPriceBook(
+                    d.bookId,
+                    d.customerId,
+                    d.payerAccountId || 'ALL',
+                    apiKey,
+                    proxyUrl
+                );
+                const newAssignmentId = result?.assignmentId || result?.id || result?.price_book_assignment?.id || '(new)';
+                setActionProgress(prev => ({ ...prev, status: 'Logging action to history...', logs: [...prev.logs, `✅ Assigned successfully (ID: ${newAssignmentId})`] }));
+                logHistoryEvent({
+                    type: 'ASSIGNMENT_CREATE',
+                    title: `[Reassign] Re-linked "${d.bookName}" to "${d.customerName || d.customerId}" (Assignment ID: ${newAssignmentId})`,
+                    status: 'SUCCESS',
+                    details: {
+                        bookId: d.bookId, bookName: d.bookName,
+                        customerId: d.customerId, customerName: d.customerName,
+                        assignmentId: newAssignmentId, payerAccountId: d.payerAccountId,
+                        beforeAssignment: null, afterAssignment: d.payerAccountId
+                    }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Reassignment Successful', status: `"${d.bookName}" has been reassigned to "${d.customerName || d.customerId}".`, done: true }));
+            } catch (err) {
+                logHistoryEvent({
+                    type: 'ASSIGNMENT_CREATE',
+                    title: `[Reassign Failed] Could not re-link "${d.bookName}" to "${d.customerName || d.customerId}"`,
+                    status: 'ERROR', errorMessage: err.message,
+                    details: {
+                        bookId: d.bookId, bookName: d.bookName,
+                        customerId: d.customerId, customerName: d.customerName,
+                        assignmentId: null, payerAccountId: d.payerAccountId
+                    }
+                });
+                setHistory(getHistoryOptions());
+                setActionProgress(prev => ({ ...prev, title: 'Reassignment Failed', status: err.message, done: true, error: true, logs: [...prev.logs, `❌ Error: ${err.message}`] }));
+            }
+        }
+    };
 
     useEffect(() => {
         const loadHistory = () => setHistory(getHistoryOptions());
@@ -328,42 +552,76 @@ const HistoryLog = () => {
 
                 {/* ── Pricebook Create / Update ── */}
                 {(item.type === 'PRICEBOOK_CREATE' || item.type === 'PRICEBOOK_UPDATE') && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            {item.type === 'PRICEBOOK_CREATE' ? 'Created' : 'Updated specification for'} <strong>{d.bookName}</strong>&nbsp;(ID: {d.bookId})
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'nowrap', gap: '16px' }}>
+                        <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                            {item.type === 'PRICEBOOK_CREATE' ? 'Created' : 'Updated specification for'} <strong>{d.bookName || 'Pricebook'}</strong> <br />
+                            ({d.bookId || '—'})
                         </div>
-                        {(d.beforeXml || d.afterXml) && (
-                            <button onClick={() => setViewingDiff({
-                                before: d.beforeXml,
-                                after: d.afterXml,
-                                title: item.type === 'PRICEBOOK_CREATE' ? `Pricebook Spec — ${d.bookName}` : `Spec Diff — ${d.bookName}`
-                            })}
-                                style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
-                                {item.type === 'PRICEBOOK_CREATE' ? 'View Spec' : 'View Spec Diff'}
-                            </button>
-                        )}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flexShrink: 0, marginLeft: 'auto' }}>
+                            {(d.beforeXml || d.afterXml) && (
+                                <button onClick={() => setViewingDiff({
+                                    before: d.beforeXml,
+                                    after: d.afterXml,
+                                    title: item.type === 'PRICEBOOK_CREATE' ? `Pricebook Spec — ${d.bookName}` : `Spec Diff — ${d.bookName}`
+                                })}
+                                    style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+                                    {item.type === 'PRICEBOOK_CREATE' ? 'View Spec' : 'View Spec Diff'}
+                                </button>
+                            )}
+                            {item.status === 'SUCCESS' && (
+                                <Tooltip
+                                    title={item.type === 'PRICEBOOK_CREATE' ? 'Undo Creation' : 'Rollback to Previous'}
+                                    content={item.type === 'PRICEBOOK_CREATE' ? 'Permanently delete this pricebook (with double confirmation)' : 'Re-push the specification from before this update'}
+                                    variant="glass"
+                                >
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleRollback(item); }}
+                                        style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,158,11,0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(245,158,11,0.1)'}
+                                    >
+                                        <FaUndo size={10} /> {item.type === 'PRICEBOOK_CREATE' ? 'Undo' : 'Rollback'}
+                                    </button>
+                                </Tooltip>
+                            )}
+                        </div>
                     </div>
                 )}
 
                 {/* ── Pricebook Delete ── */}
                 {item.type === 'PRICEBOOK_DELETE' && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            Permanently deleted <strong>{d.bookName}</strong>&nbsp;(ID: {d.bookId}) from tenant.
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'nowrap', gap: '16px' }}>
+                        <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                            Permanently deleted <strong>{d.bookName || 'Pricebook'}</strong> <br />
+                            ({d.bookId || '—'})
                         </div>
-                        {d.beforeXml && (
-                            <button onClick={() => setViewingDiff({ before: d.beforeXml, after: null, title: `Deleted Spec — ${d.bookName}` })}
-                                style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
-                                View Deleted Spec
-                            </button>
-                        )}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flexShrink: 0, marginLeft: 'auto' }}>
+                            {d.beforeXml && (
+                                <button onClick={() => setViewingDiff({ before: d.beforeXml, after: null, title: `Deleted Spec — ${d.bookName}` })}
+                                    style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+                                    View Deleted Spec
+                                </button>
+                            )}
+                            {item.status === 'SUCCESS' && d.beforeXml && (
+                                <Tooltip title="Restore Pricebook" content="Recreate this pricebook with its original specification" variant="glass">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleRollback(item); }}
+                                        style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.4)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.1)'}
+                                    >
+                                        <FaUndo size={10} /> Restore
+                                    </button>
+                                </Tooltip>
+                            )}
+                        </div>
                     </div>
                 )}
 
                 {/* ── Assignment Create / Update ── */}
                 {(item.type === 'ASSIGNMENT_CREATE' || item.type === 'ASSIGNMENT_UPDATE') && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        <div>Linked <strong>{d.bookName}</strong> to <strong>{d.customerName}</strong></div>
+                        <div>Linked <strong>{d.bookName || 'Pricebook'}</strong> to <strong>{d.customerName || 'Customer'}</strong></div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Price Book ID</span>
                             <span style={{ fontWeight: 600 }}>{d.bookId || '—'}</span>
@@ -389,7 +647,23 @@ const HistoryLog = () => {
 
                 {item.type === 'ASSIGNMENT_DELETE' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        <div>Removed assignment for <strong>{d.customerName}</strong> from pricebook <strong>{d.bookName}</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>Removed assignment for <strong>{d.customerName}</strong> from pricebook <strong>{d.bookName}</strong></div>
+                            {item.status === 'SUCCESS' && d.bookId && d.customerId && (
+                                <div style={{ marginLeft: 'auto' }}>
+                                    <Tooltip title="Reassign Pricebook" content="Re-create the assignment between this pricebook and customer" variant="glass">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleRollback(item); }}
+                                            style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.4)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.2)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.1)'}
+                                        >
+                                            <FaUndo size={10} /> Reassign
+                                        </button>
+                                    </Tooltip>
+                                </div>
+                            )}
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Price Book ID</span>
                             <span style={{ fontWeight: 600 }}>{d.bookId || '—'}</span>
@@ -403,7 +677,23 @@ const HistoryLog = () => {
 
                 {item.type === 'CUSTOMER_UNASSIGN' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        <div>Removed link between <strong>{d.bookName}</strong> and <strong>{d.customerName}</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>Removed link between <strong>{d.bookName}</strong> and <strong>{d.customerName}</strong></div>
+                            {item.status === 'SUCCESS' && d.bookId && d.customerId && (
+                                <div style={{ marginLeft: 'auto' }}>
+                                    <Tooltip title="Reassign Pricebook" content="Re-link this pricebook to the customer using the original payer account" variant="glass">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleRollback(item); }}
+                                            style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.4)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.2)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.1)'}
+                                        >
+                                            <FaUndo size={10} /> Reassign
+                                        </button>
+                                    </Tooltip>
+                                </div>
+                            )}
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '20px', rowGap: '6px', alignItems: 'center', background: 'var(--bg-card)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border)' }}>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Price Book ID</span>
                             <span style={{ fontWeight: 600 }}>{d.bookId || '—'}</span>
@@ -429,9 +719,13 @@ const HistoryLog = () => {
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start Month</span>
                             <span style={{ fontWeight: 600 }}>{d.startMonth ? d.startMonth.substring(0, 7) : '—'}</span>
                             <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Temp Pricebook ID</span>
-                            <span style={{ fontWeight: 600, color: d.tempBookId ? 'var(--warning, #f59e0b)' : 'inherit' }}>
+                            <span style={{ fontWeight: 600, color: d.tempBookId ? (d.tempBookDeleted ? 'var(--success)' : 'var(--warning, #f59e0b)') : 'inherit' }}>
                                 {d.tempBookId || '—'}
-                                {d.tempBookId && <span style={{ marginLeft: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(remember to delete)</span>}
+                                {d.tempBookId && (
+                                    <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 400, color: d.tempBookDeleted ? 'var(--success)' : 'var(--warning, #f59e0b)' }}>
+                                        {d.tempBookDeleted ? '(deleted ✓)' : '(remember to delete)'}
+                                    </span>
+                                )}
                             </span>
                         </div>
                     </div>
@@ -731,6 +1025,43 @@ const HistoryLog = () => {
                     onClose={() => setViewingDiff(null)}
                 />
             )}
+            {/* Action Progress Overlay Modal */}
+            <AnimatePresence>
+                {actionProgress.active && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            style={{ background: 'var(--bg-card)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                        >
+                            <div className={!actionProgress.done ? "spin" : ""} style={{ fontSize: '3rem', color: actionProgress.error ? 'var(--danger)' : (actionProgress.done ? 'var(--success)' : 'var(--primary)'), display: 'flex' }}>
+                                {actionProgress.done ? (actionProgress.error ? <FaTimesCircle /> : <FaCheckCircle />) : <FaSyncAlt />}
+                            </div>
+                            <div style={{ textAlign: 'center', width: '100%' }}>
+                                <h3 style={{ margin: '0 0 8px 0', color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 600 }}>{actionProgress.title}</h3>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.4' }}>{actionProgress.status}</p>
+                            </div>
+                            {actionProgress.logs.length > 0 && (
+                                <div style={{ width: '100%', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', maxHeight: '150px', overflowY: 'auto' }}>
+                                    {actionProgress.logs.map((L, i) => (
+                                        <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontFamily: 'monospace' }}>{L}</div>
+                                    ))}
+                                </div>
+                            )}
+                            {actionProgress.done && (
+                                <button
+                                    onClick={() => setActionProgress({ active: false, title: '', status: '', logs: [], done: false, error: false })}
+                                    style={{ width: '100%', padding: '12px', background: 'var(--bg-deep)', border: '1px solid var(--border)', color: 'var(--text-main)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                    Close
+                                </button>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

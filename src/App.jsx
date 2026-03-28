@@ -93,6 +93,9 @@ const ReleaseNotes = ({ body }) => {
       if (trimmed.startsWith('### ')) return <h4 key={i} style={{ margin: '14px 0 6px 0', fontSize: '0.85rem', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>{renderInline(trimmed.substring(4))}</h4>;
       if (trimmed.startsWith('## ')) return <h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.90rem', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>{renderInline(trimmed.substring(3))}</h3>;
 
+      // Horizontal Rule
+      if (/^---+$/.test(trimmed)) return <hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0', opacity: 0.5 }} />;
+
       // Tables
       if (trimmed.includes('|') && /^[\s\-|:|]+$/.test(trimmed)) return null;
       if (trimmed.includes('|')) {
