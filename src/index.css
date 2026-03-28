@@ -67,6 +67,16 @@
   --input-bg: var(--bg-deep);
   /* Default input background matches deep bg in dark mode */
   --bg-subtle: rgba(0, 0, 0, 0.2);
+
+  /* Semantic state tokens */
+  --warning: #f59e0b;          /* Amber-400 */
+  --info: #38bdf8;             /* Sky-400 */
+  --success-bg: rgba(16, 185, 129, 0.08);
+  --success-border: rgba(16, 185, 129, 0.35);
+  --warning-bg: rgba(245, 158, 11, 0.08);
+  --warning-border: rgba(245, 158, 11, 0.35);
+  --info-bg: rgba(56, 189, 248, 0.08);
+  --info-border: rgba(56, 189, 248, 0.35);
 }
 
 [data-theme="light"] {
@@ -115,6 +125,16 @@
   --hl-tag: #1d4ed8;
   --hl-comment: #64748b;
   --bg-subtle: #cbd5e1;
+
+  /* Semantic state tokens - light mode */
+  --warning: #d97706;          /* Amber-600, more visible on light */
+  --info: #0284c7;             /* Sky-600 */
+  --success-bg: rgba(5, 150, 105, 0.08);
+  --success-border: rgba(5, 150, 105, 0.35);
+  --warning-bg: rgba(217, 119, 6, 0.08);
+  --warning-border: rgba(217, 119, 6, 0.35);
+  --info-bg: rgba(2, 132, 199, 0.08);
+  --info-border: rgba(2, 132, 199, 0.35);
 }
 
 [data-theme="light"] h1 {
@@ -975,6 +995,50 @@ textarea:focus {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* Action Buttons (Large) */
+.action-button {
+  width: 100%;
+  padding: 18px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  filter: brightness(1.1);
+}
+
+.action-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.action-button.dry-run {
+  background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.action-button.dry-run:hover:not(:disabled) {
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
 }
 
 /* Rule Groups */

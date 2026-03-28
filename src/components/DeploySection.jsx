@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
-import { createPriceBook, updatePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, fetchAllPriceBooks, getAssignedPriceBooks, fetchAwsAccountAssignments, clearAwsCache, ApiAuthError } from '../utils/chApi';
+import { createPriceBook, updatePriceBook, deletePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, fetchAllPriceBooks, fetchPriceBookById, fetchAllPriceBookAssignments, fetchAwsAccountAssignments, clearAwsCache, ApiAuthError } from '../utils/chApi';
 import ToggleSwitch from './ToggleSwitch';
 import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate, logDryRun } from '../utils/history/historyLogger';
-import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt } from 'react-icons/fa';
+import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -27,7 +27,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     const [dryRunPayerOptions, setDryRunPayerOptions] = useState([]);
     const [isLoadingDryRunPayers, setIsLoadingDryRunPayers] = useState(false);
 
-    // Fetch customers
+    // Fetch customers (standard list for suggestions)
     useEffect(() => {
         let mounted = true;
         const loadCustomers = async () => {
@@ -48,7 +48,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         return () => { mounted = false; };
     }, []);
 
-    // Fetch pricebooks + their assignments
+    // Fetch pricebooks (lightweight list for suggestions)
     useEffect(() => {
         let mounted = true;
         const loadPriceBooks = async () => {
@@ -57,16 +57,17 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
             setIsLoadingPriceBooks(true);
             try {
                 const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                // We only fetch the base books and assignments (IDs), no heavy customer expansion here
                 const [books, assignments] = await Promise.all([
                     fetchAllPriceBooks(apiKey, proxyUrl),
-                    getAssignedPriceBooks(apiKey, proxyUrl).catch(() => [])
+                    fetchAllPriceBookAssignments(apiKey, proxyUrl).catch(() => [])
                 ]);
                 if (mounted) {
                     setPriceBookOptions(books || []);
                     setPriceBookAssignments(assignments || []);
                 }
             } catch (e) {
-                console.warn('Failed to fetch pricebooks', e);
+                console.warn('Failed to fetch initial pricebook view', e);
             } finally {
                 if (mounted) setIsLoadingPriceBooks(false);
             }
@@ -74,6 +75,50 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         loadPriceBooks();
         return () => { mounted = false; };
     }, []);
+
+    // Lazy-fetch for manually entered Price Book metadata
+    const [inferredPriceBook, setInferredPriceBook] = useState(null); // { id, name }
+    const [isFetchingInfo, setIsFetchingInfo] = useState(false);
+
+    // Debounced ID Lookup for Price Book Name when typed manually
+    useEffect(() => {
+        if (!priceBookId || priceBookId.length < 8) {
+            setInferredPriceBook(null);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            // Already known?
+            if (priceBookOptions.some(pb => String(pb.id) === String(priceBookId))) return;
+
+            const apiKey = localStorage.getItem('ch_api_key');
+            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+            if (!apiKey) return;
+
+            setIsFetchingInfo(true);
+            try {
+                const pb = await fetchPriceBookById(priceBookId, apiKey, proxyUrl);
+                setInferredPriceBook({ id: priceBookId, name: pb.book_name || pb.name });
+            } catch (e) {
+                // Silent fail for typo/non-existent IDs
+                setInferredPriceBook(null);
+            } finally {
+                setIsFetchingInfo(false);
+            }
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [priceBookId, priceBookOptions]);
+
+    const findPriceBookMatch = (id) => {
+        if (!id) return null;
+        const local = priceBookOptions.find(pb => String(pb.id) === String(id));
+        if (local) return { id: local.id, book_name: local.book_name };
+        if (inferredPriceBook && String(inferredPriceBook.id) === String(id)) return { id: inferredPriceBook.id, book_name: inferredPriceBook.name };
+        return null;
+    };
+
+    const selectedPriceBook = findPriceBookMatch(priceBookId);
 
     // Dry Run Helpers
     const getMonthOptions = () => {
@@ -127,28 +172,103 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     };
 
     // Fetch payer options when Assign-section customer ID changes
+    const prevAssignCustomer = useRef(customerId);
     useEffect(() => {
+        if (prevAssignCustomer.current !== customerId) {
+            setBillingAccountOwnerId('');
+            prevAssignCustomer.current = customerId;
+        }
         loadPayerOptions(customerId, setAssignPayerOptions, setIsLoadingAssignPayers);
     }, [customerId, customerOptions]);
 
-    // Fetch payer options when Dry Run customer ID changes
     useEffect(() => {
+        if (assignPayerOptions.length > 0 && !billingAccountOwnerId) {
+            setBillingAccountOwnerId(assignPayerOptions[0]);
+        }
+    }, [assignPayerOptions]);
+
+    // Fetch payer options when Dry Run customer ID changes
+    const prevDryRunCustomer = useRef(dryRunCustomerId);
+    useEffect(() => {
+        if (prevDryRunCustomer.current !== dryRunCustomerId) {
+            setDryRunPayerId('');
+            prevDryRunCustomer.current = dryRunCustomerId;
+        }
         loadPayerOptions(dryRunCustomerId, setDryRunPayerOptions, setIsLoadingDryRunPayers);
     }, [dryRunCustomerId, customerOptions]);
 
-    // Auto-generate incremented version name for "Create New" on mount or bookName change
+    useEffect(() => {
+        if (dryRunPayerOptions.length > 0 && !dryRunPayerId) {
+            setDryRunPayerId(dryRunPayerOptions[0]);
+        }
+    }, [dryRunPayerOptions]);
+
+
+    // Smart auto-name: fetch fresh list, use base name as-is if free, else bump highest existing version
     useEffect(() => {
         const currentName = state.priceBook.bookName || 'New Pricebook';
-        const match = currentName.match(/_v(\d+)$/);
 
-        let nextName;
-        if (match) {
-            const nextNum = parseInt(match[1], 10) + 1;
-            nextName = currentName.replace(/_v\d+$/, `_v${nextNum}`);
-        } else {
-            nextName = `${currentName}_v2`;
+        // Strip any existing version suffix (space/_/- followed by v<number>)
+        const versionPattern = /[\s_-]v(\d+)$/i;
+        const baseName = currentName.replace(versionPattern, '').trim();
+
+        const apiKey = localStorage.getItem('ch_api_key');
+
+        if (!apiKey) {
+            // No API key yet — just use the base name
+            setNewPricebookName(baseName);
+            return;
         }
-        setNewPricebookName(nextName);
+
+        let cancelled = false;
+        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+
+        (async () => {
+            let freshBooks = priceBookOptions; // start with cached
+            try {
+                // Force-refresh to check against truly latest list
+                const fetched = await fetchAllPriceBooks(apiKey, proxyUrl, true);
+                if (!cancelled) {
+                    freshBooks = fetched || [];
+                    setPriceBookOptions(freshBooks);
+                }
+            } catch (e) {
+                console.warn('Could not refresh pricebook list for name check', e);
+            }
+
+            if (cancelled) return;
+
+            // Check if base name (no version) already exists
+            const exactMatch = freshBooks.some(
+                pb => pb.book_name?.toLowerCase() === baseName.toLowerCase()
+            );
+
+            if (!exactMatch) {
+                setNewPricebookName(baseName);
+                return;
+            }
+
+            // Base name taken — find highest existing versioned name
+            const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const versionRegex = new RegExp(`^${escapedBase}[\\s_-]v(\\d+)$`, 'i');
+            let maxVersion = 1;
+            freshBooks.forEach(pb => {
+                const m = pb.book_name?.match(versionRegex);
+                if (m) maxVersion = Math.max(maxVersion, parseInt(m[1], 10));
+            });
+
+            // Preserve separator style from existing versioned books (default: space)
+            const existingSample = freshBooks.find(pb => versionRegex.test(pb.book_name));
+            let sep = ' ';
+            if (existingSample) {
+                const afterBase = existingSample.book_name.slice(baseName.length, -(String(maxVersion).length + 1));
+                sep = afterBase || ' ';
+            }
+
+            setNewPricebookName(`${baseName}${sep}v${maxVersion + 1}`);
+        })();
+
+        return () => { cancelled = true; };
     }, [state.priceBook.bookName]);
 
     // Sync state if global context changes (e.g. from Directory loading)
@@ -159,7 +279,6 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
 
     const selectedCustomer = customerOptions && customerOptions.find ? customerOptions.find(c => String(c.id) === String(customerId)) : null;
     const dryRunCustomer = customerOptions && customerOptions.find ? customerOptions.find(c => String(c.id) === String(dryRunCustomerId)) : null;
-    const selectedPriceBook = priceBookOptions && priceBookOptions.find ? priceBookOptions.find(pb => String(pb.id) === String(priceBookId)) : null;
 
     // When navigated from Directory's "Edit Assignment" action, auto-open the assign section
     useEffect(() => {
@@ -207,199 +326,170 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 return `Are you sure you want to CREATE a new Price Book on CloudHealth?\n\nThis will provision a fresh resource on your account.`;
             }
             // For update: show pricebook name and assigned customer from directory data
-            const pbName = selectedPriceBook?.book_name || `Price Book ${priceBookId}`;
-            const pbAssignment = priceBookAssignments.find(a => String(a.id) === String(priceBookId) && a.is_assigned);
+            const pbName = selectedPriceBook?.book_name || state.priceBook.bookName || `Price Book ${priceBookId}`;
+            const pbAssignment = priceBookAssignments.find(a => String(a.id) === String(priceBookId));
             const assignedTo = pbAssignment ? pbAssignment.customer_name : null;
             let msg = `Are you sure you want to OVERWRITE "${pbName}" (ID: ${priceBookId})`;
-            if (assignedTo) {
-                msg += ` assigned to "${assignedTo}"`;
-            }
-            msg += `?\n\nThis is a destructive action that will completely replace existing mapping rules for this pricebook.`;
+            if (assignedTo) msg += ` assigned to "${assignedTo}"?`;
+            else msg += `?`;
             return msg;
         })();
 
-        const isConfirmed = await confirm({
-            title: isDryRun ? 'Confirm Dry Run' : 'Confirm Deployment',
-            message: confirmMsg,
-            variant: isDryRun ? 'info' : (actionType === 'update' ? 'danger' : 'warning'),
-            confirmLabel: isDryRun ? 'Run Simulation' : (actionType === 'update' ? 'Overwrite & Deploy' : 'Create & Deploy'),
-            cancelLabel: 'Review Settings'
-        });
-
-        if (!isConfirmed) {
+        if (!(await confirm(confirmMsg))) {
+            setDeployStatus({ success: false, message: 'Deployment cancelled.', details: [] });
             setIsDeploying(false);
-            setDeployStatus({ success: false, message: 'Deployment canceled by user.', details: [] });
             return;
         }
-        setIsDeploying(true);
-        setDeployStatus(null);
-
-        let deployedBookId = priceBookId;
-        const addLog = (msg) => {
-            setDeployStatus(prev => {
-                const logs = prev?.details || [];
-                return { success: false, inProgress: true, message: 'Deployment in progress...', details: [...logs, msg] };
-            });
-        };
-
-        let pricebookActionDone = false;
-        let assignmentActionDone = false;
 
         try {
+            let deployedBookId = priceBookId;
+            let finalBookName = selectedPriceBook?.book_name || state.priceBook.bookName || `Price Book ${priceBookId}`;
+
             if (isDryRun) {
-                // ... (Dry Run logic)
-                if (actionType === 'update' && !priceBookId) {
-                    throw new Error("Price Book ID is requires to bind the Dry Run environment context.");
+                const custName = dryRunCustomer?.name || `Customer ${dryRunCustomerId}`;
+                const bookName = state.priceBook.bookName || 'Pricebook';
+                let tempBookId = null;
+
+                setDeployStatus(prev => ({ ...prev, message: 'Launching Dry Run Evaluation...', details: ['Connecting to CloudHealth...'] }));
+
+                try {
+                    // Step 1: create temp pricebook
+                    setDeployStatus(prev => ({ ...prev, details: [...prev.details, `🔧 Creating temporary pricebook for evaluation...`] }));
+                    const dryRunRes = await performDryRun(
+                        null,              // priceBookId — null triggers temp book creation
+                        generatedXml,      // XML spec
+                        dryRunStartDate,   // start month date
+                        dryRunCustomerId,  // target client ID
+                        dryRunPayerId,     // payer account
+                        apiKey,
+                        proxyUrl,
+                        false              // useExistingId = false
+                    );
+                    tempBookId = dryRunRes.tempPriceBookId;
+
+                    setDeployStatus(prev => ({
+                        ...prev,
+                        details: [
+                            ...prev.details,
+                            `✅ Temp pricebook created (ID: ${tempBookId})`,
+                            `🚀 Dry run job submitted (Job ID: ${dryRunRes.id || 'N/A'})`
+                        ]
+                    }));
+
+                    // Log success
+                    logDryRun(bookName, dryRunCustomerId, custName, dryRunPayerId, dryRunStartDate, dryRunRes.id || 'N/A', tempBookId, true);
+
+                    setDeployStatus({
+                        success: true,
+                        message: `Dry Run Submitted! (Job ID: ${dryRunRes.id || 'N/A'})`,
+                        details: [
+                            `✅ Temp pricebook created (ID: ${tempBookId})`,
+                            `✅ Dry run queued successfully.`,
+                            `Customer: ${custName} | Month: ${dryRunStartDate.substring(0, 7)}`,
+                            'Results will be available in the CloudHealth platform under "Price Books" → "Dry Run Status".'
+                        ]
+                    });
+                } catch (dryRunErr) {
+                    console.error('Dry Run failed:', dryRunErr);
+
+                    // If the dry_run PUT failed after temp book was created, the ID is on the error
+                    const effectiveTempBookId = tempBookId ?? dryRunErr.tempPriceBookId ?? null;
+
+                    // Try to clean up the temp pricebook
+                    let tempBookDeletedOk = false;
+                    if (effectiveTempBookId) {
+                        try {
+                            await deletePriceBook(effectiveTempBookId, apiKey, proxyUrl);
+                            tempBookDeletedOk = true;
+                        } catch (_) { /* silent cleanup */ }
+                    }
+
+                    // Log the failure — include the temp ID and whether cleanup succeeded
+                    logDryRun(bookName, dryRunCustomerId, custName, dryRunPayerId, dryRunStartDate, 'FAILED', effectiveTempBookId, false, dryRunErr.message, tempBookDeletedOk);
+
+                    const cleanupMsg = effectiveTempBookId
+                        ? (tempBookDeletedOk
+                            ? `Temp pricebook (ID: ${effectiveTempBookId}) was created and deleted.`
+                            : `Temp pricebook (ID: ${effectiveTempBookId}) was created — manual deletion may be required.`)
+                        : 'Temp pricebook was not created.';
+
+                    setDeployStatus({
+                        success: false,
+                        message: `Dry Run Failed: ${dryRunErr.message}`,
+                        details: [
+                            `❌ ${dryRunErr.message}`,
+                            cleanupMsg
+                        ]
+                    });
                 }
-                if (actionType === 'create' && !customerId) {
-                    throw new Error("Customer API ID is required for running a Dry Run on an unprovisioned Pricebook.");
-                }
-
-                addLog(`Initiating Dry Run Job starting from: ${dryRunStartDate}`);
-
-                const safeCustomerId = String(dryRunCustomerId ?? '');
-                const safePayerId = String(dryRunPayerId ?? '');
-
-                if (!safeCustomerId || safeCustomerId.trim() === '') {
-                    throw new Error("Client API ID is required for running a Dry Run Evaluation.");
-                }
-
-                if (!safePayerId || safePayerId.trim() === 'ALL' || safePayerId.trim() === '') {
-                    throw new Error("A specific Payer Account ID is explicitly required to run a Dry Run Evaluation. Please provide a valid Payer ID instead of 'ALL'.");
-                }
-
-                const dryRunResponse = await performDryRun(
-                    actionType === 'update' ? priceBookId : null,
-                    generatedXml,
-                    dryRunStartDate,
-                    String(dryRunCustomerId),
-                    String(dryRunPayerId),
-                    apiKey,
-                    proxyUrl
-                );
-
-                addLog(`✅ Dry Run Queued successfully.`);
-
-                // Log to Action History
-                logDryRun(
-                    state.priceBook.bookName,
-                    String(dryRunCustomerId),
-                    dryRunCustomer?.name || String(dryRunCustomerId),
-                    String(dryRunPayerId),
-                    dryRunStartDate,
-                    dryRunResponse?.id || null,
-                    dryRunResponse?.tempPriceBookId || null,
-                    true
-                );
-
-                setDeployStatus(prev => ({ success: true, inProgress: false, message: 'Dry Run Submitted successfully!', details: prev.details }));
-                setIsDeploying(false);
                 return;
             }
 
+
             if (actionType === 'create') {
-                const safeBookName = newPricebookName || 'New Pricebook';
-                addLog(`Creating new pricebook: ${safeBookName}...`);
-                const response = await createPriceBook(safeBookName, generatedXml, apiKey, proxyUrl);
-                deployedBookId = response.price_book ? response.price_book.id : response.id;
-                addLog(`✅ Created successfully. New Price Book: ${safeBookName} (ID: ${deployedBookId})`);
-
-                // Update local Context API structure
-                dispatch({ type: 'UPDATE_METADATA', payload: { field: 'cxAPIId', value: deployedBookId.toString() } });
-                setPriceBookId(deployedBookId.toString());
-
-                logPricebookCreate(deployedBookId, safeBookName, generatedXml, true);
-                pricebookActionDone = true;
-
+                setDeployStatus(prev => ({ ...prev, message: 'Creating new Price Book...', details: ['Sending XML payload...'] }));
+                const createRes = await createPriceBook(newPricebookName, generatedXml, apiKey, proxyUrl);
+                deployedBookId = createRes?.price_book?.id || createRes?.id;
+                finalBookName = newPricebookName;
+                setDeployStatus(prev => ({ ...prev, details: [...(prev?.details || []), `✅ Created Price Book (ID: ${deployedBookId})`] }));
+                
+                // Log pricebook creation
+                logPricebookCreate(deployedBookId, newPricebookName, generatedXml);
+                
+                // If auto-assignment is requested
+                if (assignCustomer) {
+                    setDeployStatus(prev => ({ ...prev, message: 'Assigning to customer...', details: [...(prev?.details || []), `Mapping to Client ${customerId}...`] }));
+                    const assignRes = await assignPriceBook(deployedBookId, customerId, billingAccountOwnerId, apiKey, proxyUrl);
+                    setDeployStatus(prev => ({ ...prev, details: [...(prev?.details || []), `✅ Assigned to Customer (Assignment ID: ${assignRes.assignmentId})`] }));
+                    
+                    // Log assignment
+                    const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name || (String(state.priceBook.customerApiId) === String(customerId) && state.priceBook.customerName ? state.priceBook.customerName : 'Customer');
+                    logAssignmentUpdate(deployedBookId, finalBookName, customerId, custName, assignRes.assignmentId, billingAccountOwnerId, null, null, true);
+                }
             } else {
-                if (!deployedBookId) {
-                    throw new Error("Price Book ID is required for updating an existing pricebook.");
-                }
-
-                // Fetch previous XML for diff
-                let previousXml = null;
-                addLog(`Fetching prior specification to generate history diff...`);
-                try { previousXml = await getPriceBookSpecification(deployedBookId, apiKey, proxyUrl); } catch (e) { }
-
-                const isIdentical = previousXml && previousXml.trim() === generatedXml.trim();
-
-                if (isIdentical) {
-                    addLog(`ℹ️ Specification is identical to current version. Skipping API update and history log.`);
-                    pricebookActionDone = true; // Mark as done since we explicitly skipped it
-                } else {
-                    const safeBookNameForUpdate = selectedPriceBook?.book_name || state.priceBook.bookName || 'Pricebook';
-                    addLog(`Updating existing pricebook: ${safeBookNameForUpdate} (ID: ${deployedBookId})...`);
-                    await updatePriceBook(deployedBookId, generatedXml, apiKey, proxyUrl);
-                    addLog(`✅ Updated successfully: ${safeBookNameForUpdate} (ID: ${deployedBookId})`);
-
-                    const safeBookName = state.priceBook.bookName || 'Pricebook';
-                    logPricebookUpdate(deployedBookId, safeBookName, previousXml, generatedXml, true);
-                    pricebookActionDone = true;
-                }
-            }
-
-            if (assignCustomer) {
-                if (!customerId) {
-                    throw new Error("Customer ID is required for assignment.");
-                }
-
-                // Fetch previous assignment (to get assignmentId and payer account)
-                let previousAssignmentAccounts = null;
-                let previousAssignmentId = null;
-                addLog(`Fetching prior assignments to generate history diff...`);
+                setDeployStatus(prev => ({ ...prev, message: 'Fetching original spec for history...', details: ['Fetching before state...'] }));
+                let originalXml = '';
                 try {
-                    const prevAsgn = await getSingleCustomerAssignment(customerId, apiKey, proxyUrl);
-                    if (prevAsgn) {
-                        previousAssignmentAccounts = prevAsgn.billing_account_owner_id;
-                        previousAssignmentId = prevAsgn.assignment_id;
-                    }
-                } catch (e) { }
+                    originalXml = await getPriceBookSpecification(priceBookId, apiKey, proxyUrl);
+                } catch (e) {
+                    console.warn("Could not fetch old XML, history will only have after XML", e);
+                }
 
-                addLog(`Assigning PriceBook ID ${deployedBookId} to Customer ID: ${customerId}...`);
-                const assignRes = await assignPriceBook(deployedBookId, customerId, billingAccountOwnerId, apiKey, proxyUrl);
-                const finalAssignmentId = assignRes.assignmentId || previousAssignmentId;
-                addLog(`✅ Assigned successfully to Payer Account: ${billingAccountOwnerId || 'ALL'}`);
-
-                const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
-                const safeCustomerName = custName || 'Customer';
-                const safeBookName = state.priceBook.bookName || 'Pricebook';
-                logAssignmentUpdate(deployedBookId, safeBookName, customerId, safeCustomerName, finalAssignmentId, billingAccountOwnerId || 'ALL', previousAssignmentAccounts, billingAccountOwnerId || 'ALL', true);
-                assignmentActionDone = true;
-            }
-
-            const finalBookName = actionType === 'create' ? (newPricebookName || 'New Pricebook') : (selectedPriceBook?.book_name || state.priceBook.bookName || 'Pricebook');
-            setDeployStatus(prev => ({ success: true, inProgress: false, message: `Deployment completed successfully! — ${finalBookName} (ID: ${deployedBookId})`, details: prev.details }));
-        } catch (error) {
-            console.error(error);
-
-            // Log dry run failure to Action History
-            if (isDryRun) {
-                logDryRun(
-                    state.priceBook.bookName,
-                    String(dryRunCustomerId),
-                    dryRunCustomer?.name || String(dryRunCustomerId),
-                    String(dryRunPayerId),
-                    dryRunStartDate,
-                    null,
-                    null,
-                    false,
-                    error.message
-                );
-            }
-
-            // Log failures ONLY if they weren't already logged as success
-            if (!isDryRun && !pricebookActionDone) {
-                if (actionType === 'update' && priceBookId) {
-                    logPricebookUpdate(priceBookId, state.priceBook.bookName || 'Pricebook', null, generatedXml, false, error.message);
-                } else if (actionType === 'create') {
-                    logPricebookCreate('PENDING', newPricebookName || 'New Pricebook', generatedXml, false, error.message);
+                setDeployStatus(prev => ({ ...prev, message: 'Updating Price Book...', details: ['Overwriting existing specification...'] }));
+                await updatePriceBook(priceBookId, generatedXml, apiKey, proxyUrl);
+                setDeployStatus(prev => ({ ...prev, details: [...(prev?.details || []), `✅ Successfully updated Price Book ${priceBookId}`] }));
+                
+                // Log update
+                logPricebookUpdate(deployedBookId, finalBookName, originalXml, generatedXml);
+                
+                // If user toggled assign to a NEW customer during an update action
+                if (assignCustomer) {
+                    setDeployStatus(prev => ({ ...prev, message: 'Updating assignment...', details: [...(prev?.details || []), `Mapping to Client ${customerId}...`] }));
+                    const assignRes = await assignPriceBook(priceBookId, customerId, billingAccountOwnerId, apiKey, proxyUrl);
+                    setDeployStatus(prev => ({ ...prev, details: [...(prev?.details || []), `✅ Re-assigned to Customer (Assignment ID: ${assignRes.assignmentId})`] }));
+                    
+                    // Log assignment
+                    const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name || (String(state.priceBook.customerApiId) === String(customerId) && state.priceBook.customerName ? state.priceBook.customerName : 'Customer');
+                    logAssignmentUpdate(priceBookId, finalBookName, customerId, custName, assignRes.assignmentId, billingAccountOwnerId, null, null, true);
                 }
             }
 
-            if (!isDryRun && assignCustomer && customerId && !assignmentActionDone) {
+            setDeployStatus({ success: true, message: 'Deployment Successful!', details: ['✅ All actions completed successfully.', `Pricebook Name: ${finalBookName}`, `Pricebook ID: ${deployedBookId}`] });
+        } catch (error) {
+            console.error('Deployment Error:', error);
+            const safeNameForError = actionType === 'create' ? newPricebookName : (selectedPriceBook?.book_name || state.priceBook.bookName || `Price Book ${priceBookId}`);
+
+            // Log the failure to action history
+            if (actionType === 'create') {
+                logPricebookCreate('FAILED', safeNameForError, generatedXml, false, error.message);
+            } else {
+                logPricebookUpdate(priceBookId, safeNameForError, null, generatedXml, false, error.message);
+            }
+            
+            if (assignCustomer) {
                 const custName = customerOptions.find(c => String(c.id) === String(customerId))?.name;
                 const safeCustomerName = custName || 'Customer';
-                logAssignmentUpdate(deployedBookId || 'PENDING', state.priceBook.bookName || 'Pricebook', customerId, safeCustomerName, null, billingAccountOwnerId || null, null, null, false, error.message);
+                logAssignmentUpdate(deployedBookId || 'PENDING', safeNameForError, customerId, safeCustomerName, null, billingAccountOwnerId || null, null, null, false, error.message);
             }
 
             if (error instanceof ApiAuthError) {
@@ -448,8 +538,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                     flex: 1,
                                     padding: '16px',
                                     borderRadius: '8px',
-                                    border: `2px solid ${actionType === 'update' ? 'var(--secondary)' : 'var(--border)'}`,
-                                    background: actionType === 'update' ? 'rgba(6, 182, 212, 0.05)' : 'var(--bg-card)',
+                                    border: `1px solid ${actionType === 'update' ? 'var(--primary)' : 'var(--border)'}`,
+                                    background: actionType === 'update' ? 'rgba(56, 189, 248, 0.05)' : 'rgba(255,255,255,0.02)',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -457,14 +547,14 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                <div style={{
-                                    width: '18px', height: '18px', borderRadius: '50%',
-                                    border: `2px solid ${actionType === 'update' ? 'var(--secondary)' : 'var(--text-muted)'}`,
-                                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                                <div style={{ 
+                                    width: '20px', height: '20px', borderRadius: '50%', 
+                                    border: `2px solid ${actionType === 'update' ? 'var(--primary)' : 'var(--text-muted)'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                                 }}>
-                                    {actionType === 'update' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--secondary)' }} />}
+                                    {actionType === 'update' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)' }} />}
                                 </div>
-                                <span style={{ fontWeight: 600, color: actionType === 'update' ? 'var(--secondary)' : 'var(--text-main)', fontSize: '0.85rem', letterSpacing: '0.05em' }}>MODIFY EXISTING PRICEBOOK</span>
+                                <span style={{ fontWeight: 600, color: actionType === 'update' ? 'var(--primary)' : 'var(--text-secondary)', fontSize: '0.9rem' }}>MODIFY EXISTING PRICEBOOK</span>
                             </div>
 
                             <div
@@ -473,8 +563,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                     flex: 1,
                                     padding: '16px',
                                     borderRadius: '8px',
-                                    border: `2px solid ${actionType === 'create' ? 'var(--secondary)' : 'var(--border)'}`,
-                                    background: actionType === 'create' ? 'rgba(6, 182, 212, 0.05)' : 'var(--bg-card)',
+                                    border: `1px solid ${actionType === 'create' ? 'var(--primary)' : 'var(--border)'}`,
+                                    background: actionType === 'create' ? 'rgba(56, 189, 248, 0.05)' : 'rgba(255,255,255,0.02)',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -482,24 +572,26 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                <div style={{
-                                    width: '18px', height: '18px', borderRadius: '50%',
-                                    border: `2px solid ${actionType === 'create' ? 'var(--secondary)' : 'var(--text-muted)'}`,
-                                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                                <div style={{ 
+                                    width: '20px', height: '20px', borderRadius: '50%', 
+                                    border: `2px solid ${actionType === 'create' ? 'var(--primary)' : 'var(--text-muted)'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                                 }}>
-                                    {actionType === 'create' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--secondary)' }} />}
+                                    {actionType === 'create' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)' }} />}
                                 </div>
-                                <span style={{ fontWeight: 600, color: actionType === 'create' ? 'var(--secondary)' : 'var(--text-main)', fontSize: '0.85rem', letterSpacing: '0.05em' }}>CREATE NEW PRICEBOOK</span>
+                                <span style={{ fontWeight: 600, color: actionType === 'create' ? 'var(--primary)' : 'var(--text-secondary)', fontSize: '0.9rem' }}>CREATE NEW PRICEBOOK</span>
                             </div>
                         </div>
                     </div>
 
                     {actionType === 'update' && (
                         <div style={{ background: 'var(--bg-deep)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                            <h4 style={{ margin: '0 0 16px', color: 'var(--text-main)' }}>2. Target Price Book ID</h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h4 style={{ margin: 0, color: 'var(--text-main)' }}>2. Target Price Book ID</h4>
+                            </div>
                             <div className="input-group">
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    Select Pricebook {isLoadingPriceBooks && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}
+                                    Select Pricebook {(isLoadingPriceBooks || isFetchingInfo) && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}
                                     {!isLoadingPriceBooks && (
                                         <Tooltip title="Refresh Pricebooks" content="Re-fetch the pricebook list from CloudHealth API" position="top">
                                             <button
@@ -509,16 +601,14 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                                     if (!apiKey) return;
                                                     setIsLoadingPriceBooks(true);
                                                     try {
-                                                        const [books, assignments] = await Promise.all([
-                                                            fetchAllPriceBooks(apiKey, proxyUrl, true),
-                                                            getAssignedPriceBooks(apiKey, proxyUrl).catch(() => [])
-                                                        ]);
+                                                        const books = await fetchAllPriceBooks(apiKey, proxyUrl);
                                                         setPriceBookOptions(books || []);
-                                                        setPriceBookAssignments(assignments || []);
                                                     } catch (e) { console.warn(e); }
                                                     finally { setIsLoadingPriceBooks(false); }
                                                 }}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                                                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                                             >
                                                 <FaSyncAlt size={10} />
                                             </button>
@@ -556,22 +646,33 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         </div>
                     )}
 
-                    {actionType === 'create' && (
-                        <div style={{ background: 'var(--bg-deep)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                            <h4 style={{ margin: '0 0 16px', color: 'var(--text-main)' }}>2. New Price Book Name</h4>
-                            <div className="input-group">
-                                <input
-                                    type="text"
-                                    value={newPricebookName}
-                                    onChange={(e) => setNewPricebookName(e.target.value)}
-                                    placeholder="Desired Name..."
-                                />
+                    {actionType === 'create' && (() => {
+                        const nameExists = priceBookOptions.some(
+                            pb => pb.book_name?.toLowerCase() === newPricebookName.trim().toLowerCase()
+                        );
+                        return (
+                            <div style={{ background: 'var(--bg-deep)', padding: '20px', borderRadius: '12px', border: `1px solid ${nameExists ? 'rgba(245,158,11,0.4)' : 'var(--border)'}` }}>
+                                <h4 style={{ margin: '0 0 16px', color: 'var(--text-main)' }}>2. New Price Book Name</h4>
+                                <div className="input-group">
+                                    <input
+                                        type="text"
+                                        value={newPricebookName}
+                                        onChange={(e) => setNewPricebookName(e.target.value)}
+                                        placeholder="Desired Name..."
+                                        style={nameExists ? { borderColor: 'rgba(245,158,11,0.6)' } : {}}
+                                    />
+                                </div>
+                                {nameExists && (
+                                    <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        ⚠️ A pricebook with this name already exists. Deploying will create a duplicate — consider changing the name.
+                                    </p>
+                                )}
+                                <p style={{ margin: `${nameExists ? '4px' : '8px'} 0 0`, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                    Payload size: {generatedXml ? (new Blob([generatedXml]).size / 1024).toFixed(2) + ' KB' : 'Empty'}.
+                                </p>
                             </div>
-                            <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                Payload size: {generatedXml ? (new Blob([generatedXml]).size / 1024).toFixed(2) + ' KB' : 'Empty'}.
-                            </p>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     <div style={{ background: 'var(--bg-deep)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                         <h4 style={{ margin: '0', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -585,13 +686,35 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         {assignCustomer && (
                             <div className="input-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', alignItems: 'flex-start' }}>
                                 <div className="input-group">
-                                    <label>Customer API ID <span style={{ color: 'var(--danger)' }}>*</span> {isLoadingCustomers && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}</label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Customer API ID <span style={{ color: 'var(--danger)' }}>*</span>
+                                        <Tooltip title="Refresh" content="Re-fetch the customer list from CloudHealth API" position="top">
+                                            <button
+                                                onClick={async () => {
+                                                    const apiKey = localStorage.getItem('ch_api_key');
+                                                    const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                    if (!apiKey) return;
+                                                    setIsLoadingCustomers(true);
+                                                    try {
+                                                        const c = await fetchAllCustomers(apiKey, proxyUrl, true);
+                                                        setCustomerOptions(c || []);
+                                                    } catch (e) { console.warn(e); }
+                                                    finally { setIsLoadingCustomers(false); }
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                                                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                                            >
+                                                {isLoadingCustomers ? <span style={{ fontSize: '0.7rem' }}>⏳</span> : <FaSyncAlt size={11} />}
+                                            </button>
+                                        </Tooltip>
+                                    </label>
                                     <input
                                         type="text"
                                         list="customer-suggestions"
                                         value={customerId}
                                         onChange={(e) => setCustomerId(e.target.value)}
-                                        placeholder="Target Client ID (e.g. 42346)"
+                                        placeholder="Target Customer ID (e.g. 42346)"
                                         autoComplete="off"
                                     />
                                     {selectedCustomer && (
@@ -600,40 +723,41 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         </div>
                                     )}
                                 </div>
+
                                 <div className="input-group">
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         Payer Account ID
-                                        {isLoadingAssignPayers
-                                            ? <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
-                                            : <Tooltip title="Refresh Payers" content="Re-fetch payer accounts from CloudHealth (clears cache for this customer)" position="top">
+                                        {isLoadingAssignPayers && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}
+                                        {!isLoadingAssignPayers && (
+                                            <Tooltip title="Refresh Payers" content="Re-fetch the account assignments for this customer" position="top">
                                                 <button
                                                     onClick={() => loadPayerOptions(customerId, setAssignPayerOptions, setIsLoadingAssignPayers, true)}
-                                                    disabled={!customerId}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: customerId ? 'pointer' : 'not-allowed', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px', opacity: customerId ? 1 : 0.4 }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                                                 >
                                                     <FaSyncAlt size={10} />
                                                 </button>
                                             </Tooltip>
-                                        }
+                                        )}
                                     </label>
-                                    <input
-                                        type="text"
-                                        list="assign-payer-suggestions"
-                                        value={billingAccountOwnerId}
+                                    <select
+                                        value={billingAccountOwnerId || 'ALL'}
                                         onChange={(e) => setBillingAccountOwnerId(e.target.value)}
-                                        placeholder="Enter 'ALL' or select a Payer ID"
-                                        autoComplete="off"
-                                    />
-                                    <datalist id="assign-payer-suggestions">
+                                    >
+                                        <option value="ALL">ALL (Global Assignment)</option>
                                         {assignPayerOptions.map(opt => (
-                                            <option key={opt} value={opt} />
+                                            <option key={opt} value={opt}>{opt}</option>
                                         ))}
-                                    </datalist>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                        {assignPayerOptions.length > 0
-                                            ? `${assignPayerOptions.length} payer account(s) found for this customer.`
-                                            : "Default is 'ALL'. Specify a string if assigning to a distinct payer account."}
-                                    </span>
+                                    </select>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', alignItems: 'flex-start' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                            Leave empty or enter 'ALL' for global assignment.
+                                        </p>
+                                        <div style={{ minHeight: '18px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>
+                                            {assignPayerOptions.length > 0 ? `${assignPayerOptions.length} payer account(s) found.` : ''}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -649,14 +773,13 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         </h4>
 
                         {isDryRun && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                                <p style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    Launch a safe simulation of this payload's impact without overwriting live mapping tables.
-                                    Dry Run jobs run in the background on CloudHealth and must be reviewed in the CH Portal.
+                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                                <p style={{ margin: '0 0 16px', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                    Launch a safe simulation of this payload's impact without overwriting live mapping tables. Dry Run jobs run in the background on CloudHealth and must be reviewed in the CH Portal.
                                 </p>
                                 <div className="input-row" style={{ alignItems: 'flex-start' }}>
                                     <div className="input-group">
-                                        <label>Start Month <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                        <label>Evaluation Start Date</label>
                                         <select
                                             value={dryRunStartDate}
                                             onChange={(e) => setDryRunStartDate(e.target.value)}
@@ -665,11 +788,11 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                             ))}
                                         </select>
-                                        <div style={{ minHeight: '18px' }} />{/* spacer to match Client ID hint height */}
                                     </div>
+
                                     <div className="input-group">
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            Client API ID <span style={{ color: 'var(--danger)' }}>*</span>
+                                            Customer API ID <span style={{ color: 'var(--danger)' }}>*</span>
                                             <Tooltip title="Refresh" content="Re-fetch the customer list from CloudHealth API" position="top">
                                                 <button
                                                     onClick={async () => {
@@ -678,15 +801,16 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                                         if (!apiKey) return;
                                                         setIsLoadingCustomers(true);
                                                         try {
-                                                            const { fetchAllCustomers: _fac } = await import('../utils/chApi');
-                                                            const c = await _fac(apiKey, proxyUrl, true);
+                                                            const c = await fetchAllCustomers(apiKey, proxyUrl, true);
                                                             setCustomerOptions(c || []);
                                                         } catch (e) { console.warn(e); }
                                                         finally { setIsLoadingCustomers(false); }
                                                     }}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                                                 >
-                                                    {isLoadingCustomers ? <span style={{ fontSize: '0.7rem' }}>⏳</span> : <FaSyncAlt size={10} />}
+                                                    {isLoadingCustomers ? <span style={{ fontSize: '0.7rem' }}>⏳</span> : <FaSyncAlt size={11} />}
                                                 </button>
                                             </Tooltip>
                                         </label>
@@ -695,93 +819,97 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                             list="customer-suggestions"
                                             value={dryRunCustomerId}
                                             onChange={(e) => setDryRunCustomerId(e.target.value)}
-                                            placeholder="Target Client ID (e.g. 42346)"
+                                            placeholder="Target Customer ID (e.g. 42346)"
                                             autoComplete="off"
                                         />
-                                        <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                            {dryRunCustomer ? dryRunCustomer.name : ''}
-                                        </div>
+                                        {dryRunCustomer && (
+                                            <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                {dryRunCustomer.name}
+                                            </div>
+                                        )}
                                     </div>
+
                                     <div className="input-group">
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            Payer Account ID <span style={{ color: 'var(--danger)' }}>*</span>
-                                            {isLoadingDryRunPayers
-                                                ? <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
-                                                : <Tooltip title="Refresh Payers" content="Re-fetch payer accounts from CloudHealth (clears cache for this customer)" position="top">
+                                            Payer Account ID
+                                            {isLoadingDryRunPayers && <span className="spin" style={{ display: 'inline-block', fontSize: '0.8em' }}>⏳</span>}
+                                            {!isLoadingDryRunPayers && (
+                                                <Tooltip title="Refresh Payers" content="Re-fetch the account assignments for this customer" position="top">
                                                     <button
                                                         onClick={() => loadPayerOptions(dryRunCustomerId, setDryRunPayerOptions, setIsLoadingDryRunPayers, true)}
-                                                        disabled={!dryRunCustomerId}
-                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: dryRunCustomerId ? 'pointer' : 'not-allowed', padding: '0', display: 'flex', alignItems: 'center', marginLeft: '2px', opacity: dryRunCustomerId ? 1 : 0.4 }}
+                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                                                     >
                                                         <FaSyncAlt size={10} />
                                                     </button>
                                                 </Tooltip>
-                                            }
+                                            )}
                                         </label>
-                                        <input
-                                            type="text"
-                                            list="dryrun-payer-suggestions"
+                                        <select
                                             value={dryRunPayerId}
                                             onChange={(e) => setDryRunPayerId(e.target.value)}
-                                            placeholder="Select or enter Payer ID"
-                                            autoComplete="off"
-                                        />
-                                        <datalist id="dryrun-payer-suggestions">
+                                        >
+                                            <option value="" disabled>Select Payer ID</option>
                                             {dryRunPayerOptions.map(opt => (
-                                                <option key={opt} value={opt} />
+                                                <option key={opt} value={opt}>{opt}</option>
                                             ))}
-                                        </datalist>
-                                        <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                            {dryRunPayerOptions.length > 0 ? `${dryRunPayerOptions.length} payer account(s) found.` : ''}
+                                        </select>
+                                        <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            {dryRunPayerOptions.length > 0 ? `${dryRunPayerOptions.length} payer account(s) found for this customer.` : ''}
                                         </div>
                                     </div>
                                 </div>
+                                <p style={{ marginTop: '12px', fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '8px', lineHeight: '1.4' }}>
+                                    <span style={{ color: 'var(--primary)' }}>ℹ️</span>
+                                    <span>Dry runs typically take 5-10 minutes to process entirely. Results will be available in your mailbox from CloudHealth.</span>
+                                </p>
                             </div>
                         )}
                     </div>
 
-                    <div style={{ marginTop: '12px' }}>
-                        <button
-                            onClick={handleDeploy}
-                            disabled={isBrowser || isDeploying || (!isDryRun && actionType === 'update' && !priceBookId) || (!isDryRun && actionType === 'create' && !newPricebookName) || (!isDryRun && assignCustomer && !customerId) || (isDryRun && actionType === 'update' && !priceBookId) || (isDryRun && actionType === 'create' && !customerId) || !generatedXml}
-                            style={{
-                                width: '100%',
-                                padding: '16px',
-                                background: 'linear-gradient(135deg, var(--primary) 0%, rgb(99, 102, 241) 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontWeight: 700,
-                                fontSize: '1.1rem',
-                                justifyContent: 'center',
-                                opacity: isBrowser || (isDeploying || (!isDryRun && actionType === 'update' && !priceBookId) || (!isDryRun && actionType === 'create' && !newPricebookName) || (!isDryRun && assignCustomer && !customerId) || (isDryRun && actionType === 'update' && !priceBookId) || (isDryRun && actionType === 'create' && !customerId) || !generatedXml) ? 0.5 : 1,
-                                cursor: isBrowser ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            {isDeploying ? 'Processing with CloudHealth...' : isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'}
-                        </button>
-                    </div>
+                    <button
+                        className="action-button"
+                        onClick={handleDeploy}
+                        title={isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'}
+                        disabled={
+                            isDeploying ||
+                            (isDryRun
+                                ? (!dryRunCustomerId || !dryRunPayerId || dryRunPayerId.trim().toUpperCase() === 'ALL')
+                                : (actionType === 'update' ? !priceBookId : !newPricebookName)
+                            )
+                        }
+                    >
+                        {isDeploying ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <FaSyncAlt className="spin" /> {deployStatus.message}
+                            </span>
+                        ) : (
+                            isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'
+                        )}
+                    </button>
 
-                    {deployStatus && deployStatus.message && (
-                        <div style={{
-                            marginTop: '8px',
-                            padding: '16px',
-                            borderRadius: '8px',
-                            background: deployStatus.inProgress ? 'rgba(245, 158, 11, 0.1)' : (deployStatus.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
-                            border: `1px solid ${deployStatus.inProgress ? '#f59e0b' : (deployStatus.success ? 'var(--success)' : 'var(--danger)')}`
-                        }}>
-                            <h4 style={{ margin: '0 0 12px 0', color: deployStatus.inProgress ? '#f59e0b' : (deployStatus.success ? 'var(--success)' : 'var(--danger)') }}>
-                                {deployStatus.message}
-                            </h4>
-                            {deployStatus.details && deployStatus.details.length > 0 && (
-                                <div style={{ marginTop: '12px', background: 'var(--bg-code)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '0.8rem', fontFamily: 'monospace', maxHeight: '150px', overflowY: 'auto' }}>
-                                    {deployStatus.details.map((detail, index) => (
-                                        <div key={index} style={{ marginBottom: '4px', color: detail.startsWith('❌') ? 'var(--danger)' : (detail.startsWith('✅') ? 'var(--success)' : 'var(--text-main)') }}>
-                                            {detail}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}</div>
+                    {deployStatus.message && (
+                        <div style={{ marginTop: '20px', padding: '20px', borderRadius: '12px', border: `1px solid ${deployStatus.success ? 'var(--success-border)' : (isDeploying ? 'var(--border)' : 'var(--danger)')}`, background: deployStatus.success ? 'var(--success-bg)' : (isDeploying ? 'var(--bg-card)' : 'rgba(239, 68, 68, 0.05)') }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                                {deployStatus.success ? (
+                                    <FaCheckCircle color="var(--success)" size={20} />
+                                ) : isDeploying ? (
+                                    <FaSyncAlt color="var(--primary)" size={16} className="spin" />
+                                ) : (
+                                    <FaTimesCircle color="var(--danger)" size={20} />
+                                )}
+                                <h5 style={{ margin: 0, color: deployStatus.success ? 'var(--success)' : (isDeploying ? 'var(--primary)' : 'var(--danger)'), fontSize: '1rem' }}>
+                                    {deployStatus.success ? 'SUCCESS' : (isDeploying ? 'DEPLOYING...' : 'DEPLOYMENT FAILED')}
+                                </h5>
+                            </div>
+                            <p style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>{deployStatus.message}</p>
+                            <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '12px', borderRadius: '6px', background: 'var(--bg-subtle)', fontSize: '0.85rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                {deployStatus.details.map((detail, i) => (
+                                    <div key={i} style={{ marginBottom: '4px' }}>{detail}</div>
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
             )}

@@ -3,7 +3,7 @@
   "private": true,
   "author": "Sunil <sunil@cloudhealth.com>",
   "description": "CloudHealth PriceBook Local Application",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -24,6 +24,8 @@
     "aws-react-icons": "^3.2.0",
     "diff": "^8.0.3",
     "framer-motion": "^12.23.26",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",

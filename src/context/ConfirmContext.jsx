@@ -185,7 +185,7 @@ export const ConfirmProvider = ({ children }) => {
                                 display: 'flex',
                                 justifyContent: 'flex-end',
                                 gap: '12px',
-                                background: 'rgba(0,0,0,0.05)'
+                                background: 'var(--bg-subtle)'
                             }}>
                                 {state.type === 'confirm' && (
                                     <button

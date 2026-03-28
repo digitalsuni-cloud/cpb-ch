@@ -108,9 +108,10 @@ export const logPricebookDelete = (bookId, bookName, deletedXml, isSuccess = tru
 
 export const logAssignmentUpdate = (bookId, bookName, customerId, customerName, assignmentId, payerAccountId, beforeAccounts, afterAccounts, isSuccess = true, errorMsg = '') => {
     const isNew = !beforeAccounts || beforeAccounts === 'None' || (!Array.isArray(beforeAccounts) && !beforeAccounts);
+    const displayCustomer = customerName ? (customerName.includes(`(${customerId})`) ? customerName : `${customerName} (${customerId})`) : customerId;
     return logHistoryEvent({
         type: isNew ? 'ASSIGNMENT_CREATE' : 'ASSIGNMENT_UPDATE',
-        title: isNew ? `Assignment created for ${customerName} (${customerId})` : `Assignment updated for ${customerName} (${customerId})`,
+        title: isNew ? `Assignment created for ${displayCustomer}` : `Assignment updated for ${displayCustomer}`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
         details: {
@@ -123,9 +124,10 @@ export const logAssignmentUpdate = (bookId, bookName, customerId, customerName, 
 };
 
 export const logAssignmentDelete = (bookId, bookName, customerId, customerName, assignmentId, payerAccountId, isSuccess = true, errorMsg = '') => {
+    const displayCustomer = customerName ? (customerName.includes(`(${customerId})`) ? customerName : `${customerName} (${customerId})`) : customerId;
     return logHistoryEvent({
         type: 'ASSIGNMENT_DELETE',
-        title: `Assignment removed for ${customerName} (${customerId})`,
+        title: `Assignment removed for ${displayCustomer}`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
         details: { bookId, bookName, customerId, customerName, assignmentId, payerAccountId }
@@ -133,22 +135,25 @@ export const logAssignmentDelete = (bookId, bookName, customerId, customerName, 
 };
 
 export const logCustomerUnassign = (bookId, bookName, customerId, customerName, assignmentId, payerAccountId, isSuccess = true, errorMsg = '') => {
+    const displayCustomer = customerName ? (customerName.includes(`(${customerId})`) ? customerName : `${customerName} (${customerId})`) : customerId;
     return logHistoryEvent({
         type: 'CUSTOMER_UNASSIGN',
-        title: `Unassigned Pricebook from Customer: ${customerName}`,
+        title: `Unassigned Pricebook from Customer: ${displayCustomer}`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
         details: { bookId, bookName, customerId, customerName, assignmentId, payerAccountId }
     });
 };
 
-export const logDryRun = (bookName, customerId, customerName, payerId, startMonth, jobId, tempBookId, isSuccess = true, errorMsg = '') => {
+export const logDryRun = (bookName, customerId, customerName, payerId, startMonth, jobId, tempBookId, isSuccess = true, errorMsg = '', tempBookDeleted = false) => {
     const monthLabel = startMonth ? startMonth.substring(0, 7) : '';
+    const displayCustomer = customerName ? (customerName.includes(`(${customerId})`) ? customerName : `${customerName} (${customerId})`) : customerId;
     return logHistoryEvent({
         type: 'DRY_RUN',
-        title: `Dry Run: ${bookName || 'Pricebook'} for ${customerName || customerId}${monthLabel ? ` — ${monthLabel}` : ''}`,
+        title: `Dry Run: ${bookName || 'Pricebook'} for ${displayCustomer}${monthLabel ? ` — ${monthLabel}` : ''}`,
         status: isSuccess ? 'SUCCESS' : 'ERROR',
         errorMessage: errorMsg,
-        details: { bookName, customerId, customerName, payerId, startMonth, tempBookId }
+        details: { bookName, customerId, customerName, payerId, startMonth, tempBookId, tempBookDeleted }
     });
 };
+

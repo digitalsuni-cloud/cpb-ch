@@ -1,13 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { propertyTypes } from '../constants/propertyTypes';
 import { getIconForProduct } from '../utils/awsIcons';
-import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRight, FaTags, FaLayerGroup, FaUserEdit } from 'react-icons/fa';
+import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRight, FaTags, FaLayerGroup, FaUserEdit, FaFilePdf, FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const NaturalLanguageSummary = () => {
     const { state } = usePriceBook();
     const { priceBook } = state;
+    const [isExporting, setIsExporting] = useState(false);
+    const contentRef = useRef(null);
+
+    const handleExportPDF = async () => {
+        if (!contentRef.current || isExporting) return;
+        setIsExporting(true);
+        try {
+            const el = contentRef.current;
+            const root = document.documentElement;
+
+            // Save current state
+            const origTheme = root.getAttribute('data-theme');
+            const origMaxHeight = el.style.maxHeight;
+            const origOverflow = el.style.overflowY;
+
+            // Switch to light theme so CSS vars resolve to white/print-friendly colours
+            root.setAttribute('data-theme', 'light');
+            // Remove scroll clamp so html2canvas captures full content height
+            el.style.maxHeight = 'none';
+            el.style.overflowY = 'visible';
+
+            // Allow the browser a frame to repaint with the new theme before capture
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+            const canvas = await html2canvas(el, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                width: el.scrollWidth,
+                height: el.scrollHeight,
+            });
+
+            // Restore theme and scroll
+            if (origTheme) root.setAttribute('data-theme', origTheme);
+            else root.removeAttribute('data-theme');
+            el.style.maxHeight = origMaxHeight;
+            el.style.overflowY = origOverflow;
+
+            // Build the PDF
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 14; // mm
+            const contentW = pageW - margin * 2;
+            const imgPxW = canvas.width;
+            const imgPxH = canvas.height;
+            const mmPerPx = contentW / imgPxW;
+            const totalHeightMm = imgPxH * mmPerPx;
+            const usableH = pageH - margin * 2;
+
+            let yOffsetMm = 0;
+            let page = 0;
+            while (yOffsetMm < totalHeightMm) {
+                if (page > 0) pdf.addPage();
+                const srcYPx = yOffsetMm / mmPerPx;
+                const sliceHeightPx = Math.min(usableH / mmPerPx, imgPxH - srcYPx);
+                const sliceCanvas = document.createElement('canvas');
+                sliceCanvas.width = imgPxW;
+                sliceCanvas.height = Math.ceil(sliceHeightPx);
+                sliceCanvas.getContext('2d').drawImage(canvas, 0, srcYPx, imgPxW, sliceHeightPx, 0, 0, imgPxW, sliceHeightPx);
+                pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', margin, margin, contentW, sliceHeightPx * mmPerPx);
+                yOffsetMm += usableH;
+                page++;
+            }
+
+            const safeName = (priceBook.bookName || 'PriceBook').replace(/[^a-zA-Z0-9_-]/g, '_');
+            pdf.save(`${safeName}_Summary.pdf`);
+        } catch (err) {
+            console.error('PDF export failed', err);
+            // Always restore theme even on error
+            document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') || 'dark');
+        } finally {
+            setIsExporting(false);
+        }
+
+    };
+
 
     const toReadableAdjustment = (type, adj) => {
         if (!type) return { text: '', className: '' };
@@ -266,14 +348,36 @@ const NaturalLanguageSummary = () => {
                 <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
                     <FaLayerGroup style={{ color: 'var(--primary)' }} /> Pricing Execution Summary
                 </h3>
+                <button
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    title="Export summary as PDF"
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '9px 18px', borderRadius: '8px', border: 'none',
+                        background: isExporting ? 'var(--bg-deep)' : 'var(--primary)',
+                        color: 'white', cursor: isExporting ? 'not-allowed' : 'pointer',
+                        fontWeight: 700, fontSize: '0.85rem', opacity: isExporting ? 0.65 : 1,
+                        transition: 'opacity 0.2s, background 0.2s',
+                        boxShadow: isExporting ? 'none' : 'var(--shadow-glow)'
+                    }}
+                >
+                    {isExporting
+                        ? <><FaSyncAlt className="spin" size={13} /> Exporting...</>
+                        : <><FaFilePdf size={13} /> Export PDF</>}
+                </button>
             </div>
 
-            <div style={{
-                padding: '20px 20px 40px 20px',
-                maxHeight: 'calc(100vh - 250px)',
-                overflowY: 'auto',
-                margin: '0 -20px'
-            }}>
+            {/* Capture target: remove scroll constraints so html2canvas sees full content */}
+            <div
+                ref={contentRef}
+                style={{
+                    padding: '20px 20px 40px 20px',
+                    maxHeight: 'calc(100vh - 250px)',
+                    overflowY: 'auto',
+                    margin: '0 -20px'
+                }}
+            >
                 {renderSummary()}
             </div>
         </div>
