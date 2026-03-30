@@ -398,7 +398,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                     <li style={{ marginBottom: '10px' }}>
                                         <strong>
                                             <a href="https://github.com/digitalsuni-cloud/cpb-ch/releases/latest" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-                                                Standalone Desktop App <FaExternalLinkAlt style={{ fontSize: '0.7rem' }} />
+                                                CloudHealth Studio v5.0.0 <FaExternalLinkAlt style={{ fontSize: '0.7rem' }} />
                                             </a>
                                         </strong> — <em>(Recommended)</em>
                                         <div style={{ marginTop: '4px', fontSize: '0.85rem' }}>Full CloudHealth API integration. Live Sync imports, one-click Deploy, Dry Run, and the full Price Book Directory all work natively without any CORS restrictions.</div>

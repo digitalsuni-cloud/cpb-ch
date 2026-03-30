@@ -183,7 +183,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                                 boxSizing: 'border-box'
                             }}
                         >
-                            <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download App
+                            <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download v5.0.0
                         </motion.a>
                     </Tooltip>
                 )}
