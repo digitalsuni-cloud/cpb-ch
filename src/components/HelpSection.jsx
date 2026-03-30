@@ -4,7 +4,7 @@ import {
     FaExternalLinkAlt, FaTimes, FaBook, FaPuzzlePiece, FaFilter, FaRocket,
     FaChevronDown, FaChevronUp, FaLightbulb, FaCode, FaMagic, FaFolderOpen,
     FaBookOpen, FaUserEdit, FaAlignLeft, FaEye, FaTrash, FaPen, FaHistory, FaPlay,
-    FaSearch, FaSyncAlt, FaLayerGroup, FaCog, FaCheckCircle
+    FaSearch, FaSyncAlt, FaLayerGroup, FaCog, FaCheckCircle, FaBookmark
 } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
@@ -122,7 +122,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <FaBook className="text-primary" /> Cloud Pricebook Studio — Help &amp; Guide
+                                <FaBook className="text-primary" /> CloudHealth Pricebook Studio — Help &amp; Guide
                             </h2>
                             <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '8px' }}>
                                 <FaTimes />
@@ -194,6 +194,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                     <li style={{ marginBottom: '8px' }}><strong>Execution Timeline</strong> — Rules are displayed in order of priority (Rule Groups).</li>
                                     <li style={{ marginBottom: '8px' }}><strong>Visual Logic</strong> — Includes product icons, adjustment color-coding (+Markups, -Discounts), and clear filter descriptions.</li>
                                     <li style={{ marginBottom: '8px' }}><strong>Metadata Overview</strong> — Displays the Pricebook Name, Author, and Comments for final review.</li>
+                                    <li style={{ marginBottom: '8px' }}><strong>PDF Export</strong> — Click <strong>Export PDF</strong> to capture the visual layout of your billing rules into a structured, multi-page PDF document for offline sharing.</li>
                                     <li><strong>Validation Check</strong> — Highlights if required fields (like Group Start Dates) are missing before you export.</li>
                                 </ul>
                             </HelpAccordion>
@@ -206,7 +207,17 @@ const HelpSection = ({ isOpen, onClose }) => {
                                     <li style={{ marginBottom: '6px' }}><strong>Usage Type:</strong> e.g., <Tag>BoxUsage:t3.large</Tag>, <Tag>DataTransfer-Out-Bytes</Tag></li>
                                     <li style={{ marginBottom: '6px' }}><strong>Instance Type / Size:</strong> e.g., <Tag>m5.xlarge</Tag></li>
                                     <li style={{ marginBottom: '6px' }}><strong>Reservation Status:</strong> On-Demand, Reserved, Spot</li>
-                                    <li style={{ marginBottom: '6px' }}><strong>Line Item Description:</strong> Match with <Tag>contains</Tag>, <Tag>startsWith</Tag>, or <Tag>matchesRegex</Tag> for flexible pattern matching.</li>
+                                    <li style={{ marginBottom: '6px' }}><strong>Line Item Description:</strong> Match with <Tag>contains</Tag>, <Tag>startsWith</Tag>, or <Tag>matchesRegex</Tag>. Displayed as a neatly arranged vertical list in the Summary for easy reading.</li>
+                                </ul>
+                            </HelpAccordion>
+
+                            {/* ── TEMPLATE LIBRARY ──────────────────────────── */}
+                            <HelpAccordion title="Template Library — Standardize Configurations" icon={<FaBookmark />}>
+                                <p style={{ marginTop: 0 }}>The <strong>Template Library</strong> allows you to save configurations as reusable standards, or apply pre-built best practices.</p>
+                                <ul style={{ paddingLeft: '18px', marginTop: '6px' }}>
+                                    <li style={{ marginBottom: '8px' }}><strong>Custom Templates</strong> — Save your current builder state for quick reuse across different customers.</li>
+                                    <li style={{ marginBottom: '8px' }}><strong>Built-in Templates</strong> — Standardized markup rules provided out-of-the-box.</li>
+                                    <li><strong>Smart Apply</strong> — When loading templates, choose whether to <em>Merge</em> into your existing rules or <em>Overwrite</em> completely.</li>
                                 </ul>
                             </HelpAccordion>
 
@@ -237,10 +248,11 @@ const HelpSection = ({ isOpen, onClose }) => {
 
                             {/* ── EXPORT ──────────────────────────────────── */}
                             <HelpAccordion title="Export — Download Your Spec" icon={<FaCode />}>
-                                <p style={{ marginTop: 0 }}>The <strong>Export & Deploy</strong> tab provides two download formats:</p>
+                                <p style={{ marginTop: 0 }}>The <strong>Export & Deploy</strong> tab provides three download formats:</p>
                                 <ul style={{ paddingLeft: '18px' }}>
                                     <li style={{ marginBottom: '6px' }}><strong>XML</strong> — The native CloudHealth price book specification format.</li>
                                     <li style={{ marginBottom: '6px' }}><strong>JSON</strong> — The API deployment payload format.</li>
+                                    <li style={{ marginBottom: '6px' }}><strong>CSV</strong> — Download all of your billing rules flattened out into a spreadsheet for offline analysis.</li>
                                     <li>Use the integrated <strong>Preview</strong> pane to inspect syntax-highlighted XML or JSON before downloading.</li>
                                 </ul>
                             </HelpAccordion>
@@ -264,7 +276,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                         <strong style={{ color: 'var(--success)' }}>3. Assign Pricebook to Customer (toggle)</strong>
                                         <p style={{ marginTop: '4px', marginBottom: 0, fontSize: '0.85rem' }}>
                                             Enable this toggle to assign (or re-assign) the deployed book to a customer.
-                                            Enter a <strong>Customer API ID</strong> and optionally a <strong>Payer Account ID</strong> (leave blank for <Tag>ALL</Tag>).
+                                            Select a customer using the <strong>smart dropdown</strong> (which caches your tenant's customer list), and strictly select a <strong>Payer Account ID</strong> from the fetched list (or leave blank for <Tag>ALL</Tag>). Confirmation dialogs will explicitly verify the target customer name.
                                         </p>
                                         <div style={{ marginTop: '6px', padding: '8px 10px', background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                                             💡 When you click <strong>Edit Assignment</strong> in the Price Book Directory, you are taken here with this toggle automatically checked and all fields pre-filled.
@@ -372,7 +384,8 @@ const HelpSection = ({ isOpen, onClose }) => {
                                     </p>
                                     <ul style={{ paddingLeft: '18px', marginTop: '6px' }}>
                                         <li style={{ marginBottom: '8px' }}><strong>Automatic Logging</strong> — Every pricebook creation, update, deletion, and deployment is automatically timestamped and logged.</li>
-                                        <li style={{ marginBottom: '8px' }}><strong>Diff Viewer</strong> — For pricebook updates, click the history row to see a line-by-line XML diff between the previous and current versions.</li>
+                                        <li style={{ marginBottom: '8px' }}><strong>Advanced Diff Viewer</strong> — Click the history row to see an XML diff between previous and current versions, featuring LCS (Longest Common Subsequence) tracking for <em>intra-line character highlighting</em> and synchronized scrolling.</li>
+                                        <li style={{ marginBottom: '8px' }}><strong>Instant Rollbacks</strong> — If you push a bad update or mistakenly create a pricebook, click the ↩️ <strong>Rollback</strong> button on the corresponding action to instantly revert it to its previous state in CloudHealth.</li>
                                         <li style={{ marginBottom: '8px' }}><strong>2,000 Entry Capacity</strong> — The tool stores up to 2,000 persistent records in your local storage, ensuring a deep history is preserved between sessions.</li>
                                         <li style={{ marginBottom: '8px' }}><strong>Search & Filter</strong> — Quickly find specific actions by searching for pricebook names or customer IDs.</li>
                                     </ul>
@@ -385,7 +398,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                     <li style={{ marginBottom: '10px' }}>
                                         <strong>
                                             <a href="https://github.com/digitalsuni-cloud/cpb-ch/releases/latest" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-                                                Standalone Desktop App <FaExternalLinkAlt style={{ fontSize: '0.7rem' }} />
+                                                CloudHealth Studio v5.0.0 <FaExternalLinkAlt style={{ fontSize: '0.7rem' }} />
                                             </a>
                                         </strong> — <em>(Recommended)</em>
                                         <div style={{ marginTop: '4px', fontSize: '0.85rem' }}>Full CloudHealth API integration. Live Sync imports, one-click Deploy, Dry Run, and the full Price Book Directory all work natively without any CORS restrictions.</div>
@@ -462,10 +475,10 @@ const HelpSection = ({ isOpen, onClose }) => {
                         <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                             <p>
                                 <a href="https://github.com/digitalsuni-cloud/cpb-ch/issues" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', marginRight: '15px' }}>Report Issue on GitHub</a>
-                                <a href="mailto:sunil-ac.kumar@broadcom.com?subject=Cloud Pricebook Studio Feedback" style={{ color: 'var(--primary)' }}>Contact Developer</a>
+                                <a href="mailto:sunil-ac.kumar@broadcom.com?subject=CloudHealth Pricebook Studio Feedback" style={{ color: 'var(--primary)' }}>Contact Developer</a>
                             </p>
                             <p style={{ marginTop: '12px' }}>Need more help? Visit the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Official Documentation</a>.</p>
-                            <p style={{ marginTop: '12px' }}>✨ Vibe Coded with ☕ &amp; 🎧 by Sunil Gowda @ CloudHealth 🚀</p>
+                            <p style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: '6px', color: 'var(--text-muted)', fontStyle: 'italic' }}>⚠️ This is not an official CloudHealth product. It is an internal tool built by Sunil Gowda @ CloudHealth to simplify Custom Price Book management.</p>
                         </div>
                         <div style={{ height: '30px', width: '100%', flexShrink: 0 }} />
                     </motion.div>
