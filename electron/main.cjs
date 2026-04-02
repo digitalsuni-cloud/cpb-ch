@@ -1,7 +1,32 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const isDev = process.env.NODE_ENV === 'development';
+
+// ── Override userData path to 'CloudHealth Pricebook Studio' ──────────────────
+// Electron defaults to using package.json "name" field ("cpb-react") for the
+// userData directory. We override it here to use the correct product name.
+// MUST be called synchronously before app.whenReady() so Chromium picks it up.
+// We use process.env.APPDATA on Windows for reliability before app is ready.
+(function overrideUserDataPath() {
+    try {
+        let appDataRoot;
+        if (process.platform === 'win32') {
+            // Use env var directly — most reliable on Windows before app ready
+            appDataRoot = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+        } else if (process.platform === 'darwin') {
+            appDataRoot = path.join(os.homedir(), 'Library', 'Application Support');
+        } else {
+            appDataRoot = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+        }
+        const newUserData = path.join(appDataRoot, 'CloudHealth Pricebook Studio');
+        app.setPath('userData', newUserData);
+        console.log(`[userData] Set to: ${newUserData}`);
+    } catch (e) {
+        console.error('[userData] Failed to override path:', e.message);
+    }
+})();
 
 // ── Migrate data from old cpb-react userData to new CloudHealth Pricebook Studio ──
 function migrateOldUserData() {
