@@ -3,6 +3,12 @@ const path = require('path');
 const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development';
 
+// ── Override userData path to match productName (not package name "cpb-react") ──
+// Must be called synchronously, before app.whenReady(), for Chromium to pick it up.
+if (!isDev) {
+    app.setPath('userData', path.join(app.getPath('appData'), 'CloudHealth Pricebook Studio'));
+}
+
 // ── Migrate data from old cpb-react userData to new CloudHealth Pricebook Studio ──
 function migrateOldUserData() {
     try {
