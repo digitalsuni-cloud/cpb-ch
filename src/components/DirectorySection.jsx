@@ -397,8 +397,10 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
             setActionProgress(prev => ({ ...prev, status: 'Finalizing...', logs: [...prev.logs, `✅ New assignment successful (ID: ${finalAssignmentId})`] }));
             
-            // Log as "Assignment Updated" (same customer, payer changed) or "Assignment Create" (new customer)
-            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, originalPayerId, effectivePayer, true);
+            // Same customer + new payer → ASSIGNMENT_UPDATE
+            // Different customer → ASSIGNMENT_CREATE (customer truly changed)
+            const isSameCustomer = String(customerId) === String(originalCustomerId);
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, isSameCustomer ? originalPayerId : null, effectivePayer, true);
             
             setActionProgress(prev => ({
                 ...prev,
@@ -415,7 +417,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             console.error(err);
 
             // Always log the failed reassignment attempt, regardless of whether the user restores
-            logAssignmentUpdate(bookId, bookName, customerId, customerName, null, effectivePayer, null, effectivePayer, false, err.message);
+            const isSameCustomerErr = String(customerId) === String(originalCustomerId);
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, null, effectivePayer, isSameCustomerErr ? originalPayerId : null, effectivePayer, false, err.message);
 
             if (disconnected) {
                 const restore = await confirm({
