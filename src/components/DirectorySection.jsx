@@ -373,11 +373,17 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                     await deleteBaseAssignment(originalAssignmentId, apiKey, proxyUrl);
                     disconnected = true;
                     setActionProgress(prev => ({ ...prev, logs: [...prev.logs, '✅ Previous assignment disconnected.'] }));
-                    logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, true);
+                    // Only log a "Customer Unassign" if the customer is actually changing.
+                    // If same customer, different payer — we'll log a single "Assignment Updated" at the end.
+                    if (String(customerId) !== String(originalCustomerId)) {
+                        logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, true);
+                    }
                 } catch (e) {
                     setActionProgress(prev => ({ ...prev, logs: [...prev.logs, `⚠️ Notice: Could not delete old assignment (may have been moved): ${e.message}`] }));
                     disconnected = true;
-                    logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, false, e.message);
+                    if (String(customerId) !== String(originalCustomerId)) {
+                        logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, false, e.message);
+                    }
                 }
             } else if (keepExisting) {
                 setActionProgress(prev => ({ ...prev, logs: [...prev.logs, `ℹ️ Keeping existing assignment for ${origCustName}.`] }));
@@ -391,7 +397,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
             setActionProgress(prev => ({ ...prev, status: 'Finalizing...', logs: [...prev.logs, `✅ New assignment successful (ID: ${finalAssignmentId})`] }));
             
-            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, null, effectivePayer, true);
+            // Log as "Assignment Updated" (same customer, payer changed) or "Assignment Create" (new customer)
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, originalPayerId, effectivePayer, true);
             
             setActionProgress(prev => ({
                 ...prev,

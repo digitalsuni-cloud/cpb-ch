@@ -106,8 +106,10 @@ export const logPricebookDelete = (bookId, bookName, deletedXml, isSuccess = tru
     });
 };
 
-export const logAssignmentUpdate = (bookId, bookName, customerId, customerName, assignmentId, payerAccountId, beforeAccounts, afterAccounts, isSuccess = true, errorMsg = '') => {
-    const isNew = !beforeAccounts || beforeAccounts === 'None' || (!Array.isArray(beforeAccounts) && !beforeAccounts);
+export const logAssignmentUpdate = (bookId, bookName, customerId, customerName, assignmentId, payerAccountId, beforePayer, afterPayer, isSuccess = true, errorMsg = '') => {
+    // It's a NEW assignment only when there was no prior assignment at all (null/undefined)
+    // Passing 'ALL' or an actual payer ID for beforePayer means this is an update
+    const isNew = beforePayer === null || beforePayer === undefined;
     const displayCustomer = customerName ? (customerName.includes(`(${customerId})`) ? customerName : `${customerName} (${customerId})`) : customerId;
     return logHistoryEvent({
         type: isNew ? 'ASSIGNMENT_CREATE' : 'ASSIGNMENT_UPDATE',
@@ -117,8 +119,8 @@ export const logAssignmentUpdate = (bookId, bookName, customerId, customerName, 
         details: {
             bookId, bookName, customerId, customerName,
             assignmentId, payerAccountId,
-            beforeAssignment: beforeAccounts,
-            afterAssignment: afterAccounts
+            beforeAssignment: beforePayer,
+            afterAssignment: afterPayer
         }
     });
 };
