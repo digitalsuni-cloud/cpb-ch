@@ -358,13 +358,16 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         let disconnected = false;
 
         // Resolve names BEFORE the try block so they are accessible in the catch block for the restore dialog
-        // apiData.customers only contains customers with existing assignments, so new customers won't be found there.
-        // Fall back to assignmentEditData.customerName (set from the full getCachedCustomers() list) then customerId.
+        // apiData.customers only contains customers with existing assignments, so new/unassigned customers won't be there.
+        // assignmentEditData.customerName holds the ORIGINAL customer's name, not the newly selected one.
+        // Use customerOptions (full list) to correctly resolve the currently selected customer.
         const customer = apiData.customers.find(c => String(c.id) === String(customerId));
-        const customerName = customer?.name || assignmentEditData.customerName || String(customerId);
+        const selectedFromOptions = assignmentEditData.customerOptions?.find(c => String(c.id) === String(customerId));
+        const customerName = customer?.name || selectedFromOptions?.name || String(customerId);
         const effectivePayer = (!payerId || payerId.trim() === '' || payerId.trim().toUpperCase() === 'ALL') ? 'ALL' : payerId;
         const origCust = apiData.customers.find(c => String(c.id) === String(originalCustomerId));
-        const origCustName = origCust?.name || assignmentEditData.customerOptions?.find(c => String(c.id) === String(originalCustomerId))?.name || 'Previous Customer';
+        const origFromOptions = assignmentEditData.customerOptions?.find(c => String(c.id) === String(originalCustomerId));
+        const origCustName = origCust?.name || origFromOptions?.name || 'Previous Customer';
 
         try {
 
