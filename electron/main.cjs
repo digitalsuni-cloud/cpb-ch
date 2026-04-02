@@ -1,6 +1,52 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development';
+
+// ── Migrate data from old cpb-react userData to new CloudHealth Pricebook Studio ──
+function migrateOldUserData() {
+    try {
+        const newUserData = app.getPath('userData');
+        const oldUserData = path.join(path.dirname(newUserData), 'cpb-react');
+
+        // Nothing to migrate if old folder doesn't exist
+        if (!fs.existsSync(oldUserData)) return;
+
+        const oldLocalStorage = path.join(oldUserData, 'Local Storage');
+        // If old folder exists but has no Local Storage, nothing meaningful to migrate
+        if (!fs.existsSync(oldLocalStorage)) return;
+
+        const newLocalStorage = path.join(newUserData, 'Local Storage');
+        // Don't overwrite if the new app already has its own data
+        if (fs.existsSync(newLocalStorage)) return;
+
+        console.log(`[Migration] Found old data at: ${oldUserData}`);
+        console.log(`[Migration] Migrating to: ${newUserData}`);
+
+        // Folders to migrate (all Chromium profile storage)
+        const foldersToMigrate = [
+            'Local Storage',
+            'IndexedDB',
+            'Session Storage',
+            'Cookies',
+            'Preferences'
+        ];
+
+        for (const folder of foldersToMigrate) {
+            const src = path.join(oldUserData, folder);
+            const dest = path.join(newUserData, folder);
+            if (fs.existsSync(src) && !fs.existsSync(dest)) {
+                fs.cpSync(src, dest, { recursive: true });
+                console.log(`[Migration] Copied: ${folder}`);
+            }
+        }
+
+        console.log('[Migration] Complete — old data preserved at original location as backup.');
+    } catch (err) {
+        // Migration failure should never block the app from starting
+        console.error('[Migration] Failed (non-fatal):', err.message);
+    }
+}
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -143,6 +189,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    migrateOldUserData();
     createWindow();
 
     app.on('activate', () => {
