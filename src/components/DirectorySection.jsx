@@ -358,11 +358,16 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         let disconnected = false;
 
         // Resolve names BEFORE the try block so they are accessible in the catch block for the restore dialog
+        // apiData.customers only contains customers with existing assignments, so new/unassigned customers won't be there.
+        // assignmentEditData.customerName holds the ORIGINAL customer's name, not the newly selected one.
+        // Use customerOptions (full list) to correctly resolve the currently selected customer.
         const customer = apiData.customers.find(c => String(c.id) === String(customerId));
-        const customerName = customer?.name || 'Customer';
+        const selectedFromOptions = assignmentEditData.customerOptions?.find(c => String(c.id) === String(customerId));
+        const customerName = customer?.name || selectedFromOptions?.name || String(customerId);
         const effectivePayer = (!payerId || payerId.trim() === '' || payerId.trim().toUpperCase() === 'ALL') ? 'ALL' : payerId;
         const origCust = apiData.customers.find(c => String(c.id) === String(originalCustomerId));
-        const origCustName = origCust?.name || 'Previous Customer';
+        const origFromOptions = assignmentEditData.customerOptions?.find(c => String(c.id) === String(originalCustomerId));
+        const origCustName = origCust?.name || origFromOptions?.name || 'Previous Customer';
 
         try {
 
@@ -373,11 +378,17 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                     await deleteBaseAssignment(originalAssignmentId, apiKey, proxyUrl);
                     disconnected = true;
                     setActionProgress(prev => ({ ...prev, logs: [...prev.logs, '✅ Previous assignment disconnected.'] }));
-                    logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, true);
+                    // Only log a "Customer Unassign" if the customer is actually changing.
+                    // If same customer, different payer — we'll log a single "Assignment Updated" at the end.
+                    if (String(customerId) !== String(originalCustomerId)) {
+                        logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, true);
+                    }
                 } catch (e) {
                     setActionProgress(prev => ({ ...prev, logs: [...prev.logs, `⚠️ Notice: Could not delete old assignment (may have been moved): ${e.message}`] }));
                     disconnected = true;
-                    logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, false, e.message);
+                    if (String(customerId) !== String(originalCustomerId)) {
+                        logCustomerUnassign(bookId, bookName, originalCustomerId, origCustName, originalAssignmentId, originalPayerId, false, e.message);
+                    }
                 }
             } else if (keepExisting) {
                 setActionProgress(prev => ({ ...prev, logs: [...prev.logs, `ℹ️ Keeping existing assignment for ${origCustName}.`] }));
@@ -391,7 +402,10 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
             setActionProgress(prev => ({ ...prev, status: 'Finalizing...', logs: [...prev.logs, `✅ New assignment successful (ID: ${finalAssignmentId})`] }));
             
-            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, null, effectivePayer, true);
+            // Same customer + new payer → ASSIGNMENT_UPDATE
+            // Different customer → ASSIGNMENT_CREATE (customer truly changed)
+            const isSameCustomer = String(customerId) === String(originalCustomerId);
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, finalAssignmentId, effectivePayer, isSameCustomer ? originalPayerId : null, effectivePayer, true);
             
             setActionProgress(prev => ({
                 ...prev,
@@ -408,7 +422,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             console.error(err);
 
             // Always log the failed reassignment attempt, regardless of whether the user restores
-            logAssignmentUpdate(bookId, bookName, customerId, customerName, null, effectivePayer, null, effectivePayer, false, err.message);
+            const isSameCustomerErr = String(customerId) === String(originalCustomerId);
+            logAssignmentUpdate(bookId, bookName, customerId, customerName, null, effectivePayer, isSameCustomerErr ? originalPayerId : null, effectivePayer, false, err.message);
 
             if (disconnected) {
                 const restore = await confirm({
