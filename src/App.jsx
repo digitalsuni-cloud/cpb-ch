@@ -395,7 +395,7 @@ function App() {
               <PriceBookForm />
             </div>
 
-            <div style={{ flex: '1 1 auto', minHeight: '350px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: '1 1 auto', minHeight: '600px', display: 'flex', flexDirection: 'column' }}>
               <ImportSection />
             </div>
 

@@ -626,7 +626,7 @@ const ImportSection = () => {
                                                 flexDirection: 'column',
                                                 gap: '16px'
                                             }}>
-                                                <div style={{ flex: 1 }}>
+                                                <div>
                                                     <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         🎯 Quick Customer Search
                                                     </h3>
@@ -751,7 +751,7 @@ const ImportSection = () => {
                                                 flexDirection: 'column',
                                                 gap: '16px'
                                             }}>
-                                                <div style={{ flex: 1 }}>
+                                                <div>
                                                     <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             🌍 List all active Pricebooks
