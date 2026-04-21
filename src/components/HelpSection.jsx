@@ -478,7 +478,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                 <a href="mailto:sunil-ac.kumar@broadcom.com?subject=CloudHealth Pricebook Studio Feedback" style={{ color: 'var(--primary)' }}>Contact Developer</a>
                             </p>
                             <p style={{ marginTop: '12px' }}>Need more help? Visit the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Official Documentation</a>.</p>
-                            <p style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: '6px', color: 'var(--text-muted)', fontStyle: 'italic' }}>⚠️ This is not an official CloudHealth product. It is an internal tool built by Sunil Gowda @ CloudHealth to simplify Custom Price Book management.</p>
+                            <p style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: '6px', color: 'var(--text-muted)', fontStyle: 'italic' }}>⚠️ This is not an official CloudHealth product. It is an internal tool built by Sunil @ CloudHealth to simplify Custom Price Book management.</p>
                         </div>
                         <div style={{ height: '30px', width: '100%', flexShrink: 0 }} />
                     </motion.div>
