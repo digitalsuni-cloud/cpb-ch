@@ -7,6 +7,7 @@ import { logPricebookCreate, logPricebookUpdate, logAssignmentUpdate, logDryRun 
 import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { useConfirm } from '../context/ConfirmContext';
+import { getCredential } from "../utils/credentials";
 
 const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
     const { state, dispatch } = usePriceBook();
@@ -31,11 +32,11 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     useEffect(() => {
         let mounted = true;
         const loadCustomers = async () => {
-            const apiKey = localStorage.getItem('ch_api_key');
+            const apiKey = getCredential('ch_api_key');
             if (!apiKey) return;
             setIsLoadingCustomers(true);
             try {
-                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const proxyUrl = getCredential('ch_proxy_url') || '';
                 const customers = await fetchAllCustomers(apiKey, proxyUrl);
                 if (mounted) setCustomerOptions(customers || []);
             } catch (e) {
@@ -52,11 +53,11 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
     useEffect(() => {
         let mounted = true;
         const loadPriceBooks = async () => {
-            const apiKey = localStorage.getItem('ch_api_key');
+            const apiKey = getCredential('ch_api_key');
             if (!apiKey) return;
             setIsLoadingPriceBooks(true);
             try {
-                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const proxyUrl = getCredential('ch_proxy_url') || '';
                 // We only fetch the base books and assignments (IDs), no heavy customer expansion here
                 const [books, assignments] = await Promise.all([
                     fetchAllPriceBooks(apiKey, proxyUrl),
@@ -91,8 +92,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
             // Already known?
             if (priceBookOptions.some(pb => String(pb.id) === String(priceBookId))) return;
 
-            const apiKey = localStorage.getItem('ch_api_key');
-            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+            const apiKey = getCredential('ch_api_key');
+            const proxyUrl = getCredential('ch_proxy_url') || '';
             if (!apiKey) return;
 
             setIsFetchingInfo(true);
@@ -155,8 +156,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         // Guard: only proceed if the entered value is a known customer ID (prevents per-keystroke calls)
         const isKnown = customerOptions.some(c => String(c.id) === cid.trim());
         if (!isKnown && !forceRefresh) { setter([]); return; }
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         if (!apiKey) return;
         if (forceRefresh) clearAwsCache(cid.trim());
         loadingSetter(true);
@@ -212,7 +213,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         const versionPattern = /[\s_-]v(\d+)$/i;
         const baseName = currentName.replace(versionPattern, '').trim();
 
-        const apiKey = localStorage.getItem('ch_api_key');
+        const apiKey = getCredential('ch_api_key');
 
         if (!apiKey) {
             // No API key yet — just use the base name
@@ -221,7 +222,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         }
 
         let cancelled = false;
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         (async () => {
             let freshBooks = priceBookOptions; // start with cached
@@ -301,8 +302,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
         setIsDeploying(true);
         setDeployStatus({ success: false, message: 'Starting deployment...', details: [] });
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         if (!apiKey) {
             setDeployStatus({ success: false, message: 'API Key is missing. Check your Settings.', details: [] });
@@ -522,7 +523,7 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 ))}
             </datalist>
 
-            {!localStorage.getItem('ch_api_key') ? (
+            {!getCredential('ch_api_key') ? (
                 <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔑</div>
                     <p style={{ margin: 0, fontSize: '0.9rem' }}>Configure your API Key in settings to enable direct 1-click deployments.</p>
@@ -596,8 +597,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         <Tooltip title="Refresh Pricebooks" content="Re-fetch the pricebook list from CloudHealth API" position="top">
                                             <button
                                                 onClick={async () => {
-                                                    const apiKey = localStorage.getItem('ch_api_key');
-                                                    const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                    const apiKey = getCredential('ch_api_key');
+                                                    const proxyUrl = getCredential('ch_proxy_url') || '';
                                                     if (!apiKey) return;
                                                     setIsLoadingPriceBooks(true);
                                                     try {
@@ -691,8 +692,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                         <Tooltip title="Refresh" content="Re-fetch the customer list from CloudHealth API" position="top">
                                             <button
                                                 onClick={async () => {
-                                                    const apiKey = localStorage.getItem('ch_api_key');
-                                                    const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                    const apiKey = getCredential('ch_api_key');
+                                                    const proxyUrl = getCredential('ch_proxy_url') || '';
                                                     if (!apiKey) return;
                                                     setIsLoadingCustomers(true);
                                                     try {
@@ -796,8 +797,8 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                             <Tooltip title="Refresh" content="Re-fetch the customer list from CloudHealth API" position="top">
                                                 <button
                                                     onClick={async () => {
-                                                        const apiKey = localStorage.getItem('ch_api_key');
-                                                        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                        const apiKey = getCredential('ch_api_key');
+                                                        const proxyUrl = getCredential('ch_proxy_url') || '';
                                                         if (!apiKey) return;
                                                         setIsLoadingCustomers(true);
                                                         try {

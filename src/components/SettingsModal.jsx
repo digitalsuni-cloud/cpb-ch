@@ -3,22 +3,55 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isElectronApp } from '../utils/env';
 import { FaCode } from 'react-icons/fa';
 import Tooltip from './Tooltip';
+import { getCredential, setCredential } from '../utils/credentials';
 
 const SettingsModal = ({ isOpen, onClose }) => {
     const [apiKey, setApiKey] = useState('');
     const [proxyUrl, setProxyUrl] = useState('');
+    const [apiError, setApiError] = useState('');
+    const [proxyError, setProxyError] = useState('');
 
     useEffect(() => {
         if (isOpen) {
-            setApiKey(localStorage.getItem('ch_api_key') || '');
-            setProxyUrl(localStorage.getItem('ch_proxy_url') || '');
+            setApiKey(getCredential('ch_api_key') || '');
+            setProxyUrl(getCredential('ch_proxy_url') || '');
         }
     }, [isOpen]);
 
-    const handleSave = () => {
-        localStorage.setItem('ch_api_key', apiKey.trim());
-        localStorage.setItem('ch_proxy_url', proxyUrl.trim());
-        onClose();
+    const handleSave = async () => {
+        let hasError = false;
+        
+        const keyTrimmed = apiKey.trim();
+        if (keyTrimmed && keyTrimmed.length < 15) {
+            setApiError('API Key appears too short (expected >15 characters).');
+            hasError = true;
+        } else {
+            setApiError('');
+        }
+
+        const proxyTrimmed = proxyUrl.trim();
+        if (proxyTrimmed) {
+            try {
+                const parsedUrl = new URL(proxyTrimmed);
+                if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                    setProxyError('Proxy URL must start with http:// or https://');
+                    hasError = true;
+                } else {
+                    setProxyError('');
+                }
+            } catch (e) {
+                setProxyError('Invalid URL format.');
+                hasError = true;
+            }
+        } else {
+            setProxyError('');
+        }
+
+        if (!hasError) {
+            await setCredential('ch_api_key', keyTrimmed);
+            await setCredential('ch_proxy_url', proxyTrimmed);
+            onClose();
+        }
     };
 
     return (
@@ -70,7 +103,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                             <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>API Integrations / Settings</h2>
                             <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                                 Configure connection parameters to communicate directly with the CloudHealth partner API.
-                                Credentials are saved securely within your browser's local storage.
+                                Credentials are saved securely within your system keychain.
                             </p>
                         </div>
 
@@ -80,10 +113,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                 <input
                                     type="password"
                                     value={apiKey}
-                                    onChange={e => setApiKey(e.target.value)}
+                                    onChange={e => { setApiKey(e.target.value); setApiError(''); }}
                                     placeholder="Enter your CloudHealth API Token"
-                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', boxSizing: 'border-box', borderColor: apiError ? 'var(--error)' : 'var(--border)' }}
                                 />
+                                {apiError && <span style={{ fontSize: '0.8rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{apiError}</span>}
                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                                     Found in Setup &gt; Administrators &gt; API Keys
                                 </span>
@@ -94,10 +128,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                 <input
                                     type="text"
                                     value={proxyUrl}
-                                    onChange={e => setProxyUrl(e.target.value)}
+                                    onChange={e => { setProxyUrl(e.target.value); setProxyError(''); }}
                                     placeholder="e.g. https://cors-anywhere.herokuapp.com/"
-                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', boxSizing: 'border-box', borderColor: proxyError ? 'var(--error)' : 'var(--border)' }}
                                 />
+                                {proxyError && <span style={{ fontSize: '0.8rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{proxyError}</span>}
                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                                     If you run into browser CORS errors while deploying, you can specify a proxy URL prefix to route through. Include trailing slash.
                                 </span>
@@ -110,9 +145,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                if (window.require) {
-                                                    const { ipcRenderer } = window.require('electron');
-                                                    ipcRenderer.send('toggle-dev-tools');
+                                                if (window.electronAPI) {
+                                                    window.electronAPI.toggleDevTools();
                                                 }
                                             }}
                                             style={{

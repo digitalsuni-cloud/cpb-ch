@@ -5,6 +5,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import HelpSection from './components/HelpSection';
 import Toast from './components/Toast';
 import { useToast } from './hooks/useToast';
+import { hydrateCredentials } from './utils/credentials';
 
 // Views
 import PriceBookForm from './components/PriceBookForm';
@@ -246,6 +247,9 @@ function App() {
     }
   }, [showToast, setActiveView]);
 
+  // Load credentials from OS keychain into memory on startup (C1 fix)
+  useEffect(() => { hydrateCredentials(); }, []);
+
   useEffect(() => {
     checkForUpdates(false);
   }, [checkForUpdates]);
@@ -391,7 +395,7 @@ function App() {
               <PriceBookForm />
             </div>
 
-            <div style={{ flex: '1 1 auto', minHeight: '350px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: '1 1 auto', minHeight: '600px', display: 'flex', flexDirection: 'column' }}>
               <ImportSection />
             </div>
 

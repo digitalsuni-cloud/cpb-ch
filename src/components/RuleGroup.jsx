@@ -177,18 +177,24 @@ const RuleGroup = ({ group, index }) => {
                                     ⋮⋮
                                 </span>
                             </Tooltip>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                                Rule Group {index + 1}
-                            </h3>
-                            <Tooltip title="Group Status" content={getStatusTooltip(status)} variant="info">
-                                <span
-                                    className={`status-badge ${status === 'ACTIVE' ? 'enabled' : 'disabled'}`}
-                                    style={{ ...getStatusStyle(status), padding: '2px 10px', fontSize: '0.7rem' }}
-                                >
-                                    {status}
-                                </span>
-                            </Tooltip>
-                            {renderRulesSummary()}
+                            <div 
+                                style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, overflow: 'hidden', cursor: 'pointer' }}
+                                onClick={toggleCollapse}
+                                title={group.collapsed ? "Click to expand" : "Click to collapse"}
+                            >
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                    Rule Group {index + 1}
+                                </h3>
+                                <Tooltip title="Group Status" content={getStatusTooltip(status)} variant="info">
+                                    <span
+                                        className={`status-badge ${status === 'ACTIVE' ? 'enabled' : 'disabled'}`}
+                                        style={{ ...getStatusStyle(status), padding: '2px 10px', fontSize: '0.7rem' }}
+                                    >
+                                        {status}
+                                    </span>
+                                </Tooltip>
+                                {renderRulesSummary()}
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center' }}>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML, getDeploymentSteps } from '../utils/converter';
 import { FaDownload, FaCopy, FaCheck, FaRocket, FaSmile, FaSlash, FaFileCsv } from 'react-icons/fa';
@@ -322,7 +323,7 @@ const ExportSection = () => {
         const hasCalendarIcons = highlighted.includes('__CALENDAR_ICON__');
 
         if (!hasProductIcons && !hasCalendarIcons) {
-            return <div dangerouslySetInnerHTML={{ __html: highlighted }} />;
+            return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlighted) }} />;
         }
 
         // Split by both product and calendar icon markers
@@ -349,7 +350,7 @@ const ExportSection = () => {
                             </span>
                         );
                     }
-                    return <span key={index} dangerouslySetInnerHTML={{ __html: part }} />;
+                    return <span key={index} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(part) }} />;
                 })}
             </div>
         );

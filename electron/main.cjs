@@ -204,13 +204,15 @@ function createWindow() {
         `);
     });
 
-    // Enable Ctrl+Shift+I / Cmd+Option+I to open DevTools
-    win.webContents.on('before-input-event', (event, input) => {
-        if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i') {
-            win.webContents.toggleDevTools();
-            event.preventDefault();
-        }
-    });
+    // Enable Ctrl+Shift+I / Cmd+Option+I to open DevTools — DEV ONLY
+    if (isDev) {
+        win.webContents.on('before-input-event', (event, input) => {
+            if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i') {
+                win.webContents.toggleDevTools();
+                event.preventDefault();
+            }
+        });
+    }
 }
 
 app.whenReady().then(() => {
@@ -224,10 +226,13 @@ app.whenReady().then(() => {
     });
 });
 
-ipcMain.on('toggle-dev-tools', () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) win.webContents.toggleDevTools();
-});
+// Dev-only: allow toggling DevTools via IPC
+if (isDev) {
+    ipcMain.on('toggle-dev-tools', () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) win.webContents.toggleDevTools();
+    });
+}
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

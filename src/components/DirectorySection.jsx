@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch, FaPlay } from 'react-icons/fa';
@@ -9,6 +10,7 @@ import { parseXMLToState, generateXML } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
 import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete, logDryRun, logAssignmentUpdate } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
+import { getCredential } from "../utils/credentials";
 
 let specCache = new Map(); // bookId → xml string
 
@@ -50,8 +52,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     const [actionProgress, setActionProgress] = useState({ active: false, title: '', status: '', logs: [], done: false, error: false });
 
     const loadDirectory = async () => {
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         if (!apiKey) {
             setError('Please configure your API Key in Settings first.');
@@ -98,8 +100,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     // Fetch XML spec — returns from cache if already loaded, fetches otherwise
     const getSpec = async (bookId) => {
         if (specCache.has(bookId)) return specCache.get(bookId);
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         const xml = await getPriceBookSpecification(bookId, apiKey, proxyUrl);
         specCache.set(bookId, xml);
         return xml;
@@ -128,8 +130,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         });
 
         if (!isConfirmed) return;
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         try {
             setActionProgress({ active: true, title: `Unassigning Pricebook for ${cleanName}`, status: `Removing assignment from ${cleanName}...`, logs: [], done: false, error: false });
             // Delete the BASE assignment (price_book_assignments) — this removes the customer link entirely
@@ -175,8 +177,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         });
 
         if (!isConfirmed) return;
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         // Truncate long pricebook names for the modal title
         const truncatedName = bookName.length > 30 ? `${bookName.substring(0, 28)}…` : bookName;
@@ -249,8 +251,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             if (!isConfirmed) return;
         }
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         try {
             const xml = await getSpec(bookId);
             const syntheticJsonPayload = {
@@ -294,8 +296,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
         // If customer exists, pre-fetch their payer account mappings
         if (customerId) {
-            const apiKey = localStorage.getItem('ch_api_key');
-            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+            const apiKey = getCredential('ch_api_key');
+            const proxyUrl = getCredential('ch_proxy_url') || '';
             try {
                 const results = await fetchAwsAccountAssignments(customerId, apiKey, proxyUrl);
                 const options = [...new Set(results.map(a => a.payer_account_owner_id).filter(Boolean))];
@@ -317,8 +319,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             const exists = allCust.some(c => String(c.id) === String(val));
             
             if (exists) {
-                const apiKey = localStorage.getItem('ch_api_key');
-                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const apiKey = getCredential('ch_api_key');
+                const proxyUrl = getCredential('ch_proxy_url') || '';
                 try {
                     const res = await fetchAwsAccountAssignments(val, apiKey, proxyUrl);
                     const opts = [...new Set(res.map(a => a.payer_account_owner_id).filter(Boolean))];
@@ -342,8 +344,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
             return;
         }
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         
         setIsDryRunExecuting(true); // Reusing dry run spinner state for overall UI lock
         setActionProgress({
@@ -580,8 +582,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         });
 
         // Fetch payer account assignments asynchronously
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         try {
             const assignments = await fetchAwsAccountAssignments(item.target_client_api_id, apiKey, proxyUrl);
             const options = [...new Set(assignments.map(a => a.payer_account_owner_id).filter(Boolean))];
@@ -609,8 +611,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
         }
 
         const { assignment, month, payerId } = dryRunData;
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         setIsDryRunExecuting(true);
         setActionProgress({
@@ -1080,7 +1082,7 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                         </div>
                                     </div>
                                     <div style={{ padding: '24px', overflowX: 'auto', overflowY: 'auto', flexGrow: 1, background: 'var(--bg-code)' }}>
-                                        <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: highlightXml(viewingXml) }} />
+                                        <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlightXml(viewingXml)) }} />
                                     </div>
                                 </motion.div>
                             </motion.div>
@@ -1222,8 +1224,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                     <button
                                                         onClick={async () => {
                                                             setAssignmentEditData(prev => ({ ...prev, isLoadingCustomers: true }));
-                                                            const apiKey = localStorage.getItem('ch_api_key');
-                                                            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                            const apiKey = getCredential('ch_api_key');
+                                                            const proxyUrl = getCredential('ch_proxy_url') || '';
                                                             try {
                                                                 const full = await fetchAllCustomers(apiKey, proxyUrl, true);
                                                                 setAssignmentEditData(prev => ({ ...prev, customerOptions: full, isLoadingCustomers: false }));
@@ -1290,8 +1292,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                         onClick={async () => {
                                                             if (!assignmentEditData.customerId) return;
                                                             setAssignmentEditData(prev => ({ ...prev, isLoadingOptions: true }));
-                                                            const apiKey = localStorage.getItem('ch_api_key');
-                                                            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                                            const apiKey = getCredential('ch_api_key');
+                                                            const proxyUrl = getCredential('ch_proxy_url') || '';
                                                             try {
                                                                 const res = await fetchAwsAccountAssignments(assignmentEditData.customerId, apiKey, proxyUrl, true);
                                                                 const opts = [...new Set(res.map(a => a.payer_account_owner_id).filter(Boolean))];
