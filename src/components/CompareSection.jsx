@@ -5,6 +5,7 @@ import { fetchAllPriceBooks, getPriceBookSpecification, ApiAuthError } from '../
 import { parseXMLToState } from '../utils/converter';
 import NaturalLanguageSummary from './NaturalLanguageSummary';
 import { DiffViewer } from './HistoryLog';
+import { getCredential } from "../utils/credentials";
 
 const CompareSection = ({ showToast }) => {
     const [books, setBooks] = useState([]);
@@ -22,8 +23,8 @@ const CompareSection = ({ showToast }) => {
     const [showDiff, setShowDiff] = useState(false);
 
     const loadBooks = async () => {
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         if (!apiKey) {
             setError('Please configure your API Key in Settings first.');
             return;
@@ -60,8 +61,8 @@ const CompareSection = ({ showToast }) => {
             showToast && showToast({ type: 'warning', title: 'Same Pricebook', message: 'You selected the same pricebook for both sides.' });
         }
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         setIsComparing(true);
         setError(null);

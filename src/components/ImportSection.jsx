@@ -7,6 +7,7 @@ import { isElectronApp } from '../utils/env';
 import { FaSyncAlt } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { useConfirm } from '../context/ConfirmContext';
+import { getCredential } from "../utils/credentials";
 
 const ImportSection = () => {
     const { state, dispatch } = usePriceBook();
@@ -43,8 +44,8 @@ const ImportSection = () => {
     }, [state.directoryCache]);
 
     const loadApiBooks = async () => {
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         if (!apiKey) {
             confirm({ title: 'Configuration Missing', message: 'No API Key configured. Please configure it in the settings.', type: 'alert', variant: 'warning' });
@@ -112,8 +113,8 @@ const ImportSection = () => {
     };
 
     const fetchAssignmentTarget = async (targetId) => {
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         setIsLookingUp(true);
         setLookupError('');
@@ -138,8 +139,8 @@ const ImportSection = () => {
     const handleSingleLookup = async () => {
         if (!lookupQuery.trim()) return;
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         if (!apiKey) {
             confirm({ title: 'Configuration Missing', message: 'No API Key configured. Please configure it in the settings.', type: 'alert', variant: 'warning' });
@@ -197,8 +198,8 @@ const ImportSection = () => {
 
     const handleLookupImport = async () => {
         if (!lookupResult) return;
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         setIsImporting(true);
         try {
@@ -215,8 +216,8 @@ const ImportSection = () => {
     const handleApiImport = async () => {
         if (!selectedBookId) return;
 
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         let targetBookId = selectedBookId;
         let selectedBookName = apiData.books.find(b => b.id.toString() === selectedBookId)?.name || 'Imported Book';
@@ -589,7 +590,7 @@ const ImportSection = () => {
                                     transition={{ duration: 0.2 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
                                 >
-                                    {!localStorage.getItem('ch_api_key') ? (
+                                    {!getCredential('ch_api_key') ? (
                                         <div style={{
                                             flex: 1,
                                             width: '100%',

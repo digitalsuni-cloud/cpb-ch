@@ -7,6 +7,7 @@ import Tooltip from './Tooltip';
 import { createPortal } from 'react-dom';
 import { diffLines, diffChars } from 'diff';
 import { createPriceBook, updatePriceBook, assignPriceBook } from '../utils/chApi';
+import { getCredential } from "../utils/credentials";
 
 // ─── Diff Viewer: LCS alignment + intra-line char diff + sync scroll ───────────
 const DiffViewer = ({ before, after, title, onClose }) => {
@@ -206,8 +207,8 @@ const HistoryLog = () => {
     // ── Rollback handler ─────────────────────────────────────────────────────
     const handleRollback = async (item) => {
         const d = item.details || {};
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
 
         if (!apiKey) {
             await confirm({

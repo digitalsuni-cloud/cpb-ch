@@ -5,6 +5,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import HelpSection from './components/HelpSection';
 import Toast from './components/Toast';
 import { useToast } from './hooks/useToast';
+import { hydrateCredentials } from './utils/credentials';
 
 // Views
 import PriceBookForm from './components/PriceBookForm';
@@ -245,6 +246,9 @@ function App() {
       if (manual) showToast({ type: 'error', title: 'Update Check Failed', message: 'Could not reach GitHub to check for updates.' });
     }
   }, [showToast, setActiveView]);
+
+  // Load credentials from OS keychain into memory on startup (C1 fix)
+  useEffect(() => { hydrateCredentials(); }, []);
 
   useEffect(() => {
     checkForUpdates(false);

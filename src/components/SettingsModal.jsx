@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isElectronApp } from '../utils/env';
 import { FaCode } from 'react-icons/fa';
 import Tooltip from './Tooltip';
+import { getCredential, setCredential } from '../utils/credentials';
 
 const SettingsModal = ({ isOpen, onClose }) => {
     const [apiKey, setApiKey] = useState('');
@@ -10,14 +11,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         if (isOpen) {
-            setApiKey(localStorage.getItem('ch_api_key') || '');
-            setProxyUrl(localStorage.getItem('ch_proxy_url') || '');
+            setApiKey(getCredential('ch_api_key') || '');
+            setProxyUrl(getCredential('ch_proxy_url') || '');
         }
     }, [isOpen]);
 
-    const handleSave = () => {
-        localStorage.setItem('ch_api_key', apiKey.trim());
-        localStorage.setItem('ch_proxy_url', proxyUrl.trim());
+    const handleSave = async () => {
+        await setCredential('ch_api_key', apiKey.trim());
+        await setCredential('ch_proxy_url', proxyUrl.trim());
         onClose();
     };
 
@@ -70,7 +71,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                             <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>API Integrations / Settings</h2>
                             <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                                 Configure connection parameters to communicate directly with the CloudHealth partner API.
-                                Credentials are saved securely within your browser's local storage.
+                                Credentials are saved securely within your system keychain.
                             </p>
                         </div>
 
@@ -110,9 +111,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                if (window.require) {
-                                                    const { ipcRenderer } = window.require('electron');
-                                                    ipcRenderer.send('toggle-dev-tools');
+                                                if (window.electronAPI) {
+                                                    window.electronAPI.toggleDevTools();
                                                 }
                                             }}
                                             style={{

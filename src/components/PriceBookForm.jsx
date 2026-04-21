@@ -5,6 +5,7 @@ import { isElectronApp } from '../utils/env';
 import { fetchAllCustomers, fetchAwsAccountAssignments, clearAwsCache } from '../utils/chApi';
 import Tooltip from './Tooltip';
 import { FaSyncAlt } from 'react-icons/fa';
+import { getCredential } from "../utils/credentials";
 
 const PriceBookForm = () => {
     const { state, dispatch } = usePriceBook();
@@ -18,11 +19,11 @@ const PriceBookForm = () => {
     useEffect(() => {
         let mounted = true;
         const loadCustomers = async () => {
-            const apiKey = localStorage.getItem('ch_api_key');
+            const apiKey = getCredential('ch_api_key');
             if (!apiKey) return;
             setIsLoadingCustomers(true);
             try {
-                const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                const proxyUrl = getCredential('ch_proxy_url') || '';
                 const customers = await fetchAllCustomers(apiKey, proxyUrl);
                 if (mounted) setCustomerOptions(customers || []);
             } catch (e) {
@@ -45,8 +46,8 @@ const PriceBookForm = () => {
         // Guard: only proceed if the entered value is a known customer ID (prevents per-keystroke calls)
         const isKnown = customerOptions.some(c => String(c.id) === String(cid).trim());
         if (!isKnown && !forceRefresh) { setPayerOptions([]); return; }
-        const apiKey = localStorage.getItem('ch_api_key');
-        const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+        const apiKey = getCredential('ch_api_key');
+        const proxyUrl = getCredential('ch_proxy_url') || '';
         if (!apiKey) return;
         if (forceRefresh) clearAwsCache(String(cid).trim());
         setIsLoadingPayers(true);
@@ -159,8 +160,8 @@ const PriceBookForm = () => {
                                 : <Tooltip title="Refresh Customers" content="Re-fetch the customer list from CloudHealth API" position="top">
                                     <button
                                         onClick={async () => {
-                                            const apiKey = localStorage.getItem('ch_api_key');
-                                            const proxyUrl = localStorage.getItem('ch_proxy_url') || '';
+                                            const apiKey = getCredential('ch_api_key');
+                                            const proxyUrl = getCredential('ch_proxy_url') || '';
                                             if (!apiKey) return;
                                             setIsLoadingCustomers(true);
                                             try {
