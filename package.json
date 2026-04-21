@@ -23,6 +23,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "aws-react-icons": "^3.2.0",
     "diff": "^8.0.3",
+    "dompurify": "^3.4.0",
     "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
