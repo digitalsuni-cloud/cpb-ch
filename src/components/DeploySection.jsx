@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML } from '../utils/converter';
 import { createPriceBook, updatePriceBook, deletePriceBook, assignPriceBook, performDryRun, getPriceBookSpecification, getSingleCustomerAssignment, fetchAllCustomers, fetchAllPriceBooks, fetchPriceBookById, fetchAllPriceBookAssignments, fetchAwsAccountAssignments, clearAwsCache, ApiAuthError } from '../utils/chApi';
@@ -8,6 +10,8 @@ import { FaWindows, FaApple, FaLinux, FaDownload, FaSyncAlt, FaCheckCircle, FaTi
 import Tooltip from './Tooltip';
 import { useConfirm } from '../context/ConfirmContext';
 import { getCredential } from "../utils/credentials";
+import CustomSelect from './CustomSelect';
+
 
 const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
     const { state, dispatch } = usePriceBook();
@@ -742,15 +746,14 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                             </Tooltip>
                                         )}
                                     </label>
-                                    <select
+                                    <CustomSelect
                                         value={billingAccountOwnerId || 'ALL'}
                                         onChange={(e) => setBillingAccountOwnerId(e.target.value)}
-                                    >
-                                        <option value="ALL">ALL (Global Assignment)</option>
-                                        {assignPayerOptions.map(opt => (
-                                            <option key={opt} value={opt}>{opt}</option>
-                                        ))}
-                                    </select>
+                                        options={[
+                                            { value: 'ALL', label: 'ALL (Global Assignment)' },
+                                            ...assignPayerOptions.map(opt => ({ value: opt, label: opt }))
+                                        ]}
+                                    />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', alignItems: 'flex-start' }}>
                                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                             Leave empty or enter 'ALL' for global assignment.
@@ -781,14 +784,11 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                 <div className="input-row" style={{ alignItems: 'flex-start' }}>
                                     <div className="input-group">
                                         <label>Evaluation Start Date</label>
-                                        <select
+                                        <CustomSelect
                                             value={dryRunStartDate}
                                             onChange={(e) => setDryRunStartDate(e.target.value)}
-                                        >
-                                            {monthOptions.map(opt => (
-                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                            ))}
-                                        </select>
+                                            options={monthOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                                        />
                                     </div>
 
                                     <div className="input-group">
@@ -847,15 +847,14 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                                                 </Tooltip>
                                             )}
                                         </label>
-                                        <select
+                                        <CustomSelect
                                             value={dryRunPayerId}
                                             onChange={(e) => setDryRunPayerId(e.target.value)}
-                                        >
-                                            <option value="" disabled>Select Payer ID</option>
-                                            {dryRunPayerOptions.map(opt => (
-                                                <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                        </select>
+                                            options={[
+                                                { value: '', label: 'Select Payer ID' },
+                                                ...dryRunPayerOptions.map(opt => ({ value: opt, label: opt }))
+                                            ]}
+                                        />
                                         <div style={{ minHeight: '18px', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                             {dryRunPayerOptions.length > 0 ? `${dryRunPayerOptions.length} payer account(s) found for this customer.` : ''}
                                         </div>
@@ -890,27 +889,78 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         )}
                     </button>
 
-                    {deployStatus.message && (
-                        <div style={{ marginTop: '20px', padding: '20px', borderRadius: '12px', border: `1px solid ${deployStatus.success ? 'var(--success-border)' : (isDeploying ? 'var(--border)' : 'var(--danger)')}`, background: deployStatus.success ? 'var(--success-bg)' : (isDeploying ? 'var(--bg-card)' : 'rgba(239, 68, 68, 0.05)') }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                                {deployStatus.success ? (
-                                    <FaCheckCircle color="var(--success)" size={20} />
-                                ) : isDeploying ? (
-                                    <FaSyncAlt color="var(--primary)" size={16} className="spin" />
-                                ) : (
-                                    <FaTimesCircle color="var(--danger)" size={20} />
-                                )}
-                                <h5 style={{ margin: 0, color: deployStatus.success ? 'var(--success)' : (isDeploying ? 'var(--primary)' : 'var(--danger)'), fontSize: '1rem' }}>
-                                    {deployStatus.success ? 'SUCCESS' : (isDeploying ? 'DEPLOYING...' : 'DEPLOYMENT FAILED')}
-                                </h5>
-                            </div>
-                            <p style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>{deployStatus.message}</p>
-                            <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '12px', borderRadius: '6px', background: 'var(--bg-subtle)', fontSize: '0.85rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                {deployStatus.details.map((detail, i) => (
-                                    <div key={i} style={{ marginBottom: '4px' }}>{detail}</div>
-                                ))}
-                            </div>
-                        </div>
+                    {deployStatus.message && createPortal(
+                        <AnimatePresence>
+                            <>
+                                {/* Static blur layer */}
+                                <div style={{
+                                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                    zIndex: 9998, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', pointerEvents: 'none'
+                                }} />
+                                
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{
+                                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                        background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+                                    }}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0.95, y: 20 }}
+                                        animate={{ scale: 1, y: 0 }}
+                                        exit={{ scale: 0.95, y: 20 }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 28, mass: 0.8 }}
+                                        className="card"
+                                        style={{
+                                            position: 'relative', width: '100%', maxWidth: '600px', background: 'var(--bg-card)',
+                                            border: `1px solid ${deployStatus.success ? 'var(--success-border)' : (isDeploying ? 'var(--border)' : 'var(--danger)')}`,
+                                            borderRadius: '16px', boxShadow: 'var(--shadow-card)', overflow: 'hidden', zIndex: 1, willChange: 'transform',
+                                            display: 'flex', flexDirection: 'column'
+                                        }}
+                                    >
+                                        {/* Header */}
+                                        <div style={{ padding: '24px 52px 8px 24px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                {deployStatus.success ? (
+                                                    <FaCheckCircle color="var(--success)" size={24} />
+                                                ) : isDeploying ? (
+                                                    <FaSyncAlt color="var(--primary)" size={20} className="spin" />
+                                                ) : (
+                                                    <FaTimesCircle color="var(--danger)" size={24} />
+                                                )}
+                                                <h3 style={{ margin: 0, color: deployStatus.success ? 'var(--success)' : (isDeploying ? 'var(--primary)' : 'var(--danger)'), fontSize: '1.2rem', fontWeight: 600 }}>
+                                                    {deployStatus.success ? 'SUCCESS' : (isDeploying ? 'DEPLOYING...' : 'DEPLOYMENT FAILED')}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        
+                                        {!isDeploying && (
+                                            <button
+                                                onClick={() => setDeployStatus({ success: false, message: '', details: [] })}
+                                                style={{ position: 'absolute', top: '20px', right: '20px', width: '28px', height: '28px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', transition: 'all 0.18s', zIndex: 2 }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                                aria-label="Close"
+                                            >✕</button>
+                                        )}
+                                        
+                                        {/* Body */}
+                                        <div style={{ padding: '16px 24px 24px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>{deployStatus.message}</p>
+                                            <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '16px', borderRadius: '8px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', fontSize: '0.85rem', color: 'var(--text-secondary)', fontFamily: 'monospace', lineHeight: 1.5 }}>
+                                                {deployStatus.details.map((detail, i) => (
+                                                    <div key={i} style={{ marginBottom: '6px' }}>{detail}</div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            </>
+                        </AnimatePresence>,
+                        document.body
                     )}
                 </div>
             )}

@@ -1,204 +1,242 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isElectronApp } from '../utils/env';
-import { FaCode } from 'react-icons/fa';
-import Tooltip from './Tooltip';
 import { getCredential, setCredential } from '../utils/credentials';
+import { open as openUrl } from '@tauri-apps/plugin-shell';
+
+
 
 const SettingsModal = ({ isOpen, onClose }) => {
-    const [apiKey, setApiKey] = useState('');
-    const [proxyUrl, setProxyUrl] = useState('');
+    const [apiKey, setApiKey]     = useState('');
     const [apiError, setApiError] = useState('');
-    const [proxyError, setProxyError] = useState('');
+    const [saved, setSaved]       = useState(false);
+    const debounceRef             = useRef(null);
 
+    // Load key when modal opens
     useEffect(() => {
         if (isOpen) {
             setApiKey(getCredential('ch_api_key') || '');
-            setProxyUrl(getCredential('ch_proxy_url') || '');
+            setApiError('');
+            setSaved(false);
         }
     }, [isOpen]);
 
-    const handleSave = async () => {
-        let hasError = false;
-        
-        const keyTrimmed = apiKey.trim();
-        if (keyTrimmed && keyTrimmed.length < 15) {
-            setApiError('API Key appears too short (expected >15 characters).');
-            hasError = true;
-        } else {
-            setApiError('');
-        }
 
-        const proxyTrimmed = proxyUrl.trim();
-        if (proxyTrimmed) {
-            try {
-                const parsedUrl = new URL(proxyTrimmed);
-                if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                    setProxyError('Proxy URL must start with http:// or https://');
-                    hasError = true;
-                } else {
-                    setProxyError('');
-                }
-            } catch (e) {
-                setProxyError('Invalid URL format.');
-                hasError = true;
+    // Auto-save with 600ms debounce after user stops typing
+    const handleChange = (val) => {
+        setApiKey(val);
+        setApiError('');
+        setSaved(false);
+
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            const trimmed = val.trim();
+            if (trimmed && trimmed.length < 15) {
+                setApiError('API Key appears too short (expected >15 characters).');
+                return;
             }
-        } else {
-            setProxyError('');
-        }
-
-        if (!hasError) {
-            await setCredential('ch_api_key', keyTrimmed);
-            await setCredential('ch_proxy_url', proxyTrimmed);
-            onClose();
-        }
+            await setCredential('ch_api_key', trimmed);
+            if (trimmed) setSaved(true);
+        }, 600);
     };
 
-    return (
+    // Save on close if there's an unsaved value (e.g. user types then immediately clicks X)
+    const handleClose = async () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        const trimmed = apiKey.trim();
+        if (trimmed && trimmed.length >= 15) {
+            await setCredential('ch_api_key', trimmed);
+        }
+        onClose();
+    };
+
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 9999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '20px'
-                }}>
+                <>
+                    {/* Static blur layer — never animates, always composited by GPU */}
+                    <div style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        zIndex: 9998,
+                        backdropFilter: 'blur(6px)',
+                        WebkitBackdropFilter: 'blur(6px)',
+                        pointerEvents: 'none',
+                    }} />
+
+                    {/* Animated overlay — plain colour only, no blur recalc each frame */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={onClose}
+                        transition={{ duration: 0.15 }}
+                        onClick={handleClose}
                         style={{
-                            position: 'absolute',
+                            position: 'fixed',
                             top: 0, left: 0, right: 0, bottom: 0,
-                            background: 'rgba(0, 0, 0, 0.6)',
-                            backdropFilter: 'blur(4px)'
-                        }}
-                    />
-
-                    <motion.div
-                        initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="card"
-                        style={{
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '500px',
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '16px',
-                            boxShadow: 'var(--shadow-card)',
-                            overflow: 'hidden',
-                            zIndex: 1
+                            background: 'rgba(0,0,0,0.55)',
+                            zIndex: 9999,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '20px',
                         }}
                     >
-                        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>API Integrations / Settings</h2>
-                            <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                                Configure connection parameters to communicate directly with the CloudHealth partner API.
-                                Credentials are saved securely within your system keychain.
+                        {/* Card — GPU-promoted, scale+y spring only */}
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 28, mass: 0.8 }}
+                            onClick={e => e.stopPropagation()}
+                            className="card"
+                            style={{
+                                position: 'relative',
+                                width: '100%',
+                                maxWidth: '500px',
+                                background: 'var(--bg-card)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '16px',
+                                boxShadow: 'var(--shadow-card)',
+                                overflow: 'hidden',
+                                zIndex: 1,
+                                willChange: 'transform',
+                            }}
+                        >
+                        {/* ── X close button — absolute top-right corner ── */}
+                        <button
+                            onClick={handleClose}
+                            style={{
+                                position: 'absolute',
+                                top: '14px',
+                                right: '14px',
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '7px',
+                                border: '1px solid var(--border)',
+                                background: 'transparent',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.85rem',
+                                lineHeight: 1,
+                                transition: 'all 0.18s',
+                                zIndex: 2,
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)';
+                                e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.borderColor = 'var(--border)';
+                                e.currentTarget.style.color = 'var(--text-muted)';
+                            }}
+                            aria-label="Close settings"
+                        >
+                            ✕
+                        </button>
+
+                        {/* ── Header (no longer contains the X) ── */}
+                        <div style={{
+                            padding: '20px 52px 20px 24px',   /* right-pad makes room for X */
+                            borderBottom: '1px solid var(--border)',
+                        }}>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>
+                                API Settings
+                            </h2>
+                            <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                                Configure your CloudHealth API key to communicate with your CloudHealth Partner tenant.
+                                Your key is stored securely on this device.
                             </p>
                         </div>
 
-                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {/* Body */}
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div className="input-group" style={{ margin: 0 }}>
-                                <label>CloudHealth API Key</label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    CloudHealth API Key
+                                    {saved && (
+                                        <span style={{
+                                            fontSize: '0.72rem',
+                                            color: 'var(--success)',
+                                            background: 'rgba(16,185,129,0.1)',
+                                            border: '1px solid rgba(16,185,129,0.3)',
+                                            borderRadius: '4px',
+                                            padding: '1px 6px',
+                                            fontWeight: 600,
+                                        }}>
+                                            ✓ Saved
+                                        </span>
+                                    )}
+                                </label>
                                 <input
                                     type="password"
                                     value={apiKey}
-                                    onChange={e => { setApiKey(e.target.value); setApiError(''); }}
+                                    onChange={e => handleChange(e.target.value)}
                                     placeholder="Enter your CloudHealth API Token"
-                                    style={{ width: '100%', boxSizing: 'border-box', borderColor: apiError ? 'var(--error)' : 'var(--border)' }}
+                                    style={{
+                                        width: '100%',
+                                        boxSizing: 'border-box',
+                                        borderColor: apiError ? 'var(--danger)' : undefined,
+                                    }}
                                 />
-                                {apiError && <span style={{ fontSize: '0.8rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{apiError}</span>}
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                                    Found in Setup &gt; Administrators &gt; API Keys
-                                </span>
-                            </div>
-
-                            <div className="input-group" style={{ margin: 0 }}>
-                                <label>CORS Proxy URL (Optional)</label>
-                                <input
-                                    type="text"
-                                    value={proxyUrl}
-                                    onChange={e => { setProxyUrl(e.target.value); setProxyError(''); }}
-                                    placeholder="e.g. https://cors-anywhere.herokuapp.com/"
-                                    style={{ width: '100%', boxSizing: 'border-box', borderColor: proxyError ? 'var(--error)' : 'var(--border)' }}
-                                />
-                                {proxyError && <span style={{ fontSize: '0.8rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{proxyError}</span>}
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                                    If you run into browser CORS errors while deploying, you can specify a proxy URL prefix to route through. Include trailing slash.
-                                </span>
-                            </div>
-
-                            {isElectronApp() && (
-                                <div className="input-group" style={{ margin: 0 }}>
-                                    <label>Advanced Troubleshooting</label>
-                                    <Tooltip title="DevTools" content="Open the built-in browser inspector to debug API calls and view console logs" position="top">
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                if (window.electronAPI) {
-                                                    window.electronAPI.toggleDevTools();
-                                                }
-                                            }}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '8px',
-                                                width: '100%',
-                                                padding: '10px',
-                                                background: 'var(--bg-deep)',
-                                                border: '1px solid var(--border)',
-                                                color: 'var(--text-main)',
-                                                borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.9rem',
-                                                fontWeight: 600,
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-                                        >
-                                            <FaCode /> Toggle Developer Tools (Network Inspector)
-                                        </button>
-                                    </Tooltip>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                                        Open the native Chrome DevTools to inspect live raw API payloads and debug network requests. (Shortcut: Ctrl+Shift+I)
+                                {apiError && (
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--danger)', marginTop: '4px', display: 'block' }}>
+                                        {apiError}
                                     </span>
+                                )}
+                                <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                        Found Under
+                                        <button
+                                            onClick={() => openUrl('https://apps.cloudhealthtech.com/profile').catch(() => {})}
+                                            style={{
+                                                background: 'none', border: 'none', padding: 0,
+                                                cursor: 'pointer', color: 'var(--primary)',
+                                                fontSize: '0.8rem', fontWeight: 600,
+                                                textDecoration: 'underline', textUnderlineOffset: '2px',
+                                                transition: 'color 0.15s',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
+                                            onMouseLeave={e => e.currentTarget.style.color = 'var(--primary)'}
+                                        >
+                                            User Profile
+                                        </button>
+                                        <span>→ API Keys</span>
+                                    </span>
+                                    <button
+                                        onClick={() => openUrl('https://apidocs.cloudhealthtech.com/#documentation_getting-your-api-key').catch(() => {})}
+                                        style={{
+                                            background: 'none', border: 'none', padding: 0,
+                                            cursor: 'pointer', color: 'var(--primary)',
+                                            fontSize: '0.8rem',
+                                            textDecoration: 'underline', textUnderlineOffset: '2px',
+                                            transition: 'color 0.15s',
+                                            textAlign: 'left',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
+                                        onMouseLeave={e => e.currentTarget.style.color = 'var(--primary)'}
+                                    >
+                                        How to get your API key ↗
+                                    </button>
                                 </div>
-                            )}
-                        </div>
 
-                        <div style={{ padding: '24px', background: 'var(--bg-deep)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button
-                                className="button-secondary"
-                                onClick={onClose}
-                                style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)' }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="button-primary"
-                                onClick={handleSave}
-                                style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', background: 'var(--primary)', color: '#fff', border: 'none', fontWeight: 600 }}
-                            >
-                                Save Settings
-                            </button>
+                            </div>
                         </div>
                     </motion.div>
-                </div>
+                </motion.div>
+                </>
             )}
+
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
+
 };
 
 export default SettingsModal;

@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@fontsource/inter/300.css';
 import '@fontsource/inter/400.css';
@@ -15,11 +14,10 @@ import { PriceBookProvider } from './context/PriceBookContext.jsx'
 import { ConfirmProvider } from './context/ConfirmContext.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ConfirmProvider>
-      <PriceBookProvider>
-        <App />
-      </PriceBookProvider>
-    </ConfirmProvider>
-  </StrictMode>,
+  <ConfirmProvider>
+    <PriceBookProvider>
+      <App />
+    </PriceBookProvider>
+  </ConfirmProvider>,
 )
+

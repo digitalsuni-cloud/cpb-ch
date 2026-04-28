@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { FaSyncAlt, FaExchangeAlt, FaAlignLeft, FaCode } from 'react-icons/fa';
 import { fetchAllPriceBooks, getPriceBookSpecification, ApiAuthError } from '../utils/chApi';
 import { parseXMLToState } from '../utils/converter';
+import CustomSelect from './CustomSelect';
+
 import NaturalLanguageSummary from './NaturalLanguageSummary';
 import { DiffViewer } from './HistoryLog';
 import { getCredential } from "../utils/credentials";
@@ -124,16 +126,15 @@ const CompareSection = ({ showToast }) => {
                         <label style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }}></span> Book A
                         </label>
-                        <select 
-                            value={bookAId} 
+                        <CustomSelect
+                            value={bookAId}
                             onChange={e => setBookAId(e.target.value)}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-deep)', border: '1px solid var(--border)', color: 'var(--text-main)', outline: 'none', fontSize: '0.95rem' }}
-                        >
-                            <option value="">-- Select Pricebook A --</option>
-                            {books.map(b => (
-                                <option key={b.id} value={b.id}>{b.name} (ID: {b.id})</option>
-                            ))}
-                        </select>
+                            options={[
+                                { value: '', label: '-- Select Pricebook A --' },
+                                ...books.map(b => ({ value: String(b.id), label: `${b.name} (ID: ${b.id})` }))
+                            ]}
+                            style={{ width: '100%' }}
+                        />
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '10px' }}>
@@ -164,15 +165,15 @@ const CompareSection = ({ showToast }) => {
                         <label style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }}></span> Book B
                         </label>
-                        <select 
-                            value={bookBId} 
+                        <CustomSelect
+                            value={bookBId}
                             onChange={e => setBookBId(e.target.value)}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-deep)', border: '1px solid var(--border)', color: 'var(--text-main)', outline: 'none', fontSize: '0.95rem' }}
-                        >
-                            <option value="">-- Select Pricebook B --</option>
-                            {books.map(b => (
-                                <option key={b.id} value={b.id}>{b.name} (ID: {b.id})</option>
-                            ))}
+                            options={[
+                                { value: '', label: '-- Select Pricebook B --' },
+                                ...books.map(b => ({ value: String(b.id), label: `${b.name} (ID: ${b.id})` }))
+                            ]}
+                            style={{ width: '100%' }}
+                        />
                         </select>
                     </div>
                 </div>
