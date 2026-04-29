@@ -37,18 +37,25 @@ jobs:
 
       - name: install dependencies
         run: |
+          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            sudo dpkg --add-architecture arm64
+            # Completely rewrite sources.list to be architecture-specific and avoid 404s
+            sudo bash -c 'cat <<EOF > /etc/apt/sources.list
+            deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+            deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+            deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+            deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
+
+            deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse
+            deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse
+            deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse
+            EOF'
+            # Clean out sources.list.d to prevent conflicts from side-car repositories
+            sudo rm -rf /etc/apt/sources.list.d/*
+          fi
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
           if [ "${{ matrix.arch }}" = "aarch64" ]; then
-            sudo dpkg --add-architecture arm64
-            # Robustly restrict ALL existing mirrors to amd64 only to avoid 404s
-            sudo sed -i 's/^deb http/deb [arch=amd64] http/g' /etc/apt/sources.list
-            sudo sed -i 's/^deb https/deb [arch=amd64] https/g' /etc/apt/sources.list
-            # Add the correct ARM64 ports mirrors
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-            sudo apt-get update
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
             sudo apt-get install -y libwebkit2gtk-4.1-dev:arm64 libappindicator3-dev:arm64 librsvg2-dev:arm64
           fi
