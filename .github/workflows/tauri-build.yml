@@ -41,7 +41,45 @@ jobs:
         with:
           tagName: tauri-v__VERSION__
           releaseName: 'CloudHealth Pricebook Studio Tauri v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: |
+            # CloudHealth Pricebook Studio Tauri v5.0.0
+
+            This major release combines all the new features from v4.4 through v5.0, introducing the **Template Library**, powerful **Rollback and Restore** capabilities, new **Export Options**, and robust workflows for pricebook management.
+
+            ### 🔄 Rollback and Restore 
+            - **Action History Rollback**: Introduced the ability to easily rollback and restore Pricebook state configurations directly from the Action History log and restore the customer assignments for the unassigned events.
+
+            ### 📊 Advanced Export & Diff Tools
+            - **Pricebook Spec Diff Viewer**: Dramatically improved the diff visualizer for a much more intuitive side-by-side breakdown of XML specification changes.
+            - **CSV & PDF Exports**: Added the option to export Pricebook Rules in CSV format and generate high-quality PDF exports for the Price Book Summary.
+
+            ### 📚 Expanded Template Library
+            Added several "out-of-the-box" templates for faster pricebook creation:
+            - **Remove Private & EDP Discounts**: Zeros out Private Rate and Enterprise Discount Program items—ideal for building list-price baselines.
+            - **CloudWatch List Pricing**: Adjusts data storage and log processing to standard on-demand rates.
+            - **CloudFront HTTP/S List Pricing**: Standardized request pricing for major global regions.
+            - **S3 Custom Tier Pricing**: Pre-negotiated rates across multiple storage tiers (Standard, SIA, Intelligent-Tiering, etc.) with human-readable rule names.
+
+            ### 🛡️ Maintenance, Portability & UX
+            - **Enhanced Data Portability**: Added robust Import/Export functionality for both Action History and the *Your Templates* library, allowing for seamless data migration and backups.
+            - **Smart Template Logic**: Integrated collision detection ("Add" vs "Overwrite") and metadata preservation for template merges.
+            - **General Improvements**: Resolved various UI inconsistencies and patched performance bugs. All dropdowns and dialogs now strictly follow the system theme.
+            
+            ---
+            ## File Details
+            | Architecture | Platform | File to Download |
+            | :--- | :--- | :--- |
+            | ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Apple Silicon | [CloudHealth Pricebook Studio Tauri_5.0.0_aarch64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v5.0.0/CloudHealth%20Pricebook%20Studio%20Tauri_5.0.0_aarch64.dmg) |
+            | ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Intel | [CloudHealth Pricebook Studio Tauri_5.0.0_x64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v5.0.0/CloudHealth%20Pricebook%20Studio%20Tauri_5.0.0_x64.dmg) |
+            | ![Windows](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/windows.svg) | Universal / Portable | [CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v5.0.0/CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe) |
+            | ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | x64 (Deb) | [CloudHealth Pricebook Studio Tauri_5.0.0_amd64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v5.0.0/CloudHealth%20Pricebook%20Studio%20Tauri_5.0.0_amd64.deb) |
+            | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | x64 (AppImage) | [CloudHealth Pricebook Studio Tauri_5.0.0_amd64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v5.0.0/CloudHealth%20Pricebook%20Studio%20Tauri_5.0.0_amd64.AppImage) |
+
+            > **Note for macOS Users:**
+            > Because this is an internal application, it is not code-signed via Apple Developer program. To run it for the first time, you must remove the quarantine attribute. Open your Terminal and run:
+            > \`\`\`bash
+            > xattr -cr "/Applications/CloudHealth Pricebook Studio Tauri.app"
+            > \`\`\`
           releaseDraft: true
           prerelease: false
 
