@@ -6,6 +6,7 @@ on:
       - main
       - master
       - tauri
+      - feature/tauri-port
   workflow_dispatch:
 
 jobs:
