@@ -19,7 +19,7 @@ jobs:
           - platform: 'ubuntu-22.04'
             args: ''
           - platform: 'windows-latest'
-            args: ''
+            args: '--no-bundle'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -55,3 +55,11 @@ jobs:
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: true
           prerelease: false
+
+      - name: upload portable windows exe
+        if: matrix.platform == 'windows-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mv "src-tauri/target/release/CloudHealth Pricebook Studio Tauri.exe" "src-tauri/target/release/CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe"
+          gh release upload tauri-v5.0.0 "src-tauri/target/release/CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe" --clobber
