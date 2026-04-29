@@ -9,19 +9,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-tauri:
+  build-linux:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: 'ubuntu-22.04'
-            args: ''
-          - platform: 'windows-latest'
-            args: '--no-bundle'
-
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -34,10 +25,9 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'ubuntu-22.04' && 'x86_64-unknown-linux-gnu' || 'x86_64-pc-windows-msvc' }}
+          targets: x86_64-unknown-linux-gnu
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+      - name: install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -49,17 +39,40 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: ${{ matrix.args }}
           tagName: tauri-v__VERSION__
           releaseName: 'CloudHealth Pricebook Studio Tauri v__VERSION__'
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: true
           prerelease: false
 
-      - name: upload portable windows exe
-        if: matrix.platform == 'windows-latest'
+  build-windows:
+    needs: build-linux
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: install frontend dependencies
+        run: npm install
+
+      - name: build portable exe
+        run: npm run tauri build -- --no-bundle
+
+      - name: upload portable exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mv "src-tauri/target/release/CloudHealth Pricebook Studio Tauri.exe" "src-tauri/target/release/CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe"
+          mv "src-tauri/target/release/app.exe" "src-tauri/target/release/CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe"
           gh release upload tauri-v5.0.0 "src-tauri/target/release/CloudHealth_Pricebook_Studio_Tauri_Portable_v5.0.0.exe" --clobber
