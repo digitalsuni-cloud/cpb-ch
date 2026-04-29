@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BillingRuleList from './BillingRuleList';
 import { FaPlus, FaTrash, FaCopy } from 'react-icons/fa';
 import Tooltip from './Tooltip';
+import DateInput from './DateInput';
+import CustomSelect from './CustomSelect';
+
 
 const RuleGroup = ({ group, index }) => {
     const { dispatch } = usePriceBook();
@@ -289,13 +292,23 @@ const RuleGroup = ({ group, index }) => {
                     </div>
 
                     <div className="input-row" style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: group.collapsed ? '0' : '15px' }}>
+
                         <div className="input-group" style={{ flex: '0 0 140px' }}>
                             <label style={{ marginLeft: '2px' }}>Start Date</label>
-                            <input type="date" name="startDate" value={group.startDate} onChange={handleChange} style={{ width: '100%' }} />
+                            <DateInput
+                                name="startDate"
+                                value={group.startDate}
+                                onChange={handleChange}
+                            />
                         </div>
                         <div className="input-group" style={{ flex: '0 0 140px' }}>
                             <label style={{ marginLeft: '2px' }}>End Date</label>
-                            <input type="date" name="endDate" value={group.endDate} onChange={handleChange} style={{ width: '100%' }} />
+                            <DateInput
+                                name="endDate"
+                                value={group.endDate}
+                                onChange={handleChange}
+                                placeholder="dd/mm/yyyy"
+                            />
                         </div>
                         <div className="input-group" style={{ flex: 1 }}>
                             <label>Payer Account IDs</label>
@@ -310,10 +323,15 @@ const RuleGroup = ({ group, index }) => {
                         </div>
                         <div className="input-group" style={{ flex: '0 0 120px', width: 'auto', minWidth: '120px' }}>
                             <label>Enabled</label>
-                            <select name="enabled" value={group.enabled} onChange={handleChange} style={{ width: '100%' }}>
-                                <option value="true">Yes</option>
-                                <option value="false">No</option>
-                            </select>
+                            <CustomSelect
+                                name="enabled"
+                                value={group.enabled}
+                                onChange={handleChange}
+                                options={[
+                                    { value: 'true',  label: 'Yes' },
+                                    { value: 'false', label: 'No'  }
+                                ]}
+                            />
                         </div>
                     </div>
 

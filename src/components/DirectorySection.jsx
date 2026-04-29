@@ -3,11 +3,14 @@ import DOMPurify from 'dompurify';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSyncAlt, FaTrash, FaCheckCircle, FaTimesCircle, FaEdit, FaEye, FaTimes, FaBookOpen, FaPen, FaUserEdit, FaCheckSquare, FaRegSquare, FaChevronLeft, FaChevronRight, FaAlignLeft, FaExpand, FaCompress, FaDownload, FaCopy, FaCheck, FaSearch, FaPlay } from 'react-icons/fa';
+import CustomSelect from './CustomSelect';
+
 import Tooltip from './Tooltip';
 import { getAssignedPriceBooks, deletePriceBook, deletePriceBookAssignment, deleteBaseAssignment, getPriceBookSpecification, ApiAuthError, performDryRun, fetchAwsAccountAssignments, assignPriceBook, getCachedCustomers, fetchAllCustomers } from '../utils/chApi';
 import { usePriceBook } from '../context/PriceBookContext';
 import { parseXMLToState, generateXML } from '../utils/converter';
 import ToggleSwitch from './ToggleSwitch';
+import Select from 'react-select';
 import { logCustomerUnassign, logPricebookDelete, logAssignmentDelete, logDryRun, logAssignmentUpdate } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
 import { getCredential } from "../utils/credentials";
@@ -169,9 +172,32 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
     };
 
     const handleDeleteBook = async (bookId, bookName) => {
+        const assignmentsToRemove = apiData.assignments.filter(a => String(a.id) === String(bookId) && a.is_assigned);
+
         const isConfirmed = await confirm({
             title: 'CRITICAL: Delete Pricebook',
-            message: `Are you completely sure you want to delete Pricebook "${bookName}" globally? This cannot be undone.`,
+            message: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <p style={{ margin: 0 }}>Are you completely sure you want to delete Pricebook "{bookName}" globally? This cannot be undone.</p>
+                    {assignmentsToRemove.length > 0 && (
+                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                            <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#fca5a5', fontWeight: 'bold' }}>
+                                This pricebook is currently assigned to the following customers:
+                            </p>
+                            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                {assignmentsToRemove.map((a, idx) => {
+                                    const cleanCustName = a.customer_name ? a.customer_name.replace(/\s*\(\d+\)$/, '') : 'Unknown Customer';
+                                    return (
+                                        <li key={a.assignment_id || idx} style={{ marginBottom: '4px' }}>
+                                            {cleanCustName} ({a.target_client_api_id}) - Assignment ID: {a.assignment_id}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            ),
             variant: 'danger',
             confirmLabel: 'Delete Globally'
         });
@@ -182,7 +208,6 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
         // Truncate long pricebook names for the modal title
         const truncatedName = bookName.length > 30 ? `${bookName.substring(0, 28)}…` : bookName;
-        const assignmentsToRemove = apiData.assignments.filter(a => a.id === bookId && a.is_assigned);
 
         try {
             setActionProgress({ active: true, title: `Deleting Pricebook — ${truncatedName}`, status: `Starting deletion...`, logs: [], done: false, error: false });
@@ -277,7 +302,7 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
 
     const handleEditAssignment = async (bookId, bookName, customerId, payerId, assignmentId) => {
         // Find existing customer name for prefill logging
-        const allCust = getCachedCustomers();
+        const allCust = (apiData && apiData.customers && apiData.customers.length > 0) ? apiData.customers : getCachedCustomers();
         const customer = allCust.find(c => String(c.id) === String(customerId));
         setAssignmentEditData({
             bookId,
@@ -982,18 +1007,15 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                         <span>Rows per page:</span>
-                        <select
-                            value={pageSize}
+                        <CustomSelect
+                            value={String(pageSize)}
                             onChange={(e) => {
                                 setPageSize(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }}
-                        >
-                            {[10, 20, 30, 40, 50].map(size => (
-                                <option key={size} value={size}>{size}</option>
-                            ))}
-                        </select>
+                            options={[10, 20, 30, 40, 50].map(size => ({ value: String(size), label: String(size) }))}
+                            style={{ width: '80px' }}
+                        />
                         <span style={{ marginLeft: '12px' }}>
                             Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} records
                         </span>
@@ -1034,7 +1056,7 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                             >
                                 <motion.div
                                     initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-                                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: xmlExpanded ? '100%' : '800px', height: xmlExpanded ? '100%' : 'auto', maxHeight: xmlExpanded ? '100%' : '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.3s ease-in-out' }}
+                                    style={{ position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: xmlExpanded ? '100%' : '800px', height: xmlExpanded ? '100%' : 'auto', maxHeight: xmlExpanded ? '100%' : '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.3s ease-in-out' }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-deep)' }}>
@@ -1074,8 +1096,8 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                     {xmlExpanded ? <FaCompress /> : <FaExpand />}
                                                 </button>
                                             </Tooltip>
-                                            <Tooltip title="Close" content="Dismiss this view">
-                                                <button onClick={() => setViewingXml(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                                            <Tooltip title="Close" content="Close specification viewer">
+                                                <button onClick={() => setViewingXml(null)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
                                                     <FaTimes />
                                                 </button>
                                             </Tooltip>
@@ -1099,20 +1121,25 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                             >
                                 <motion.div
                                     initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-                                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                                    style={{ position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-deep)' }}>
+                                    <div style={{ padding: '20px 52px 20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', background: 'var(--bg-deep)' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <div style={{ padding: '8px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', color: '#f59e0b', display: 'flex' }}>
                                                 <FaPlay size={14} />
                                             </div>
                                             <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 600 }}>Pricebook Dry Run</h3>
                                         </div>
-                                        <button onClick={() => setDryRunData(null)} disabled={isDryRunExecuting} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                                            <FaTimes />
-                                        </button>
                                     </div>
+                                    <button
+                                        onClick={() => setDryRunData(null)}
+                                        disabled={isDryRunExecuting}
+                                        style={{ position: 'absolute', top: '20px', right: '20px', width: '28px', height: '28px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: isDryRunExecuting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', transition: 'all 0.18s', flexShrink: 0, opacity: isDryRunExecuting ? 0.4 : 1, zIndex: 2 }}
+                                        onMouseEnter={e => { if (!isDryRunExecuting) { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444'; } }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                        aria-label="Close"
+                                    >✕</button>
 
                                     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6' }}>
@@ -1122,14 +1149,11 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div className="input-group">
                                                 <label style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px', display: 'block' }}>Select Month</label>
-                                                <select
+                                                <CustomSelect
                                                     value={dryRunData.month}
                                                     onChange={(e) => setDryRunData({ ...dryRunData, month: e.target.value })}
-                                                >
-                                                    {getMonthOptions(13).map(opt => (
-                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                    ))}
-                                                </select>
+                                                    options={getMonthOptions(13).map(opt => ({ value: opt.value, label: opt.label }))}
+                                                />
                                             </div>
 
                                             <div className="input-group">
@@ -1139,16 +1163,15 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                         <span className="spin" style={{ display: 'inline-block', fontSize: '0.7rem' }}>⏳</span>
                                                     )}
                                                 </label>
-                                                <select
+                                                <CustomSelect
                                                     value={dryRunData.payerId}
                                                     onChange={(e) => setDryRunData({ ...dryRunData, payerId: e.target.value })}
                                                     disabled={isDryRunExecuting}
-                                                >
-                                                    <option value="" disabled>Select Payer ID</option>
-                                                    {dryRunData.payerOptions.map(opt => (
-                                                        <option key={opt} value={opt}>{opt}</option>
-                                                    ))}
-                                                </select>
+                                                    options={[
+                                                        { value: '', label: 'Select Payer ID' },
+                                                        ...dryRunData.payerOptions.map(opt => ({ value: opt, label: opt }))
+                                                    ]}
+                                                />
                                                 {!dryRunData.isAllOrNone && (
                                                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                                         Pre-populated from assignment (Editable).
@@ -1200,10 +1223,10 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                 >
                                     <motion.div
                                         initial={{ scale: 0.92, opacity: 0, y: 24 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0, y: 24 }}
-                                        style={{ background: 'var(--bg-card)', padding: '28px', borderRadius: '16px', border: '1px solid var(--border)', maxWidth: '480px', width: '100%', boxShadow: '0 32px 64px -16px rgba(0,0,0,0.8)' }}
+                                        style={{ position: 'relative', background: 'var(--bg-card)', padding: '28px', borderRadius: '16px', border: '1px solid var(--border)', maxWidth: '480px', width: '100%', boxShadow: '0 32px 64px -16px rgba(0,0,0,0.8)' }}
                                     >
                                         {/* Header */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px', paddingRight: '32px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
                                                     <FaUserEdit size={18} />
@@ -1213,8 +1236,14 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                     <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>Update mapping for &quot;{assignmentEditData.bookName}&quot;</p>
                                                 </div>
                                             </div>
-                                            <button onClick={() => setAssignmentEditData(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}><FaTimes /></button>
                                         </div>
+                                        <button
+                                            onClick={() => setAssignmentEditData(null)}
+                                            style={{ position: 'absolute', top: '24px', right: '24px', width: '28px', height: '28px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', transition: 'all 0.18s', flexShrink: 0, zIndex: 2 }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                            aria-label="Close"
+                                        >✕</button>
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             {/* Target Customer — type-and-search via datalist */}
@@ -1239,38 +1268,103 @@ const DirectorySection = ({ setActiveView, setDeployHint, showToast, activeView 
                                                         <FaSyncAlt className={assignmentEditData.isLoadingCustomers ? 'spin' : ''} size={10} />
                                                     </button>
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    list="edit-customer-suggestions"
-                                                    value={assignmentEditData.customerSearch ?? (selectedCust ? `${selectedCust.name} (${selectedCust.id})` : assignmentEditData.customerId)}
-                                                    onChange={e => {
-                                                        const raw = e.target.value;
-                                                        // Try to pick a real match from the option value pattern "Name (id)"
-                                                        const match = assignmentEditData.customerOptions.find(
-                                                            c => raw === `${c.name} (${c.id})` || raw === String(c.id)
-                                                        );
+                                                <Select
+                                                    value={
+                                                        assignmentEditData.customerId
+                                                            ? {
+                                                                value: assignmentEditData.customerId,
+                                                                label: selectedCust ? `${selectedCust.name} (${selectedCust.id})` : assignmentEditData.customerId
+                                                              }
+                                                            : null
+                                                    }
+                                                    onChange={selectedOption => {
+                                                        const matchId = selectedOption ? String(selectedOption.value) : '';
                                                         setAssignmentEditData(prev => ({
                                                             ...prev,
-                                                            customerSearch: raw,
-                                                            customerId: match ? String(match.id) : '',
-                                                            payerId: match ? '' : prev.payerId,           // (b) clear payer on customer change
-                                                            payerOptions: match ? [] : prev.payerOptions,
-                                                            keepExisting: match && isChangingCustomer ? true : prev.keepExisting  // (a) auto-check
+                                                            customerSearch: selectedOption ? selectedOption.label : '',
+                                                            customerId: matchId,
+                                                            payerId: matchId ? '' : prev.payerId,
+                                                            payerOptions: matchId ? [] : prev.payerOptions,
+                                                            keepExisting: matchId && isChangingCustomer ? true : prev.keepExisting
                                                         }));
                                                     }}
+                                                    options={assignmentEditData.customerOptions.map(c => ({
+                                                        value: c.id,
+                                                        label: `${c.name} (${c.id})`
+                                                    }))}
+                                                    styles={{
+                                                        control: (provided, state) => ({
+                                                            ...provided,
+                                                            backgroundColor: 'var(--input-bg)',
+                                                            backgroundImage: 'linear-gradient(90deg, transparent, var(--border-glow), transparent)',
+                                                            backgroundSize: '100% 1px',
+                                                            backgroundRepeat: 'no-repeat',
+                                                            backgroundPosition: 'top',
+                                                            border: `1px solid ${state.isFocused ? 'var(--primary)' : 'var(--border)'}`,
+                                                            borderRadius: 'var(--radius-md)',
+                                                            boxShadow: state.isFocused ? '0 0 0 4px rgba(79, 70, 229, 0.1)' : 'none',
+                                                            minHeight: '36px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            '&:hover': { borderColor: 'var(--primary)' }
+                                                        }),
+                                                        menu: (provided) => ({
+                                                            ...provided,
+                                                            backgroundColor: 'var(--bg-card)',
+                                                            border: '1px solid var(--border)',
+                                                            borderRadius: 'var(--radius-lg)',
+                                                            boxShadow: '0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.1)',
+                                                            zIndex: 99999,
+                                                            padding: '6px'
+                                                        }),
+                                                        option: (provided, state) => ({
+                                                            ...provided,
+                                                            backgroundColor: state.isFocused ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                                                            color: state.isFocused ? 'var(--primary)' : 'var(--text-main)',
+                                                            cursor: 'pointer',
+                                                            borderRadius: '4px',
+                                                            padding: '8px 12px',
+                                                            transition: 'all 0.1s ease',
+                                                            fontSize: '0.85rem'
+                                                        }),
+                                                        singleValue: (provided) => ({
+                                                            ...provided,
+                                                            color: 'var(--text-main)',
+                                                            fontSize: '0.85rem'
+                                                        }),
+                                                        input: (provided) => ({
+                                                            ...provided,
+                                                            color: 'var(--text-main)',
+                                                            fontSize: '0.85rem',
+                                                            margin: 0,
+                                                            padding: 0,
+                                                            border: 'none !important',
+                                                            boxShadow: 'none !important',
+                                                            background: 'transparent !important'
+                                                        }),
+                                                        placeholder: (provided) => ({
+                                                            ...provided,
+                                                            color: 'var(--text-muted)',
+                                                            fontSize: '0.85rem'
+                                                        }),
+                                                        indicatorSeparator: () => ({ display: 'none' }),
+                                                        dropdownIndicator: (provided) => ({
+                                                            ...provided,
+                                                            color: 'var(--text-muted)',
+                                                            padding: '4px 8px',
+                                                            '&:hover': { color: 'var(--primary)' }
+                                                        })
+                                                    }}
                                                     placeholder="Search by name or ID..."
+                                                    isClearable
+                                                    isSearchable
                                                 />
-                                                <datalist id="edit-customer-suggestions">
-                                                    {assignmentEditData.customerOptions.map(c => (
-                                                        <option key={c.id} value={`${c.name} (${c.id})`} />
-                                                    ))}
-                                                </datalist>
                                                 {selectedCust && <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {selectedCust.id}</p>}
                                             </div>
 
                                             {/* Keep Existing checkbox — auto-checked, shown only when changing customer */}
                                             {isChangingCustomer && (
-                                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer' }}>
+                                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal', fontFamily: 'var(--font-body)', fontWeight: 'normal' }}>
                                                     <input
                                                         type="checkbox"
                                                         checked={!!assignmentEditData.keepExisting}

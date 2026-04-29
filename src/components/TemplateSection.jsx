@@ -513,14 +513,21 @@ const TemplateSection = ({ setActiveView }) => {
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            style={{ background: 'var(--bg-card)', borderRadius: '14px', width: '100%', maxWidth: '520px', border: '1px solid var(--border)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', overflow: 'hidden' }}
+                            style={{ position: 'relative', background: 'var(--bg-card)', borderRadius: '14px', width: '100%', maxWidth: '520px', border: '1px solid var(--border)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', overflow: 'hidden' }}
                         >
                             {/* Modal Header */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(139,92,246,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', padding: '18px 52px 18px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(139,92,246,0.05)' }}>
                                 <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {modalMode === 'upload' ? <><FaUpload color="var(--secondary)" /> Upload Pricebook File</> : <><FaSave color="var(--primary)" /> Save Current Configuration</>}
                                 </h3>
-                                <button onClick={closeModal} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><FaTimes size={16} /></button>
+                                <button
+                                    onClick={closeModal}
+                                    style={{ position: 'absolute', top: '14px', right: '14px', width: '28px', height: '28px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', transition: 'all 0.18s', flexShrink: 0, zIndex: 2 }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                    aria-label="Close"
+                                >✕</button>
+
                             </div>
 
                             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>

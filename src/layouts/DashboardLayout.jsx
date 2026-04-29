@@ -86,7 +86,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                                         <FaCloudDownloadAlt />
                                     </button>
                                 </Tooltip>
-                                <Tooltip title="Settings" content="Configure API keys and connection parameters" position="bottom">
+                                <Tooltip title="Settings" content="Add CloudHealth API Key" position="bottom">
                                     <button
                                         onClick={() => setShowSettings(true)}
                                         className="header-icon-btn"

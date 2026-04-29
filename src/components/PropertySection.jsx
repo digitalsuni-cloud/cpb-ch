@@ -3,6 +3,8 @@ import { propertyTypes } from '../constants/propertyTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrash, FaChevronDown, FaTimes, FaPlus } from 'react-icons/fa';
 import Tooltip from './Tooltip';
+import CustomSelect from './CustomSelect';
+
 
 const PropertySection = ({ type, values, onChange, onRemove, expanded: controlledExpanded, onToggle }) => {
     const config = propertyTypes[type];
@@ -196,20 +198,30 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', flexGrow: 1 }}>
                                             <input type="text" value={val.type} onChange={(e) => updateValue(index, { type: e.target.value })} placeholder="Type (e.g. t3)" style={{ fontSize: '0.85rem' }} />
                                             <input type="text" value={val.size} onChange={(e) => updateValue(index, { size: e.target.value })} placeholder="Size (e.g. large)" style={{ fontSize: '0.85rem' }} />
-                                            <select value={val.reserved} onChange={(e) => updateValue(index, { reserved: e.target.value })} style={{ fontSize: '0.85rem' }}>
-                                                <option value="false">On-Demand</option>
-                                                <option value="true">Reserved</option>
-                                            </select>
+                                            <CustomSelect
+                                                value={val.reserved}
+                                                onChange={(e) => updateValue(index, { reserved: e.target.value })}
+                                                options={[
+                                                    { value: 'false', label: 'On-Demand' },
+                                                    { value: 'true',  label: 'Reserved'  }
+                                                ]}
+                                                style={{ fontSize: '0.85rem' }}
+                                            />
                                         </div>
                                     )}
 
                                     {config.type === 'lineItem' && (
                                         <div style={{ display: 'flex', gap: '8px', flexGrow: 1 }}>
-                                            <select value={val.matchType} onChange={(e) => updateValue(index, { matchType: e.target.value })} style={{ width: '120px', fontSize: '0.85rem' }}>
-                                                <option value="contains">Contains</option>
-                                                <option value="startsWith">Starts With</option>
-                                                <option value="matchesRegex">Regex</option>
-                                            </select>
+                                            <CustomSelect
+                                                value={val.matchType}
+                                                onChange={(e) => updateValue(index, { matchType: e.target.value })}
+                                                options={[
+                                                    { value: 'contains',     label: 'Contains'    },
+                                                    { value: 'startsWith',   label: 'Starts With' },
+                                                    { value: 'matchesRegex', label: 'Regex'       }
+                                                ]}
+                                                style={{ width: '130px', fontSize: '0.85rem' }}
+                                            />
                                             <input type="text" value={val.value} onChange={(e) => updateValue(index, { value: e.target.value })} placeholder="Pattern..." style={{ flexGrow: 1, fontSize: '0.85rem' }} />
                                         </div>
                                     )}

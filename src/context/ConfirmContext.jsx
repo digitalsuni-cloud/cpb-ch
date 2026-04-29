@@ -131,7 +131,7 @@ export const ConfirmProvider = ({ children }) => {
                             }}
                         >
                             <div style={{
-                                padding: '24px',
+                                padding: '24px 52px 24px 24px',
                                 display: 'flex',
                                 gap: '16px',
                                 alignItems: 'flex-start'
@@ -166,18 +166,11 @@ export const ConfirmProvider = ({ children }) => {
                                 </div>
                                 <button
                                     onClick={() => handleClose(false)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        padding: '4px',
-                                        display: 'flex',
-                                        opacity: 0.6
-                                    }}
-                                >
-                                    <FaTimes size={16} />
-                                </button>
+                                    style={{ position: 'absolute', top: '20px', right: '20px', width: '28px', height: '28px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', transition: 'all 0.18s', flexShrink: 0, zIndex: 2 }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                    aria-label="Close"
+                                >✕</button>
                             </div>
 
                             <div style={{

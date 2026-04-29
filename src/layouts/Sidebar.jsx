@@ -17,7 +17,8 @@ import {
     FaBug,
     FaBookmark
 } from 'react-icons/fa';
-import { isElectronApp } from '../utils/env';
+import { isDesktopApp } from '../utils/env';
+
 import Tooltip from '../components/Tooltip';
 
 const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
@@ -28,11 +29,12 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
         { id: 'templates', label: 'Template Library', icon: <FaBookmark /> },
         { id: 'preview', label: 'Price Book Summary', icon: <FaAlignLeft /> },
         { id: 'export', label: 'Export', icon: <FaFileExport /> },
-        ...(isElectronApp() ? [
+        ...(isDesktopApp() ? [
             { id: 'deploy', label: 'Deploy', icon: <FaRocket /> },
             { id: 'directory', label: 'Price Book Directory', icon: <FaFolderOpen /> },
             { id: 'history', label: 'Action History', icon: <FaHistory /> }
         ] : [])
+
     ];
 
     return (
@@ -151,7 +153,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                 flexDirection: 'column',
                 gap: '8px'
             }}>
-                {!isElectronApp() && (
+                {!isDesktopApp() && (
                     <Tooltip
                         title="Get Standalone App"
                         content="Install for an integrated local experience without CORS or proxy limits!"

@@ -8,6 +8,8 @@ import { FaSyncAlt } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import { useConfirm } from '../context/ConfirmContext';
 import { getCredential } from "../utils/credentials";
+import CustomSelect from './CustomSelect';
+
 
 const ImportSection = () => {
     const { state, dispatch } = usePriceBook();
@@ -833,74 +835,76 @@ const ImportSection = () => {
 
                                                         <div>
                                                             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>1. Select Customer (Target Client)</label>
-                                                            <select
+                                                            <CustomSelect
                                                                 value={selectedCustomerId}
                                                                 onChange={e => {
                                                                     const cid = e.target.value;
                                                                     setSelectedCustomerId(cid);
                                                                     setSelectedAssignmentId('');
                                                                     setSelectedBookId('');
-
                                                                     if (cid) {
-                                                                        const matches = apiData.assignments.filter(a => a.is_assigned && a.target_client_api_id?.toString() === cid);
+                                                                        // only auto-select if there is a valid assignment_id
+                                                                        const matches = apiData.assignments.filter(a =>
+                                                                            a.is_assigned &&
+                                                                            a.target_client_api_id?.toString() === cid &&
+                                                                            a.assignment_id != null
+                                                                        );
                                                                         if (matches.length > 0) {
                                                                             setSelectedBookId(matches[0].id.toString());
-                                                                            setSelectedAssignmentId(matches[0].assignment_id?.toString() ?? '');
+                                                                            setSelectedAssignmentId(matches[0].assignment_id.toString());
                                                                         }
                                                                     }
                                                                 }}
-                                                                style={{
-                                                                    fontSize: '0.9rem'
-                                                                }}
-                                                            >
-                                                                <option value="">-- All Customers --</option>
-                                                                {apiData.customers
-                                                                    .filter(c => c.id != null)
-                                                                    .map(c => (
-                                                                        <option key={c.id} value={c.id}>{c.name !== 'Unknown Customer' ? c.name : c.id}</option>
-                                                                    ))}
-                                                            </select>
+                                                                options={[
+                                                                    { value: '', label: '-- All Customers --' },
+                                                                    ...apiData.customers
+                                                                        .filter(c => c.id != null)
+                                                                        .map(c => ({ value: String(c.id), label: c.name !== 'Unknown Customer' ? c.name : String(c.id) }))
+                                                                ]}
+                                                            />
                                                         </div>
 
                                                         <div>
                                                             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>2. Select Price Book</label>
-                                                            <select
+                                                            <CustomSelect
                                                                 value={selectedBookId}
                                                                 onChange={e => {
                                                                     setSelectedBookId(e.target.value);
                                                                     setSelectedAssignmentId('');
                                                                     if (e.target.value) {
-                                                                        const matchingAssignments = apiData.assignments.filter(a => a.is_assigned && a.id.toString() === e.target.value);
-                                                                        if (matchingAssignments.length === 1 && !selectedCustomerId) {
+                                                                        // if there is exactly one assignment for this book, auto-select it
+                                                                        const matchingAssignments = apiData.assignments.filter(a =>
+                                                                            a.is_assigned &&
+                                                                            a.id.toString() === e.target.value &&
+                                                                            a.assignment_id != null
+                                                                        );
+                                                                        if (matchingAssignments.length >= 1) {
+                                                                            setSelectedAssignmentId(matchingAssignments[0].assignment_id.toString());
+                                                                        }
+                                                                        // also back-fill customer if none selected
+                                                                        if (!selectedCustomerId && matchingAssignments.length === 1) {
                                                                             setSelectedCustomerId(matchingAssignments[0].target_client_api_id?.toString() ?? '');
                                                                         }
                                                                     }
                                                                 }}
-                                                                style={{
-                                                                    fontSize: '0.9rem'
-                                                                }}
-                                                            >
-                                                                <option value="">-- All Price Books --</option>
-                                                                {selectedCustomerId ? (
-                                                                    apiData.assignments
-                                                                        .filter(a => a.is_assigned && a.target_client_api_id?.toString() === selectedCustomerId)
-                                                                        .filter((a, index, self) => index === self.findIndex((t) => t.id === a.id))
-                                                                        .map(b => (
-                                                                            <option key={b.id} value={b.id}>{b.book_name} ({b.id})</option>
-                                                                        ))
-                                                                ) : (
-                                                                    apiData.books
-                                                                        .filter(b => b.id != null)
-                                                                        .map(b => (
-                                                                            <option key={b.id} value={b.id}>{b.name} ({b.id})</option>
-                                                                        ))
-                                                                )}
-                                                            </select>
+                                                                options={[
+                                                                    { value: '', label: '-- All Price Books --' },
+                                                                    ...(selectedCustomerId
+                                                                        ? apiData.assignments
+                                                                            .filter(a => a.is_assigned && a.target_client_api_id?.toString() === selectedCustomerId)
+                                                                            .filter((a, idx, self) => idx === self.findIndex(t => t.id === a.id))
+                                                                            .map(b => ({ value: String(b.id), label: `${b.book_name} (${b.id})` }))
+                                                                        : apiData.books
+                                                                            .filter(b => b.id != null)
+                                                                            .map(b => ({ value: String(b.id), label: `${b.name} (${b.id})` }))
+                                                                    )
+                                                                ]}
+                                                            />
                                                         </div>
 
                                                         <div>
                                                             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>3. Billing Account Name</label>
-                                                            <select
+                                                            <CustomSelect
                                                                 value={selectedAssignmentId}
                                                                 onChange={e => {
                                                                     setSelectedAssignmentId(e.target.value);
@@ -912,21 +916,20 @@ const ImportSection = () => {
                                                                         }
                                                                     }
                                                                 }}
-                                                                style={{
-                                                                    fontSize: '0.9rem'
-                                                                }}
-                                                            >
-                                                                <option value="" disabled>-- Select a Mapped Assignment --</option>
-                                                                {apiData.assignments
-                                                                    .filter(a => a.is_assigned && a.assignment_id != null)
-                                                                    .filter(a => (!selectedCustomerId || a.target_client_api_id?.toString() === selectedCustomerId) &&
-                                                                        (!selectedBookId || a.id.toString() === selectedBookId))
-                                                                    .map(a => (
-                                                                        <option key={a.assignment_id} value={a.assignment_id}>
-                                                                            {a.billing_account_owner_id !== 'ALL' && a.billing_account_owner_id !== 'N/A' ? `${a.billing_account_owner_id} (ID: ${a.assignment_id})` : `All Accounts (ID: ${a.assignment_id})`}
-                                                                        </option>
-                                                                    ))}
-                                                            </select>
+                                                                options={[
+                                                                    { value: '', label: '-- Select a Mapped Assignment --' },
+                                                                    ...apiData.assignments
+                                                                        .filter(a => a.is_assigned && a.assignment_id != null)
+                                                                        .filter(a => (!selectedCustomerId || a.target_client_api_id?.toString() === selectedCustomerId) &&
+                                                                            (!selectedBookId || a.id.toString() === selectedBookId))
+                                                                        .map(a => ({
+                                                                            value: String(a.assignment_id),
+                                                                            label: a.billing_account_owner_id !== 'ALL' && a.billing_account_owner_id !== 'N/A'
+                                                                                ? `${a.billing_account_owner_id} (ID: ${a.assignment_id})`
+                                                                                : `All Accounts (ID: ${a.assignment_id})`
+                                                                        }))
+                                                                ]}
+                                                            />
                                                         </div>
 
                                                         <button

@@ -10,6 +10,8 @@ import { AWSProducts } from '../constants/products';
 import { FaGripVertical, FaTrash, FaPlus, FaChevronDown, FaCopy } from 'react-icons/fa';
 import CreatableSelect from 'react-select/creatable';
 import ProductItem from './ProductItem';
+import CustomSelect from './CustomSelect';
+
 import ToggleSwitch from './ToggleSwitch';
 import Tooltip from './Tooltip';
 
@@ -294,11 +296,16 @@ const BillingRule = ({ rule, groupId }) => {
                                 </div>
                                 <div className="input-group">
                                     <label>Type</label>
-                                    <select name="type" value={rule.type} onChange={handleChange}>
-                                        <option value="percentDiscount">% Discount</option>
-                                        <option value="percentIncrease">% Increase</option>
-                                        <option value="fixedRate">Fixed Rate</option>
-                                    </select>
+                                    <CustomSelect
+                                        name="type"
+                                        value={rule.type}
+                                        onChange={handleChange}
+                                        options={[
+                                            { value: 'percentDiscount', label: '% Discount' },
+                                            { value: 'percentIncrease', label: '% Increase' },
+                                            { value: 'fixedRate',       label: 'Fixed Rate'  }
+                                        ]}
+                                    />
                                 </div>
                                 <div style={{ display: 'flex', gap: '24px', gridColumn: 'span 2' }}>
                                     <div className="input-group" style={{ margin: 0, flex: 1 }}>

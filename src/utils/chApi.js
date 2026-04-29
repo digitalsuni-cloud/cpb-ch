@@ -1,4 +1,8 @@
+import { apiFetch } from './desktopAPI';
+import { isTauriApp } from './env';
+
 export const CH_API_BASE = 'https://chapi.cloudhealthtech.com';
+
 
 // Typed error classes — let callers distinguish auth failures from other errors
 export class ApiAuthError extends Error {
@@ -62,7 +66,7 @@ export const isCustomerCacheValid = () => cachedCustomers.length > 0 && Date.now
 const safeFetch = async (endpoint, apiKey, proxyUrl) => {
     try {
         const url = getUrl(endpoint, proxyUrl);
-        const res = await fetch(url, { headers: getHeaders(apiKey) });
+        const res = await apiFetch(url, { headers: getHeaders(apiKey) });
         if (res.status === 401 || res.status === 403) throw new ApiAuthError(res.status);
         return res.ok ? await res.json() : null;
     } catch (e) {
@@ -70,6 +74,7 @@ const safeFetch = async (endpoint, apiKey, proxyUrl) => {
         return null;
     }
 };
+
 
 // Helper: exhaust all pages using Promise.all for speed
 const fetchAllPages = async (basePath, resultKey, apiKey, proxyUrl) => {
@@ -140,22 +145,26 @@ const getUrl = (path, proxyConfig) => {
     // Ensure path starts with a version, default to /v1 if missing
     const versionedPath = path.startsWith('/v') ? path : `/v1${path}`;
 
-    // If a specific CORS proxy is configured by user, prepend it before the full CH URL
+    // Tauri: direct call — Rust HTTP plugin handles CORS natively
+    if (isTauriApp()) {
+        return `${CH_API_BASE}${versionedPath}`;
+    }
+
+    // If a specific CORS proxy is configured, prepend it before the full CH URL
     if (proxyConfig && proxyConfig.trim().length > 0) {
         return `${proxyConfig.trim()}${CH_API_BASE}${versionedPath}`;
     }
 
-    // Auto-detect if running on local development server
+    // Local dev: use the Vite dev server proxy (/api/ch → https://chapi.cloudhealthtech.com)
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-    // If local dev, use the Vite dev server proxy to bypass CORS (/api/ch → https://chapi.cloudhealthtech.com)
     if (isLocalhost) {
         return `/api/ch${versionedPath}`;
     }
 
-    // Default: Return direct CloudHealth URL (bare host + versioned path)
+    // Default: direct CloudHealth URL
     return `${CH_API_BASE}${versionedPath}`;
 };
+
 
 const getHeaders = (apiKey) => ({
     'Authorization': `Bearer ${apiKey}`,
@@ -219,10 +228,11 @@ export const fetchAwsAccountAssignments = async (targetClientId, apiKey, proxyUr
         try {
             // Fetch from API (uses v2 endpoint)
             const url = getUrl(`/v2/aws_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
-            const response = await fetch(url, {
+            const response = await apiFetch(url, {
                 method: 'GET',
                 headers: getHeaders(apiKey)
             });
+
 
             if (!response.ok) return [];
             const data = await response.json();
@@ -314,38 +324,38 @@ export const fetchAllPriceBookAssignments = async (apiKey, proxyUrl = '') => {
 
 export const getPriceBooks = async (apiKey, proxyUrl = '') => {
     const url = getUrl('/price_books', proxyUrl);
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'GET',
         headers: getHeaders(apiKey)
     });
-
     await checkResponse(response, 'Fetch price books');
     return await response.json();
 };
 
+
 export const getPriceBookSpecification = async (id, apiKey, proxyUrl = '') => {
     const url = getUrl(`/price_books/${id}/specification`, proxyUrl);
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'GET',
         headers: getHeaders(apiKey)
     });
-
     await checkResponse(response, 'Fetch price book specification');
     const data = await response.json();
     return data.specification;
 };
 
+
 export const fetchPriceBookById = async (id, apiKey, proxyUrl = '') => {
     const url = getUrl(`/price_books/${id}`, proxyUrl);
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'GET',
         headers: getHeaders(apiKey)
     });
-    
     await checkResponse(response, 'Fetch price book details');
     const data = await response.json();
     return data.price_book || data;
 };
+
 
 export const createPriceBook = async (bookName, xml, apiKey, proxyUrl = '') => {
     const url = getUrl(`/price_books`, proxyUrl);
@@ -354,32 +364,29 @@ export const createPriceBook = async (bookName, xml, apiKey, proxyUrl = '') => {
         specification: xml
     };
 
-    // API docs specify api_key can be query param for POST, but also Authorization header works.
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'POST',
         headers: getHeaders(apiKey),
         body: JSON.stringify(payload)
     });
-
     await checkResponse(response, 'Create price book');
     return await response.json();
 };
 
+
 export const updatePriceBook = async (id, xml, apiKey, proxyUrl = '') => {
     const url = getUrl(`/price_books/${id}`, proxyUrl);
-    const payload = {
-        specification: xml
-    };
+    const payload = { specification: xml };
 
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'PUT',
         headers: getHeaders(apiKey),
         body: JSON.stringify(payload)
     });
-
     await checkResponse(response, 'Update price book');
     return await response.json();
 };
+
 
 export const assignPriceBook = async (priceBookId, targetClientApiId, billingAccountOwnerId, apiKey, proxyUrl = '') => {
     const pbId = parseInt(priceBookId, 10);
@@ -402,8 +409,7 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
     let assignmentId;
     let wasNewlyCreated = false;
 
-    // Attempt the Customer assignment safely. If they are already assigned, parse and catch.
-    const response = await fetch(assignUrl, {
+    const response = await apiFetch(assignUrl, {
         method: 'POST',
         headers: getHeaders(apiKey),
         body: JSON.stringify(assignPayload)
@@ -413,9 +419,8 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
         let body = '';
         try { body = await response.text(); } catch(_) {}
         if (body.includes('already exists')) {
-            // Find existing assignment ID via GET
             const fetchUrl = getUrl(`/price_book_assignments?target_client_api_id=${clientId}`, proxyUrl);
-            const res = await fetch(fetchUrl, { headers: getHeaders(apiKey) });
+            const res = await apiFetch(fetchUrl, { headers: getHeaders(apiKey) });
             if (res.ok) {
                 const data = await res.json();
                 const list = data.price_book_assignments || [];
@@ -440,7 +445,7 @@ export const assignPriceBook = async (priceBookId, targetClientApiId, billingAcc
             billing_account_owner_id: accountsList
         };
 
-        const accResponse = await fetch(accUrl, {
+        const accResponse = await apiFetch(accUrl, {
             method: 'POST',
             headers: getHeaders(apiKey),
             body: JSON.stringify(accPayload)
@@ -554,7 +559,7 @@ export const searchCustomerByName = async (nameQuery, apiKey, proxyUrl = '') => 
 
     // Fallback to API if no cache (though fetchAllCustomers is preferred to seed it)
     const url = getUrl(`/customers?name=${encodeURIComponent(nameQuery)}`, proxyUrl);
-    const res = await fetch(url, { headers: getHeaders(apiKey) });
+    const res = await apiFetch(url, { headers: getHeaders(apiKey) });
     await checkResponse(res, 'Search customers');
     const data = await res.json();
     return data.customers || [];
@@ -564,7 +569,7 @@ export const getSingleCustomerAssignment = async (targetClientId, apiKey, proxyU
     // Browsers block GET requests with payloads.
     // CloudHealth supports converting the JSON body filter into a query param for GET.
     const url = getUrl(`/price_book_account_assignments?target_client_api_id=${targetClientId}`, proxyUrl);
-    const res = await fetch(url, { headers: getHeaders(apiKey) });
+    const res = await apiFetch(url, { headers: getHeaders(apiKey) });
     await checkResponse(res, 'Load assignments for customer');
 
     const data = await res.json();
@@ -575,7 +580,7 @@ export const getSingleCustomerAssignment = async (targetClientId, apiKey, proxyU
     // Fetch price book name for the first assignment
     const bookId = assignments[0].price_book_id;
     const bookUrl = getUrl(`/price_books/${bookId}`, proxyUrl);
-    const bookRes = await fetch(bookUrl, { headers: getHeaders(apiKey) });
+    const bookRes = await apiFetch(bookUrl, { headers: getHeaders(apiKey) });
 
     let bookName = `Price Book (${bookId})`;
     if (bookRes.ok) {
@@ -586,7 +591,7 @@ export const getSingleCustomerAssignment = async (targetClientId, apiKey, proxyU
     // Fetch customer name
     let customerName = `Unknown Customer (${targetClientId})`;
     const custUrl = getUrl(`/customers/${targetClientId}`, proxyUrl);
-    const custRes = await fetch(custUrl, { headers: getHeaders(apiKey) });
+    const custRes = await apiFetch(custUrl, { headers: getHeaders(apiKey) });
     if (custRes.ok) {
         const custData = await custRes.json();
         customerName = custData.customer?.name || custData.name || customerName;
@@ -641,7 +646,7 @@ export const performDryRun = async (priceBookId, generatedXml, startMonthDate, t
     }
 
     try {
-        const response = await fetch(url, {
+        const response = await apiFetch(url, {
             method: 'PUT',
             headers: getHeaders(apiKey),
             body: JSON.stringify(payload)
@@ -660,7 +665,7 @@ export const performDryRun = async (priceBookId, generatedXml, startMonthDate, t
 
 export const deletePriceBook = async (id, apiKey, proxyUrl = '') => {
     const url = getUrl(`/price_books/${id}`, proxyUrl);
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'DELETE',
         headers: getHeaders(apiKey)
     });
@@ -669,9 +674,8 @@ export const deletePriceBook = async (id, apiKey, proxyUrl = '') => {
 };
 
 export const deletePriceBookAssignment = async (id, apiKey, proxyUrl = '') => {
-    // Deletes a PAYER ACCOUNT assignment (price_book_account_assignments)
     const url = getUrl(`/price_book_account_assignments/${id}`, proxyUrl);
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'DELETE',
         headers: getHeaders(apiKey)
     });
@@ -680,12 +684,12 @@ export const deletePriceBookAssignment = async (id, apiKey, proxyUrl = '') => {
 };
 
 export const deleteBaseAssignment = async (id, apiKey, proxyUrl = '') => {
-    // Deletes a BASE customer→pricebook assignment (price_book_assignments)
     const url = getUrl(`/price_book_assignments/${id}`, proxyUrl);
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
         method: 'DELETE',
         headers: getHeaders(apiKey)
     });
     await checkResponse(response, 'Unassign customer link');
     return true;
 };
+

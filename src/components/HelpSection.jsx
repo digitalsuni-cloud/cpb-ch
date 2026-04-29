@@ -120,14 +120,18 @@ const HelpSection = ({ isOpen, onClose }) => {
                         </Tooltip>
 
                         {/* Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', paddingRight: '32px' }}>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <FaBook className="text-primary" /> CloudHealth Pricebook Studio — Help &amp; Guide
                             </h2>
-                            <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '8px' }}>
-                                <FaTimes />
-                            </button>
                         </div>
+                        <button
+                            onClick={onClose}
+                            style={{ position: 'absolute', top: '24px', right: '24px', width: '28px', height: '28px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', transition: 'all 0.18s', flexShrink: 0, zIndex: 2 }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                            aria-label="Close"
+                        >✕</button>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
@@ -148,7 +152,7 @@ const HelpSection = ({ isOpen, onClose }) => {
 
                             {/* ── GETTING STARTED ─────────────────────────── */}
                             <HelpAccordion title="Getting Started" icon={<FaRocket />} defaultOpen={true}>
-                                {!isBrowser && <Step n="1"><strong>Configure your API Key</strong> — Click the ⚙ Settings icon (top-right). Enter your CloudHealth API key and optional CORS proxy URL. These are stored locally and never sent anywhere except CloudHealth's API.</Step>}
+                                {!isBrowser && <Step n="1"><strong>Configure your API Key</strong> — Click the ⚙ Settings icon (top-right). Enter your CloudHealth API key. This is stored locally and never sent anywhere except CloudHealth's API.</Step>}
                                 <Step n={isBrowser ? "1" : "2"}><strong>Build or Import</strong> — Start fresh in the Builder, or use Import to load an existing XML/JSON spec from a file, pasted text, or live from CloudHealth.</Step>
                                 <Step n={isBrowser ? "2" : "3"}><strong>Review</strong> — Switch to the <em>Price Book Summary</em> tab to review your configuration in plain English before exporting.</Step>
                                 <Step n={isBrowser ? "3" : "4"}><strong>Export or Deploy</strong> — Download the XML/JSON payload, run a Dry Run to validate financial impact, or push live to CloudHealth.</Step>
@@ -347,7 +351,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                                 {
                                                     icon: <FaUserEdit size={11} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.35)',
                                                     label: 'Edit Assignment',
-                                                    desc: 'Loads the pricebook into Deploy and automatically opens the "Assign Pricebook to Customer" panel with all fields pre-filled, ready to update the Customer ID or Payer Account.'
+                                                    desc: 'Opens a quick-edit modal to update the Customer ID or Payer Account directly from the directory, without needing to navigate to the Deploy tab.'
                                                 },
                                                 {
                                                     icon: <FaTimes size={11} />, color: '#eab308', bg: 'rgba(234,179,8,0.12)', border: 'rgba(234,179,8,0.35)',
@@ -409,7 +413,7 @@ const HelpSection = ({ isOpen, onClose }) => {
                                                 Web Interface <FaExternalLinkAlt style={{ fontSize: '0.7rem' }} />
                                             </a>
                                         </strong>
-                                        <div style={{ marginTop: '4px', fontSize: '0.85rem' }}>Builder, file/paste Import, Preview, and Export work fully offline. API-connected features (Deploy, Directory, Live Sync) require a CORS proxy URL configured in Settings to function in-browser.</div>
+                                        <div style={{ marginTop: '4px', fontSize: '0.85rem' }}>Builder, file/paste Import, Preview, and Export work fully offline. API-connected features (Deploy, Directory, Live Sync) are disabled in the web version due to browser security constraints.</div>
                                     </li>
                                 </ul>
                             </HelpAccordion>
@@ -425,7 +429,6 @@ const HelpSection = ({ isOpen, onClose }) => {
                             <HelpAccordion title="Settings & Advanced Debugging" icon={<FaCog />}>
                                 <ul style={{ paddingLeft: '18px', margin: 0 }}>
                                     <li style={{ marginBottom: '8px' }}><strong>API Credentials</strong> — Store your API key locally. Credentials never leave your machine except when talking to CloudHealth.</li>
-                                    {isBrowser && <li style={{ marginBottom: '8px' }}><strong>CORS Proxy</strong> — Essential for using API features in the web version of the tool.</li>}
                                     {!isBrowser && <li><strong>Developer Tools</strong> — Enable the <em>Network Inspector</em> in Settings to debug raw CloudHealth API payloads and troubleshoot failed deployments.</li>}
                                 </ul>
                             </HelpAccordion>

@@ -19,7 +19,8 @@ import HistoryLog from './components/HistoryLog';
 import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
-import { isElectronApp } from './utils/env';
+import { isElectronApp, isDesktopApp } from './utils/env';
+
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
 const ReleaseNotes = ({ body }) => {
@@ -45,10 +46,16 @@ const ReleaseNotes = ({ body }) => {
         const altMatch = found.match(/!\[(.*?)\]/);
         const urlMatch = found.match(/\((.*?)\)/);
         if (altMatch && urlMatch) {
+          let srcUrl = urlMatch[1];
+          if (srcUrl.includes('macOS')) srcUrl = '/badges/macos.svg';
+          else if (srcUrl.includes('Windows')) srcUrl = '/badges/windows.svg';
+          else if (srcUrl.includes('Linux_Deb')) srcUrl = '/badges/linux-deb.svg';
+          else if (srcUrl.includes('Linux_App')) srcUrl = '/badges/linux-app.svg';
+
           parts.push(
             <img
               key={match.index}
-              src={urlMatch[1]}
+              src={srcUrl}
               alt={altMatch[1]}
               style={{ height: '16px', verticalAlign: 'middle', display: 'inline-block' }}
             />
@@ -93,6 +100,7 @@ const ReleaseNotes = ({ body }) => {
       // Headers
       if (trimmed.startsWith('### ')) return <h4 key={i} style={{ margin: '14px 0 6px 0', fontSize: '0.85rem', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>{renderInline(trimmed.substring(4))}</h4>;
       if (trimmed.startsWith('## ')) return <h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.90rem', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>{renderInline(trimmed.substring(3))}</h3>;
+      if (trimmed.startsWith('# ')) return <h2 key={i} style={{ margin: '18px 0 10px 0', fontSize: '1.05rem', color: 'var(--text-main)', borderBottom: '2px solid var(--primary)', paddingBottom: '6px' }}>{renderInline(trimmed.substring(2))}</h2>;
 
       // Horizontal Rule
       if (/^---+$/.test(trimmed)) return <hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0', opacity: 0.5 }} />;
@@ -503,7 +511,8 @@ function App() {
 
 
         {/* VIEW: DEPLOY */}
-        {activeView === 'deploy' && isElectronApp() && (
+        {activeView === 'deploy' && isDesktopApp() && (
+
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -521,7 +530,8 @@ function App() {
         )}
 
         {/* VIEW: DIRECTORY — kept mounted to preserve loaded data across navigation */}
-        {isElectronApp() && (
+        {isDesktopApp() && (
+
           <div className="static-view" style={{
             display: activeView === 'directory' ? 'flex' : 'none',
             flexDirection: 'column',
@@ -537,7 +547,8 @@ function App() {
         )}
 
         {/* VIEW: HISTORY */}
-        {activeView === 'history' && isElectronApp() && (
+        {activeView === 'history' && isDesktopApp() && (
+
           <div className="static-view" style={{
             display: 'flex',
             flexDirection: 'column',

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePriceBook } from '../context/PriceBookContext';
 import { useConfirm } from '../context/ConfirmContext';
 import CreatableSelect from 'react-select/creatable';
+import CustomSelect from './CustomSelect';
+
 import { AWSProducts } from '../constants/products';
 import PropertySection from './PropertySection';
 import { propertyTypes } from '../constants/propertyTypes';
@@ -11,36 +13,99 @@ import { FaTrash, FaPlus } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
 const customStyles = {
-    control: (base) => ({
+    control: (base, state) => ({
         ...base,
-        background: 'var(--bg-deep)',
+        backgroundColor: 'var(--input-bg)',
         backgroundImage: 'linear-gradient(90deg, transparent, var(--border-glow), transparent)',
         backgroundSize: '100% 1px',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'top',
-        border: '1px solid var(--border)',
-        boxShadow: 'none',
+        border: `1px solid ${state.isFocused ? 'var(--primary)' : 'var(--border)'}`,
+        borderRadius: '8px',                    // matches --radius-md
+        boxShadow: state.isFocused
+            ? '0 0 0 4px rgba(79, 70, 229, 0.1)'
+            : 'none',
         color: 'var(--text-main)',
-        fontSize: '0.85rem',
-        minHeight: '32px',
+        fontSize: '0.9rem',
+        minHeight: '36px',                      // matches the unified input height
+        transition: 'all 0.2s',
+        cursor: 'pointer',
+        '&:hover': {
+            borderColor: state.isFocused ? 'var(--primary)' : 'var(--border)',
+        },
+    }),
+    valueContainer: (base) => ({
+        ...base,
+        padding: '0 8px 0 12px',
+    }),
+    indicatorsContainer: (base) => ({
+        ...base,
+        height: '36px',
+    }),
+    dropdownIndicator: (base) => ({
+        ...base,
+        color: 'var(--text-muted)',
+        padding: '0 8px',
+        '&:hover': { color: 'var(--text-main)' },
+    }),
+    indicatorSeparator: (base) => ({
+        ...base,
+        backgroundColor: 'var(--border)',
+    }),
+    clearIndicator: (base) => ({
+        ...base,
+        color: 'var(--text-muted)',
+        padding: '0 4px',
+        '&:hover': { color: 'var(--danger)' },
     }),
     menu: (base) => ({
         ...base,
-        background: 'var(--bg-card)',
-        zIndex: 100
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: '10px',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.1)',
+        overflow: 'hidden',
+        zIndex: 99999,
+    }),
+    menuList: (base) => ({
+        ...base,
+        padding: '6px',
+        maxHeight: '260px',
     }),
     option: (base, state) => ({
         ...base,
-        background: state.isFocused ? 'var(--bg-card-hover)' : 'transparent',
-        color: 'var(--text-main)',
+        backgroundColor: state.isSelected
+            ? 'rgba(99,102,241,0.15)'
+            : state.isFocused
+                ? 'rgba(255,255,255,0.04)'
+                : 'transparent',
+        color: state.isSelected ? 'var(--primary)' : 'var(--text-main)',
+        fontWeight: state.isSelected ? 600 : 400,
+        borderRadius: '6px',
+        fontSize: '0.9rem',
+        cursor: 'pointer',
+        padding: '9px 12px',
+        transition: 'all 0.12s',
+        '&:active': {
+            backgroundColor: 'rgba(99,102,241,0.2)',
+        },
     }),
     singleValue: (base) => ({
         ...base,
         color: 'var(--text-main)',
+        fontSize: '0.9rem',
+    }),
+    placeholder: (base) => ({
+        ...base,
+        color: 'var(--text-muted)',
+        fontSize: '0.9rem',
     }),
     input: (base) => ({
         ...base,
         color: 'var(--text-main)',
+        fontSize: '0.9rem',
+        margin: 0,
+        padding: 0,
     }),
     multiValue: (base) => ({
         ...base,
@@ -54,12 +119,15 @@ const customStyles = {
     multiValueRemove: (base) => ({
         ...base,
         color: 'var(--text-muted)',
+        borderRadius: '0 4px 4px 0',
         ':hover': {
             background: 'rgba(239, 68, 68, 0.2)',
             color: 'var(--danger)',
         },
     }),
 };
+
+
 
 const productOptions = [
     { value: 'ANY', label: 'ANY' },
@@ -217,13 +285,13 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                                                     background: 'rgba(139, 92, 246, 0.15)',
                                                     border: '1px solid rgba(139, 92, 246, 0.4)',
                                                     color: 'var(--primary)',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '3px',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '8px',
                                                     fontSize: '0.62rem',
                                                     fontWeight: 600,
                                                     display: 'inline-flex',
                                                     alignItems: 'center',
-                                                    gap: '3px',
+                                                    gap: '4px',
                                                     cursor: 'pointer',
                                                     transition: 'all 0.2s'
                                                 }}
@@ -244,8 +312,8 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                                                 <span style={{
                                                     background: 'var(--primary)',
                                                     color: 'white',
-                                                    padding: '0 4px',
-                                                    borderRadius: '2px',
+                                                    padding: '1px 5px',
+                                                    borderRadius: '4px',
                                                     fontSize: '0.6rem',
                                                     fontWeight: 700
                                                 }}>
@@ -360,58 +428,33 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
 
                                 <div className="input-group" style={{ flex: '0 0 auto', marginBottom: 0 }}>
                                     <label style={{ marginBottom: '8px', display: 'block', whiteSpace: 'nowrap' }}>Data Transfer</label>
-                                    <select
+                                    <CustomSelect
                                         value={product.includeDataTransfer || 'inherit'}
                                         onChange={(e) => handleChange('includeDataTransfer', e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            minWidth: '140px',
-                                            padding: '7px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid var(--border)',
-                                            background: 'var(--bg-deep)',
-                                            backgroundImage: 'linear-gradient(90deg, transparent, var(--border-glow), transparent)',
-                                            backgroundSize: '100% 1px',
-                                            backgroundRepeat: 'no-repeat',
-                                            backgroundPosition: 'top',
-                                            color: 'var(--text-main)',
-                                            fontSize: '0.85rem',
-                                            height: '38px' // Match React-Select height roughly
-                                        }}
-                                    >
-                                        <option value="inherit">Inherit</option>
-                                        <option value="true">Yes</option>
-                                        <option value="false">No</option>
-                                    </select>
+                                        options={[
+                                            { value: 'inherit', label: 'Inherit' },
+                                            { value: 'true',    label: 'Yes' },
+                                            { value: 'false',   label: 'No'  }
+                                        ]}
+                                        style={{ minWidth: '120px' }}
+                                    />
                                 </div>
 
                                 <div className="input-group" style={{ flex: '0 0 auto', marginBottom: 0 }}>
                                     <label style={{ marginBottom: '8px', display: 'block', whiteSpace: 'nowrap' }}>RI Purchases</label>
-                                    <select
+                                    <CustomSelect
                                         value={product.includeRIPurchases || 'inherit'}
                                         onChange={(e) => handleChange('includeRIPurchases', e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            minWidth: '140px',
-                                            padding: '7px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid var(--border)',
-                                            background: 'var(--bg-deep)',
-                                            backgroundImage: 'linear-gradient(90deg, transparent, var(--border-glow), transparent)',
-                                            backgroundSize: '100% 1px',
-                                            backgroundRepeat: 'no-repeat',
-                                            backgroundPosition: 'top',
-                                            color: 'var(--text-main)',
-                                            fontSize: '0.85rem',
-                                            height: '38px'
-                                        }}
-                                    >
-                                        <option value="inherit">Inherit</option>
-                                        <option value="true">Yes</option>
-                                        <option value="false">No</option>
-                                    </select>
+                                        options={[
+                                            { value: 'inherit', label: 'Inherit' },
+                                            { value: 'true',    label: 'Yes' },
+                                            { value: 'false',   label: 'No'  }
+                                        ]}
+                                        style={{ minWidth: '120px' }}
+                                    />
                                 </div>
                             </div>
+
 
                             <div style={{ marginTop: '20px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border)', paddingBottom: '5px' }}>

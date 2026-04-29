@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getHistoryOptions, clearHistory, setHistoryOptions, logAssignmentUpdate, logHistoryEvent } from '../utils/history/historyLogger';
 import { useConfirm } from '../context/ConfirmContext';
 import { FaTrash, FaHistory, FaCheckCircle, FaExclamationCircle, FaTimes, FaExpandAlt, FaCompressAlt, FaSearch, FaChevronLeft, FaChevronRight, FaFileExport, FaFileImport, FaUndo, FaSyncAlt, FaTimesCircle } from 'react-icons/fa';
+import CustomSelect from './CustomSelect';
+
 import Tooltip from './Tooltip';
 import { createPortal } from 'react-dom';
 import { diffLines, diffChars } from 'diff';
@@ -149,10 +151,16 @@ const DiffViewer = ({ before, after, title, onClose }) => {
                 <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-deep)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                     <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.5px' }}>{title}</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => setExpanded(!expanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                        <button onClick={() => setExpanded(!expanded)} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}>
                             {expanded ? <FaCompressAlt /> : <FaExpandAlt />}
                         </button>
-                        <button onClick={onClose} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                        <button
+                            onClick={onClose}
+                            style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                            aria-label="Close"
+                        >
                             <FaTimes />
                         </button>
                     </div>
@@ -978,18 +986,15 @@ const HistoryLog = () => {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                         <span>Rows per page:</span>
-                        <select
-                            value={pageSize}
+                        <CustomSelect
+                            value={String(pageSize)}
                             onChange={(e) => {
                                 setPageSize(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }}
-                        >
-                            {[10, 20, 30, 40, 50].map(size => (
-                                <option key={size} value={size}>{size}</option>
-                            ))}
-                        </select>
+                            options={[10, 20, 30, 40, 50].map(size => ({ value: String(size), label: String(size) }))}
+                            style={{ width: '80px' }}
+                        />
                         <span style={{ marginLeft: '12px' }}>
                             Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} records
                         </span>
