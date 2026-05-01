@@ -3,7 +3,9 @@ name: 'Tauri Build'
 on:
   push:
     branches:
-      - feature/tauri-port
+      - main
+      - master
+      - tauri
   workflow_dispatch:
 
 jobs:
@@ -14,7 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: 'aarch64'
+          - arch: 'x86_64'
+            target: 'x86_64-unknown-linux-gnu'
+          - arch: 'arm64'
             target: 'aarch64-unknown-linux-gnu'
     runs-on: ubuntu-22.04
     steps:
@@ -33,7 +37,7 @@ jobs:
 
       - name: install dependencies
         run: |
-          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
             sudo dpkg --add-architecture arm64
             # Remove ALL apt source overrides the runner sets up
             sudo rm -f /etc/apt/apt-mirrors.txt
@@ -67,7 +71,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PKG_CONFIG_ALLOW_CROSS: 1
           PKG_CONFIG_LIBDIR_aarch64_unknown_linux_gnu: /usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.arch == 'aarch64' && 'aarch64-linux-gnu-gcc' || '' }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || '' }}
           APPIMAGE_EXTRACT_AND_RUN: 1
         with:
           tagName: tauri-v__VERSION__
@@ -75,4 +79,41 @@ jobs:
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: true
           prerelease: false
-          args: --target ${{ matrix.target }} ${{ matrix.arch == 'aarch64' && '--bundles deb' || '' }}
+          args: --target ${{ matrix.target }} ${{ matrix.arch == 'arm64' && '--bundles deb' || '' }}
+
+      - name: rename aarch64 to arm64
+        if: matrix.arch == 'arm64'
+        run: |
+          find src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/ -name "*aarch64*" -exec bash -c 'mv "$1" "${1//aarch64/arm64}"' -- {} \;
+
+  build-windows:
+    needs: build-linux
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: install frontend dependencies
+        run: npm install
+
+      - name: build portable exe
+        run: npm run tauri build -- --no-bundle
+
+      - name: upload portable exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mv "src-tauri/target/release/app.exe" "src-tauri/target/release/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe"
+          gh release upload tauri-v5.0.0 "src-tauri/target/release/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe" --clobber

@@ -65,7 +65,7 @@
     "appId": "com.cloudhealth.pricebook",
     "productName": "CloudHealth Pricebook Studio",
     "directories": {
-      "output": "release"
+      "output": "release/Electron"
     },
     "mac": {
       "target": "dmg",
