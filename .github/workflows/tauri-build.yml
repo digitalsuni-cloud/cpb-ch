@@ -3,9 +3,6 @@ name: 'Tauri Build'
 on:
   push:
     branches:
-      - main
-      - master
-      - tauri
       - feature/tauri-port
   workflow_dispatch:
 
@@ -17,8 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- arch: 'x86_64'
-          #  target: 'x86_64-unknown-linux-gnu'
           - arch: 'aarch64'
             target: 'aarch64-unknown-linux-gnu'
     runs-on: ubuntu-22.04
@@ -78,35 +73,3 @@ EOF"
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
-
-  # build-windows:
-  #   needs: build-linux
-  #   permissions:
-  #     contents: write
-  #   runs-on: windows-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: setup node
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: lts/*
-  #         cache: 'npm'
-  #
-  #     - name: install Rust stable
-  #       uses: dtolnay/rust-toolchain@stable
-  #       with:
-  #         targets: x86_64-pc-windows-msvc
-  #
-  #     - name: install frontend dependencies
-  #       run: npm install
-  #
-  #     - name: build portable exe
-  #       run: npm run tauri build -- --no-bundle
-  #
-  #     - name: upload portable exe
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       run: |
-  #         mv "src-tauri/target/release/app.exe" "src-tauri/target/release/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe"
-  #         gh release upload tauri-v5.0.0 "src-tauri/target/release/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe" --clobber
