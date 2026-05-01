@@ -75,4 +75,4 @@ jobs:
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: true
           prerelease: false
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} ${{ matrix.arch == 'aarch64' && '--bundles deb' || '' }}
