@@ -40,25 +40,27 @@ jobs:
         run: |
           if [ "${{ matrix.arch }}" = "aarch64" ]; then
             sudo dpkg --add-architecture arm64
-            # Remove the runner's mirrorlist file and all sources.list.d entries
+            # Remove ALL apt source overrides the runner sets up
             sudo rm -f /etc/apt/apt-mirrors.txt
             sudo rm -rf /etc/apt/sources.list.d/*
-            # Completely rewrite sources.list to be architecture-specific
-            sudo bash -c "cat << 'EOF' > /etc/apt/sources.list
-deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
-deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
-deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
-deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse
-EOF"
-          fi
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            # Write a clean, architecture-specific sources.list
+            printf '%s\n' \
+              'deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse' \
+              'deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse' \
+              'deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse' \
+              'deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse' \
+              'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse' \
+              'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse' \
+              'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse' \
+              | sudo tee /etc/apt/sources.list
+            # Allow update to continue even if some repos are unreachable
+            sudo apt-get update || true
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-            sudo apt-get install -y libwebkit2gtk-4.1-dev:arm64 libappindicator3-dev:arm64 librsvg2-dev:arm64
+            sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+            sudo apt-get install -y libwebkit2gtk-4.1-dev:arm64 libappindicator3-dev:arm64 librsvg2-dev:arm64 libssl-dev:arm64
+          else
+            sudo apt-get update
+            sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
           fi
 
       - name: install frontend dependencies
@@ -69,7 +71,6 @@ EOF"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PKG_CONFIG_ALLOW_CROSS: 1
-          # Set linker for aarch64
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.arch == 'aarch64' && 'aarch64-linux-gnu-gcc' || '' }}
         with:
           tagName: tauri-v__VERSION__
