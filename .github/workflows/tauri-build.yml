@@ -48,7 +48,20 @@ jobs:
         with:
           tagName: tauri-v__VERSION__
           releaseName: 'CloudHealth Pricebook Studio Tauri v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: |
+            # 🚀 CloudHealth Pricebook Studio v5.0.0
+            
+            Official transition to **Tauri** architecture. Faster, lighter, and more secure.
+            
+            ## ✨ Key Features
+            - **Tauri Migration**: 90% reduction in app size.
+            - **History & Rollback**: Restore previous versions of your pricebooks.
+            - **Export Suite**: Pro PDF and CSV exports.
+            - **Template Library**: Reusable billing rule templates.
+            - **Native ARM64**: Full support for Apple Silicon and Linux ARM.
+            
+            ## 📦 Installation
+            Find the binary matching your OS and architecture below. macOS users may need to run `xattr -rd com.apple.quarantine` after install.
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
