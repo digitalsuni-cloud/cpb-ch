@@ -19,7 +19,7 @@ import HistoryLog from './components/HistoryLog';
 import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
-import { isElectronApp, isDesktopApp } from './utils/env';
+import { isElectronApp, isTauriApp, isDesktopApp } from './utils/env';
 
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
@@ -213,14 +213,16 @@ function App() {
   const { toasts, showToast, removeToast } = useToast();
 
   const checkForUpdates = useCallback(async (manual = false) => {
-    if (!isElectronApp()) return;
+    // Only run the GitHub update check in the web/browser version
+    if (isElectronApp() || isTauriApp()) return;
 
     try {
       const res = await fetch('https://api.github.com/repos/digitalsuni-cloud/cpb-ch/releases/latest');
       const data = await res.json();
       if (!data || !data.tag_name) throw new Error("Invalid response");
 
-      const latestVersion = data.tag_name.replace(/^v/, '');
+      // Strip any prefix (e.g. 'tauri-v', 'electron-v', 'v') to get a clean semver
+      const latestVersion = data.tag_name.replace(/^[a-z]+-v|^v/, '');
       const currentVersion = import.meta.env.VITE_APP_VERSION;
 
       if (latestVersion && currentVersion) {
