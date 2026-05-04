@@ -51,6 +51,7 @@ const ReleaseNotes = ({ body }) => {
           else if (srcUrl.includes('windows')) srcUrl = '/badges/windows.svg';
           else if (srcUrl.includes('linux-deb') || srcUrl.includes('linux_deb')) srcUrl = '/badges/linux-deb.svg';
           else if (srcUrl.includes('linux-app') || srcUrl.includes('linux_app')) srcUrl = '/badges/linux-app.svg';
+          else if (srcUrl.includes('linux-rpm') || srcUrl.includes('linux_rpm')) srcUrl = '/badges/linux-rpm.svg';
 
           parts.push(
             <img
