@@ -22,7 +22,10 @@ echo 📌 Version detected: %VERSION%
 
 :: Use PowerShell with properly escaped variables
 echo 🔍 Searching for executables in src-tauri\target...
-powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter '*.exe' -Recurse | Where-Object { $_.Name -notlike 'tauri*' -and $_.Name -notlike 'cargo*' } | Select-Object -First 1; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; Write-Host \"✅ Found binary: $($exe.Name). Moving to release\Tauri\$newName\"; Copy-Item $exe.FullName \"release\Tauri\$newName\" -Force } else { Write-Host '❌ Could not find any application executable!'; exit 1 }"
+powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter '*.exe' -Recurse | Where-Object { $_.Name -notlike 'tauri*' -and $_.Name -notlike 'cargo*' } | Select-Object -First 1; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; Write-Host \"✅ Found binary: $($exe.Name). Moving to release\Tauri\$newName\"; Move-Item $exe.FullName \"release\Tauri\$newName\" -Force } else { Write-Host '❌ Could not find any application executable!'; exit 1 }"
+
+:: Cleanup any non-standard files in the release folder
+powershell -Command "Get-ChildItem -Path release\Tauri -File | Where-Object { $_.Name -notlike 'CloudHealth.Pricebook.Studio_*' } | Remove-Item -Force"
 
 echo 🎉 Build complete! Check the 'release\Tauri' folder.
 dir release\Tauri
