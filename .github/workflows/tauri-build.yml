@@ -143,5 +143,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $version = node -p "require('./package.json').version"
-          mv "src-tauri/target/release/CloudHealth.Pricebook.Studio.exe" "src-tauri/target/release/CloudHealth.Pricebook.Studio_${version}_amd64.exe"
-          gh release upload tauri-v$version "src-tauri/target/release/CloudHealth.Pricebook.Studio_${version}_amd64.exe" --clobber
+          $exe = Get-ChildItem -Path src-tauri/target -Filter "CloudHealth.Pricebook.Studio.exe" -Recurse | Select-Object -First 1
+          if ($exe) {
+              $newName = "CloudHealth.Pricebook.Studio_${version}_amd64.exe"
+              $dest = "src-tauri/target/release/$newName"
+              if (!(Test-Path "src-tauri/target/release")) { New-Item -ItemType Directory -Path "src-tauri/target/release" }
+              Move-Item $exe.FullName $dest -Force
+              gh release upload tauri-v$version $dest --clobber
+          } else {
+              Write-Error "Could not find CloudHealth.Pricebook.Studio.exe"
+              exit 1
+          }
