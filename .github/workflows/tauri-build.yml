@@ -67,6 +67,11 @@ jobs:
             new_name="${new_name// /_}" # Replace any remaining spaces with underscores
             new_name="${new_name/x86_64/amd64}"
             new_name="${new_name/x64/amd64}"
+            # Standardize RPM naming to underscores and strip revision
+            if [[ "$new_name" == *".rpm"* ]]; then
+              new_name="${new_name/-1./.}"
+              new_name="${new_name//-/_}"
+            fi
             if [ "$filename" != "$new_name" ]; then
               mv "$f" "$dir/$new_name"
             fi
