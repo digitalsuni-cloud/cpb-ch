@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "CloudHealth.Pricebook.Studio",
+  "productName": "CloudHealth Pricebook Studio",
   "version": "5.0.0",
   "identifier": "com.cloudhealth.pricebook.studio",
   "build": {

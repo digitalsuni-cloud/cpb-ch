@@ -20,16 +20,9 @@ if not exist release mkdir release
 for /f "tokens=*" %%a in ('node -p "require('./package.json').version"') do set VERSION=%%a
 echo 📌 Version detected: %VERSION%
 
-:: Standardized Name for Windows Portable
-set NEW_NAME=CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe
-
-if exist "src-tauri\target\release\CloudHealth.Pricebook.Studio.exe" (
-    echo ✅ Copying CloudHealth.Pricebook.Studio.exe -^> release\%NEW_NAME%
-    copy "src-tauri\target\release\CloudHealth.Pricebook.Studio.exe" "release\%NEW_NAME%" /Y
-) else if exist "src-tauri\target\release\app.exe" (
-    echo ✅ Copying app.exe -^> release\%NEW_NAME%
-    copy "src-tauri\target\release\app.exe" "release\%NEW_NAME%" /Y
-)
+:: Use PowerShell to robustly find the .exe and copy it
+echo 🔍 Searching for CloudHealth Pricebook Studio.exe...
+powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter 'CloudHealth Pricebook Studio.exe' -Recurse | Select-Object -First 1; if (!$exe) { $exe = Get-ChildItem -Path src-tauri\target -Filter 'app.exe' -Recurse | Select-Object -First 1 }; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; echo \"✅ Found $exe. Moving to release\$newName\"; Copy-Item $exe.FullName 'release\$newName' -Force } else { echo '❌ Could not find the executable!'; exit 1 }"
 
 echo 🎉 Build complete! Check the 'release' folder.
 dir release

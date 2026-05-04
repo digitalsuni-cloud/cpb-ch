@@ -1,12 +1,7 @@
 name: 'Tauri Build'
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - tauri
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger only
 
 jobs:
   build-linux:
@@ -75,10 +70,10 @@ jobs:
             | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | ARM64 (AppImage) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.AppImage) |
             | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | ARM64 (RPM) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.rpm) |
             
-            > **Note for macOS Users:**
+            > Note for macOS Users:
             > Because this is an internal application, it is not code-signed via the Apple Developer program. To run it for the first time, you must remove the quarantine attribute. Open your Terminal and run:
             > ```bash
-            > xattr -rd com.apple.quarantine "/Applications/CloudHealth.Pricebook.Studio.app"
+            > xattr -rd com.apple.quarantine "/Applications/CloudHealth Pricebook Studio.app"
             > ```
           releaseDraft: true
           prerelease: false
@@ -143,5 +138,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $version = node -p "require('./package.json').version"
-          mv "src-tauri/target/release/CloudHealth.Pricebook.Studio.exe" "src-tauri/target/release/CloudHealth.Pricebook.Studio_${version}_amd64.exe"
-          gh release upload tauri-v$version "src-tauri/target/release/CloudHealth.Pricebook.Studio_${version}_amd64.exe" --clobber
+          $exe = Get-ChildItem -Path src-tauri/target -Filter "CloudHealth Pricebook Studio.exe" -Recurse | Select-Object -First 1
+          if (!$exe) { $exe = Get-ChildItem -Path src-tauri/target -Filter "app.exe" -Recurse | Select-Object -First 1 }
+          if ($exe) {
+              $newName = "CloudHealth.Pricebook.Studio_${version}_amd64.exe"
+              $dest = "src-tauri/target/release/$newName"
+              if (!(Test-Path "src-tauri/target/release")) { New-Item -ItemType Directory -Path "src-tauri/target/release" }
+              Move-Item $exe.FullName $dest -Force
+              gh release upload tauri-v$version $dest --clobber
+          } else {
+              Write-Error "Could not find CloudHealth Pricebook Studio.exe or app.exe"
+              exit 1
+          }
