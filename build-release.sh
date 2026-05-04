@@ -3,7 +3,13 @@
 # Standardized Build and Release Script for Linux/macOS
 echo "🚀 Starting standardized build process..."
 
-# 1. Install and fix dependencies
+# 1. Check for signing keys
+if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+  echo "⚠️  WARNING: TAURI_SIGNING_PRIVATE_KEY is not set. Build will NOT be signed."
+  echo "Set it with: export TAURI_SIGNING_PRIVATE_KEY='your_key_here'"
+fi
+
+# 2. Install and fix dependencies
 echo "📦 Installing dependencies..."
 npm install
 npm audit fix --force
