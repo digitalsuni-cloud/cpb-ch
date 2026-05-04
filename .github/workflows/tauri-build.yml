@@ -59,37 +59,37 @@ jobs:
             - **Export Suite**: Pro PDF and CSV exports.
             - **Template Library**: Reusable billing rule templates.
             - **Native ARM64**: Full support for Apple Silicon and Linux ARM.
-            
-            ---
+                    ---
             ## 📦 File Details
             | Architecture | Platform | File to Download |
             | :--- | :--- | :--- |
             | ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Apple Silicon | [CloudHealth.Pricebook.Studio-5.0.0-arm64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-arm64.dmg) |
             | ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Intel | [CloudHealth.Pricebook.Studio-5.0.0-amd64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-amd64.dmg) |
-            | ![Windows](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/windows.svg) | Universal / Portable | [CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe) |
-            | ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | x64 (Deb) | [CloudHealth.Pricebook.Studio_5.0.0_amd64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_amd64.deb) |
-            | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | x64 (AppImage) | [CloudHealth.Pricebook.Studio_5.0.0_amd64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_amd64.AppImage) |
-            | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | x64 (RPM) | [CloudHealth.Pricebook.Studio_5.0.0_amd64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_amd64.rpm) |
-            | ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | ARM64 (Deb) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.deb) |
-            | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | ARM64 (AppImage) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.AppImage) |
-            | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | ARM64 (RPM) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.rpm) |
+            | ![Windows](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/windows.svg) | Universal / Portable | [CloudHealth.Pricebook.Studio-5.0.0-windows-portable.exe](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-windows-portable.exe) |
+            | ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | x64 (Deb) | [CloudHealth.Pricebook.Studio-5.0.0-amd64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-amd64.deb) |
+            | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | x64 (AppImage) | [CloudHealth.Pricebook.Studio-5.0.0-amd64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-amd64.AppImage) |
+            | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | x64 (RPM) | [CloudHealth.Pricebook.Studio-5.0.0-amd64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-amd64.rpm) |
+            | ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | ARM64 (Deb) | [CloudHealth.Pricebook.Studio-5.0.0-arm64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-arm64.deb) |
+            | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | ARM64 (AppImage) | [CloudHealth.Pricebook.Studio-5.0.0-arm64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-arm64.AppImage) |
+            | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | ARM64 (RPM) | [CloudHealth.Pricebook.Studio-5.0.0-arm64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio-5.0.0-arm64.rpm) |
             
             > **Note for macOS Users:**
             > Because this is an internal application, it is not code-signed via the Apple Developer program. To run it for the first time, you must remove the quarantine attribute. Open your Terminal and run:
             > ```bash
-            > xattr -rd com.apple.quarantine "/Applications/CloudHealth Pricebook Studio.app"
+            > xattr -rd com.apple.quarantine "/Applications/CloudHealth.Pricebook.Studio.app"
             > ```
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
 
-      - name: rename x86_64 to amd64 in bundle filenames
+      - name: standardize linux bundle filenames
         if: matrix.arch == 'x86_64'
         run: |
-          find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/ -name "*x86_64*" | while read f; do
+          find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/ -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) | while read f; do
             dir=$(dirname "$f")
             base=$(basename "$f")
-            new_base="${base//x86_64/amd64}"
+            # Replace underscores with hyphens, and x86_64 with amd64
+            new_base=$(echo "$base" | sed 's/_/-/g' | sed 's/x86_64/amd64/g')
             mv "$f" "$dir/$new_base"
           done
 
@@ -98,10 +98,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="tauri-v$(node -p "require('./package.json').version")"
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="tauri-v$VERSION"
           find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/ \
             \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) \
             -exec gh release upload "$TAG" {} --clobber \;
+
   build-windows:
     needs: build-linux
     permissions:
@@ -131,5 +133,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mv "src-tauri/target/release/app.exe" "src-tauri/target/release/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe"
-          gh release upload tauri-v5.0.0 "src-tauri/target/release/CloudHealth_Pricebook_Studio_Portable_v5.0.0.exe" --clobber
+          VERSION=$(node -p "require('./package.json').version")
+          mv "src-tauri/target/release/CloudHealth.Pricebook.Studio.exe" "src-tauri/target/release/CloudHealth.Pricebook.Studio-$VERSION-windows-portable.exe"
+          gh release upload tauri-v$VERSION "src-tauri/target/release/CloudHealth.Pricebook.Studio-$VERSION-windows-portable.exe" --clobber
