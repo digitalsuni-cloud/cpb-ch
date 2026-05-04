@@ -90,11 +90,13 @@ jobs:
             # ARCH: amd64 or arm64
             ARCH="amd64"
             if [[ "$f" == *"aarch64"* ]] || [[ "$f" == *"arm64"* ]]; then ARCH="arm64"; fi
+            
             # Standard: CloudHealth.Pricebook.Studio_VERSION_ARCH.EXT
             new_base="CloudHealth.Pricebook.Studio_${VERSION}_${ARCH}.${EXT}"
-            if [ "$f" != "$dir/$new_base" ]; then
-              mv "$f" "$dir/$new_base"
-            fi
+            
+            # CRITICAL: Always move to standardized name, even if it's the same
+            # This ensures we have a clean set of files to upload
+            mv "$f" "$dir/$new_base"
           done
 
       - name: upload standardized assets
@@ -105,7 +107,8 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           TAG="tauri-v$VERSION"
           TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
-          find "$TARGET_DIR" \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) \
+          # ONLY upload files that match our exact naming convention
+          find "$TARGET_DIR" -name "CloudHealth.Pricebook.Studio_${VERSION}_*" \
             -exec gh release upload "$TAG" {} --clobber \;
 
   build-windows:
