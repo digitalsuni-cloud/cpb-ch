@@ -72,9 +72,9 @@ jobs:
             fi
           done
           
-          # 2. CLEAN SLATE: Delete ALL existing assets from this release to avoid conflicts
-          echo "Cleaning up existing assets from $TAG..."
-          gh release view "$TAG" --json assets -q '.assets[].name' | while read asset; do
+          # 2. TARGETED CLEANUP: Only delete Linux assets from this release
+          echo "Cleaning up existing Linux assets from $TAG..."
+          gh release view "$TAG" --json assets -q '.assets[].name' | grep -E '\.(deb|rpm|AppImage|sig|tar\.gz)$' | while read asset; do
             echo "Deleting $asset..."
             gh release delete-asset "$TAG" "$asset" -y || true
           done
@@ -82,7 +82,6 @@ jobs:
           # 3. Fix the updater.json locally before upload
           mkdir -p temp_updater
           cd temp_updater
-          # We'll generate a fresh one or download and fix
           gh release download "$TAG" -p "updater.json" || true
           if [ -f "updater.json" ]; then
             sed -i 's/x86_64/amd64/g' updater.json
@@ -92,8 +91,8 @@ jobs:
           fi
           cd ..
           
-          # 4. Upload our perfectly named files
-          find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio_*" \
+          # 4. Upload our perfectly named files (any extension)
+          find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio*" \
             -exec gh release upload "$TAG" {} --clobber \;
 
   build-windows:
