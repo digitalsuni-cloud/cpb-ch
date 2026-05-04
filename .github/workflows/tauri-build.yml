@@ -97,7 +97,9 @@ jobs:
             if [[ "$f" == *"aarch64"* ]] || [[ "$f" == *"arm64"* ]]; then ARCH="arm64"; fi
             # Standard: CloudHealth.Pricebook.Studio_VERSION_ARCH.EXT
             new_base="CloudHealth.Pricebook.Studio_${VERSION}_${ARCH}.${EXT}"
-            mv "$f" "$dir/$new_base"
+            if [ "$f" != "$dir/$new_base" ]; then
+              mv "$f" "$dir/$new_base"
+            fi
           done
 
       - name: upload standardized assets
