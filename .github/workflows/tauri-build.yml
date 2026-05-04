@@ -72,9 +72,9 @@ jobs:
             fi
           done
           
-          # 2. TARGETED CLEANUP: Only delete Linux assets from this release
-          echo "Cleaning up existing Linux assets from $TAG..."
-          gh release view "$TAG" --json assets -q '.assets[].name' | grep -E '\.(deb|rpm|AppImage|sig|tar\.gz)$' | while read asset; do
+          # 2. TARGETED CLEANUP: ONLY delete the ghost x86_64 rpm
+          echo "Cleaning up ghost x86_64 rpm from $TAG..."
+          gh release view "$TAG" --json assets -q '.assets[].name' | grep -i 'x86_64' | grep '.rpm' | while read asset; do
             echo "Deleting $asset..."
             gh release delete-asset "$TAG" "$asset" -y || true
           done
