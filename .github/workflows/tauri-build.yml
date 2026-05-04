@@ -83,25 +83,29 @@ jobs:
           args: --target ${{ matrix.target }}
 
       - name: standardize linux bundle filenames
-        if: matrix.arch == 'x86_64'
+        if: matrix.arch == 'x86_64' || matrix.arch == 'aarch64'
         run: |
-          find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/ -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) | while read f; do
+          # Detect actual target dir based on arch
+          TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
+          find "$TARGET_DIR" -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) | while read f; do
             dir=$(dirname "$f")
             base=$(basename "$f")
-            # Replace underscores with hyphens, and x86_64 with amd64
-            new_base=$(echo "$base" | sed 's/_/-/g' | sed 's/x86_64/amd64/g')
+            # Replace underscores with hyphens
+            # Replace x86_64 with amd64
+            # Replace aarch64 with arm64
+            new_base=$(echo "$base" | sed 's/_/-/g' | sed 's/x86_64/amd64/g' | sed 's/aarch64/arm64/g')
             mv "$f" "$dir/$new_base"
           done
 
-      - name: upload renamed assets
-        if: matrix.arch == 'x86_64'
+      - name: upload standardized assets
+        if: matrix.arch == 'x86_64' || matrix.arch == 'aarch64'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           TAG="tauri-v$VERSION"
-          find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/ \
-            \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) \
+          TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
+          find "$TARGET_DIR" \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) \
             -exec gh release upload "$TAG" {} --clobber \;
 
   build-windows:
