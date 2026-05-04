@@ -213,15 +213,15 @@ function App() {
   const { toasts, showToast, removeToast } = useToast();
 
   const checkForUpdates = useCallback(async (manual = false) => {
-    // Only run the GitHub update check in the web/browser version
-    if (isElectronApp() || isTauriApp()) return;
+    // Electron has its own native updater — skip the GitHub check for it
+    if (isElectronApp()) return;
 
     try {
       const res = await fetch('https://api.github.com/repos/digitalsuni-cloud/cpb-ch/releases/latest');
       const data = await res.json();
       if (!data || !data.tag_name) throw new Error("Invalid response");
 
-      // Strip any prefix (e.g. 'tauri-v', 'electron-v', 'v') to get a clean semver
+      // Strip any tag prefix (e.g. 'tauri-v', 'electron-v', 'v') to get a clean semver
       const latestVersion = data.tag_name.replace(/^[a-z]+-v|^v/, '');
       const currentVersion = import.meta.env.VITE_APP_VERSION;
 
