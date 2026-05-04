@@ -70,7 +70,10 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/ -name "*x86_64*" | while read f; do
-            mv "$f" "${f//x86_64/amd64}"
+            dir=$(dirname "$f")
+            base=$(basename "$f")
+            new_base="${base//x86_64/amd64}"
+            mv "$f" "$dir/$new_base"
           done
 
       - name: upload renamed assets
