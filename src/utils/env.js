@@ -6,7 +6,7 @@ export const isElectronApp = () => {
 
 /** True when running inside a Tauri native window */
 export const isTauriApp = () =>
-    typeof window !== 'undefined' && (!!window.__TAURI_INTERNALS__ || !!window.__TAURI__);
+    typeof window !== 'undefined' && (!!window.__TAURI_INTERNALS__ || !!window.__TAURI__ || !!window.__TAURI_METADATA__);
 
 /** True when running as any desktop app (Tauri or Electron) */
 export const isDesktopApp = () => isTauriApp() || isElectronApp();
