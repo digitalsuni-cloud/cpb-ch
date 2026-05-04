@@ -91,9 +91,11 @@ jobs:
           fi
           cd ..
           
-          # 4. Upload our perfectly named files (any extension)
-          find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio*" \
-            -exec gh release upload "$TAG" {} --clobber \;
+          # 4. Upload our perfectly named files (filtered for binaries/signatures only)
+          find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio*" | grep -E '\.(deb|rpm|AppImage|sig|tar\.gz|dmg|exe)$' | while read file; do
+            echo "Uploading $file..."
+            gh release upload "$TAG" "$file" --clobber
+          done
 
   build-windows:
     needs: build-linux
