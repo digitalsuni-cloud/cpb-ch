@@ -51,5 +51,9 @@ for dir in $TARGET_DIRS; do
   done
 done
 
-echo "🎉 Build complete! Check the 'release/' folder."
-ls -lh release/
+# Clean up any leftover files that don't match our standard
+# This removes original files like x86_64.rpm after they've been renamed
+find "$RELEASE_DIR" -type f ! -name "CloudHealth.Pricebook.Studio_*" -delete
+
+echo "🚀 Build complete! Check the '$RELEASE_DIR' folder."
+ls -lh "$RELEASE_DIR"

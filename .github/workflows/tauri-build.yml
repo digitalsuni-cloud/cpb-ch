@@ -98,6 +98,9 @@ jobs:
             # This ensures we have a clean set of files to upload
             mv "$f" "$dir/$new_base"
           done
+          
+          # DELETE any leftovers that don't match our naming standard
+          find "$TARGET_DIR" -type f ! -name "CloudHealth.Pricebook.Studio_*" -delete
 
       - name: upload standardized assets
         if: matrix.arch == 'x86_64' || matrix.arch == 'aarch64'
