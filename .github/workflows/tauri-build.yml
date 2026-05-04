@@ -72,6 +72,7 @@ jobs:
             | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | x64 (RPM) | [CloudHealth.Pricebook.Studio_5.0.0_amd64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_amd64.rpm) |
             | ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | ARM64 (Deb) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.deb) |
             | ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | ARM64 (AppImage) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.AppImage) |
+            | ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | ARM64 (RPM) | [CloudHealth.Pricebook.Studio_5.0.0_arm64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/tauri-v__VERSION__/CloudHealth.Pricebook.Studio_5.0.0_arm64.rpm) |
             
             > **Note for macOS Users:**
             > Because this is an internal application, it is not code-signed via the Apple Developer program. To run it for the first time, you must remove the quarantine attribute. Open your Terminal and run:
