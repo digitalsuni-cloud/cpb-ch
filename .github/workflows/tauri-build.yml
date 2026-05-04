@@ -90,6 +90,7 @@ jobs:
             -exec gh release upload "$TAG" {} --clobber \;
 
   build-windows:
+    needs: build-linux
     permissions:
       contents: write
     runs-on: windows-latest
