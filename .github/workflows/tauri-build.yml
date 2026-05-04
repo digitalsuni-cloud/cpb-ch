@@ -55,16 +55,26 @@ jobs:
         run: |
           TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
           VERSION=$(node -p "require('./package.json').version")
-          find "$TARGET_DIR" -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" \) | while read f; do
+          
+          find "$TARGET_DIR" -type f | while read f; do
             dir=$(dirname "$f")
-            EXT="${f##*.}"
-            ARCH="amd64"
-            if [[ "$f" == *"aarch64"* ]] || [[ "$f" == *"arm64"* ]]; then ARCH="arm64"; fi
-            new_base="CloudHealth.Pricebook.Studio_${VERSION}_${ARCH}.${EXT}"
-            mv "$f" "$dir/$new_base"
+            filename=$(basename "$f")
+            
+            # Skip if it doesn't look like our app file
+            if [[ "$filename" != *"CloudHealth"* && "$filename" != *"cpb"* ]]; then continue; fi
+            
+            new_name="$filename"
+            # Replace spaces with dots
+            new_name="${new_name//CloudHealth Pricebook Studio/CloudHealth.Pricebook.Studio}"
+            # Standardize architectures
+            new_name="${new_name/x86_64/amd64}"
+            new_name="${new_name/aarch64/arm64}"
+            new_name="${new_name/x64/amd64}"
+            
+            if [ "$filename" != "$new_name" ]; then
+              mv "$f" "$dir/$new_name"
+            fi
           done
-          # DELETE any leftovers
-          find "$TARGET_DIR" -type f ! -name "CloudHealth.Pricebook.Studio_*" -delete
 
       - name: upload standardized assets
         env:
@@ -75,8 +85,8 @@ jobs:
           TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
           # Ensure release exists
           gh release create "$TAG" --title "CloudHealth Pricebook Studio v$VERSION" --notes "Production release v$VERSION" || true
-          # Upload only our standardized files
-          find "$TARGET_DIR" -name "CloudHealth.Pricebook.Studio_${VERSION}_*" \
+          # Upload all standardized files including sigs and tar.gz
+          find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio_*" \
             -exec gh release upload "$TAG" {} --clobber \;
 
   build-windows:
@@ -98,17 +108,8 @@ jobs:
       - name: install frontend dependencies
         run: npm install
 
-      - name: build tauri
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          args: --target x86_64-pc-windows-msvc
-          includeRelease: false
-          includeUpdaterJson: true
-          tagName: tauri-v__VERSION__
+      - name: build portable exe
+        run: npm run tauri build -- --no-bundle
 
       - name: upload standardized assets
         env:
