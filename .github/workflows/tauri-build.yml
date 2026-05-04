@@ -128,7 +128,7 @@ jobs:
         run: |
           $VERSION = node -p "require('./package.json').version"
           $TAG = "tauri-v$VERSION"
-          $TARGET_DIR = "src-tauri/target/x86_64-pc-windows-msvc/release"
+          $TARGET_DIR = "src-tauri/target/release"
           $EXE = Get-ChildItem -Path $TARGET_DIR -Filter "*.exe" -Recurse | Where-Object { $_.Name -notlike "tauri*" -and $_.Name -notlike "cargo*" } | Select-Object -First 1
           if ($EXE) {
             $NEW_NAME = "CloudHealth.Pricebook.Studio_${VERSION}_amd64.exe"
