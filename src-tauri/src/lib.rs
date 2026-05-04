@@ -36,6 +36,12 @@ async fn migrate_credential(app: tauri::AppHandle, key: String, value: String) -
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  #[cfg(target_os = "linux")]
+  {
+      // Fix for white screen in VMs and some Linux environments
+      std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+  }
+
   tauri::Builder::default()
     .plugin(tauri_plugin_http::init())
     .plugin(tauri_plugin_shell::init())
