@@ -48,14 +48,13 @@ jobs:
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
-          tagName: tauri-v__VERSION__
+          tagName: tauri-v5.0.0
 
       - name: standardize artifacts and fix release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          TAG="tauri-v$VERSION"
+          TAG="tauri-v5.0.0"
           TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
           
           # 1. Rename all local files to our standard (dots instead of spaces, amd64 instead of x86_64)
@@ -126,11 +125,10 @@ jobs:
         shell: pwsh
         run: |
           $VERSION = node -p "require('./package.json').version"
-          $TAG = "tauri-v$VERSION"
+          $TAG = "tauri-v5.0.0"
           $TARGET_DIR = "src-tauri/target/release"
           $EXE = Get-ChildItem -Path $TARGET_DIR -Filter "*.exe" -Recurse | Where-Object { $_.Name -notlike "tauri*" -and $_.Name -notlike "cargo*" } | Select-Object -First 1
           if ($EXE) {
             $NEW_NAME = "CloudHealth.Pricebook.Studio_${VERSION}_amd64.exe"
-            gh release create $TAG --title "CloudHealth Pricebook Studio v$VERSION" --notes "Production release v$VERSION" 2>$null
             gh release upload $TAG "$($EXE.FullName)#$NEW_NAME" --clobber
           }
