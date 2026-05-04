@@ -46,11 +46,11 @@ const ReleaseNotes = ({ body }) => {
         const altMatch = found.match(/!\[(.*?)\]/);
         const urlMatch = found.match(/\((.*?)\)/);
         if (altMatch && urlMatch) {
-          let srcUrl = urlMatch[1];
-          if (srcUrl.includes('macOS')) srcUrl = '/badges/macos.svg';
-          else if (srcUrl.includes('Windows')) srcUrl = '/badges/windows.svg';
-          else if (srcUrl.includes('Linux_Deb')) srcUrl = '/badges/linux-deb.svg';
-          else if (srcUrl.includes('Linux_App')) srcUrl = '/badges/linux-app.svg';
+          let srcUrl = urlMatch[1].toLowerCase();
+          if (srcUrl.includes('macos')) srcUrl = '/badges/macos.svg';
+          else if (srcUrl.includes('windows')) srcUrl = '/badges/windows.svg';
+          else if (srcUrl.includes('linux-deb') || srcUrl.includes('linux_deb')) srcUrl = '/badges/linux-deb.svg';
+          else if (srcUrl.includes('linux-app') || srcUrl.includes('linux_app')) srcUrl = '/badges/linux-app.svg';
 
           parts.push(
             <img
@@ -94,22 +94,78 @@ const ReleaseNotes = ({ body }) => {
 
   const formatBody = (text) => {
     const lines = text.split('\n');
-    return lines.map((line, i) => {
+    let inCodeBlock = false;
+    const result = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const trimmed = line.trim();
 
+      // Fenced Code Blocks
+      if (trimmed.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        continue;
+      }
+
+      if (inCodeBlock) {
+        result.push(
+          <div key={i} style={{ 
+            background: 'rgba(0,0,0,0.4)', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            fontFamily: 'monospace', 
+            fontSize: '0.75rem', 
+            margin: '4px 0', 
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: 'var(--primary)',
+            overflowX: 'auto'
+          }}>
+            {line}
+          </div>
+        );
+        continue;
+      }
+
+      // Blockquotes
+      if (trimmed.startsWith('> ')) {
+        result.push(
+          <div key={i} style={{ 
+            borderLeft: '3px solid var(--primary)', 
+            paddingLeft: '12px', 
+            margin: '8px 0', 
+            fontStyle: 'italic',
+            color: 'rgba(255,255,255,0.8)'
+          }}>
+            {renderInline(trimmed.substring(2))}
+          </div>
+        );
+        continue;
+      }
+
       // Headers
-      if (trimmed.startsWith('### ')) return <h4 key={i} style={{ margin: '14px 0 6px 0', fontSize: '0.85rem', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>{renderInline(trimmed.substring(4))}</h4>;
-      if (trimmed.startsWith('## ')) return <h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.90rem', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>{renderInline(trimmed.substring(3))}</h3>;
-      if (trimmed.startsWith('# ')) return <h2 key={i} style={{ margin: '18px 0 10px 0', fontSize: '1.05rem', color: 'var(--text-main)', borderBottom: '2px solid var(--primary)', paddingBottom: '6px' }}>{renderInline(trimmed.substring(2))}</h2>;
+      if (trimmed.startsWith('### ')) {
+        result.push(<h4 key={i} style={{ margin: '14px 0 6px 0', fontSize: '0.85rem', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>{renderInline(trimmed.substring(4))}</h4>);
+        continue;
+      }
+      if (trimmed.startsWith('## ')) {
+        result.push(<h3 key={i} style={{ margin: '16px 0 8px 0', fontSize: '0.90rem', color: 'var(--text-main)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>{renderInline(trimmed.substring(3))}</h3>);
+        continue;
+      }
+      if (trimmed.startsWith('# ')) {
+        result.push(<h2 key={i} style={{ margin: '18px 0 10px 0', fontSize: '1.05rem', color: 'var(--text-main)', borderBottom: '2px solid var(--primary)', paddingBottom: '6px' }}>{renderInline(trimmed.substring(2))}</h2>);
+        continue;
+      }
 
       // Horizontal Rule
-      if (/^---+$/.test(trimmed)) return <hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0', opacity: 0.5 }} />;
+      if (/^---+$/.test(trimmed)) {
+        result.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0', opacity: 0.5 }} />);
+        continue;
+      }
 
       // Tables
-      if (trimmed.includes('|') && /^[\s\-|:|]+$/.test(trimmed)) return null;
+      if (trimmed.includes('|') && /^[\s\-|:|]+$/.test(trimmed)) continue;
       if (trimmed.includes('|')) {
         const cells = trimmed.split('|').map(c => c.trim()).filter((c, ci) => {
-          // Keep internal empty cells but skip trailing/leading if they are just from split
           if (ci === 0 && c === '' && line.startsWith('|')) return false;
           if (ci === trimmed.split('|').length - 1 && c === '' && line.endsWith('|')) return false;
           return true;
@@ -117,7 +173,7 @@ const ReleaseNotes = ({ body }) => {
 
         if (cells.length > 1) {
           const isHeader = i === 0 || (lines[i + 1] && /^[\s\-|:|]+$/.test(lines[i + 1].trim()));
-          return (
+          result.push(
             <div key={i} style={{
               display: 'grid',
               gridTemplateColumns: cells.length === 3 ? '1.2fr 1fr 3fr' : `repeat(${cells.length}, 1fr)`,
@@ -137,6 +193,7 @@ const ReleaseNotes = ({ body }) => {
               ))}
             </div>
           );
+          continue;
         }
       }
 
@@ -144,17 +201,24 @@ const ReleaseNotes = ({ body }) => {
       const bulletMatch = trimmed.match(/^[*•-]\s*(.*)/);
       if (bulletMatch) {
         const content = bulletMatch[1];
-        return (
+        result.push(
           <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '4px', paddingLeft: '4px', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--primary)', flexShrink: 0 }}>•</span>
             <span style={{ flex: 1 }}>{renderInline(content)}</span>
           </div>
         );
+        continue;
       }
 
-      // Default text
-      return trimmed ? <div key={i} style={{ marginBottom: '6px' }}>{renderInline(trimmed)}</div> : <div key={i} style={{ height: '6px' }} />;
-    });
+      // Plain text
+      if (trimmed) {
+        result.push(<div key={i} style={{ marginBottom: '6px', fontSize: '0.8rem', lineHeight: '1.4' }}>{renderInline(line)}</div>);
+      } else {
+        result.push(<div key={i} style={{ height: '8px' }} />);
+      }
+    }
+
+    return result;
   };
 
   return (
@@ -213,15 +277,16 @@ function App() {
   const { toasts, showToast, removeToast } = useToast();
 
   const checkForUpdates = useCallback(async (manual = false) => {
-    if (!isElectronApp()) return;
+    if (!isDesktopApp()) return;
 
     try {
       const res = await fetch('https://api.github.com/repos/digitalsuni-cloud/cpb-ch/releases/latest');
       const data = await res.json();
       if (!data || !data.tag_name) throw new Error("Invalid response");
 
-      const latestVersion = data.tag_name.replace(/^v/, '');
-      const currentVersion = import.meta.env.VITE_APP_VERSION;
+      // Normalize version: remove "tauri-", "v", and other non-version prefixes
+      const latestVersion = data.tag_name.replace(/^tauri-/, '').replace(/^v/, '');
+      const currentVersion = import.meta.env.VITE_APP_VERSION || '0.0.0';
 
       if (latestVersion && currentVersion) {
         const isNewer = latestVersion.localeCompare(currentVersion, undefined, { numeric: true, sensitivity: 'base' }) > 0;
