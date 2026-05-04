@@ -21,8 +21,8 @@ for /f "tokens=*" %%a in ('node -p "require('./package.json').version"') do set 
 echo 📌 Version detected: %VERSION%
 
 :: Use PowerShell to robustly find the .exe and copy it
-echo 🔍 Searching for CloudHealth.Pricebook.Studio.exe...
-powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter 'CloudHealth.Pricebook.Studio.exe' -Recurse | Select-Object -First 1; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; echo \"✅ Found $exe. Moving to release\$newName\"; Copy-Item $exe.FullName 'release\$newName' -Force } else { echo '❌ Could not find the executable!'; exit 1 }"
+echo 🔍 Searching for CloudHealth Pricebook Studio.exe...
+powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter 'CloudHealth Pricebook Studio.exe' -Recurse | Select-Object -First 1; if (!$exe) { $exe = Get-ChildItem -Path src-tauri\target -Filter 'app.exe' -Recurse | Select-Object -First 1 }; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; echo \"✅ Found $exe. Moving to release\$newName\"; Copy-Item $exe.FullName 'release\$newName' -Force } else { echo '❌ Could not find the executable!'; exit 1 }"
 
 echo 🎉 Build complete! Check the 'release' folder.
 dir release
