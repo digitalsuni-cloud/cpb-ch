@@ -6,7 +6,6 @@ echo 🚀 Starting standardized build process for Windows...
 :: 1. Install and fix dependencies
 echo 📦 Installing dependencies...
 call npm install
-call npm audit fix --force
 
 :: 2. Build Tauri App
 echo 🏗️ Building Tauri application...
@@ -21,9 +20,9 @@ if not exist release\Tauri mkdir release\Tauri
 for /f "tokens=*" %%a in ('node -p "require('./package.json').version"') do set VERSION=%%a
 echo 📌 Version detected: %VERSION%
 
-:: Use PowerShell to find ANY .exe in the target folder and rename it
+:: Use PowerShell with properly escaped variables
 echo 🔍 Searching for executables in src-tauri\target...
-powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter '*.exe' -Recurse | Where-Object { $_.Name -notlike 'tauri*' -and $_.Name -notlike 'cargo*' } | Select-Object -First 1; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; echo \"✅ Found binary: $($exe.Name). Moving to release\Tauri\$newName\"; Copy-Item $exe.FullName 'release\Tauri\$newName' -Force } else { echo '❌ Could not find any application executable!'; exit 1 }"
+powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter '*.exe' -Recurse | Where-Object { $_.Name -notlike 'tauri*' -and $_.Name -notlike 'cargo*' } | Select-Object -First 1; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; Write-Host \"✅ Found binary: $($exe.Name). Moving to release\Tauri\$newName\"; Copy-Item $exe.FullName \"release\Tauri\$newName\" -Force } else { Write-Host '❌ Could not find any application executable!'; exit 1 }"
 
 echo 🎉 Build complete! Check the 'release\Tauri' folder.
 dir release\Tauri
