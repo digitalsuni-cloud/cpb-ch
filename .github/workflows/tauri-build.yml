@@ -1,12 +1,7 @@
 name: 'Tauri Build'
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - tauri
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger only
 
 jobs:
   build-linux:
