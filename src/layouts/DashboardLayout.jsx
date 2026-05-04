@@ -5,7 +5,7 @@ import SettingsModal from '../components/SettingsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCog, FaCloudDownloadAlt } from 'react-icons/fa';
 import Tooltip from '../components/Tooltip';
-import { isElectronApp } from '../utils/env';
+import { isDesktopApp } from '../utils/env';
 
 const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setShowHelp, onCheckUpdates }) => {
     const [showSettings, setShowSettings] = useState(false);
@@ -75,7 +75,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'absolute', right: '32px' }}>
-                        {isElectronApp() && (
+                        {isDesktopApp() && (
                             <>
                                 <Tooltip title="Updates" content="Check for newer versions of the app on GitHub" position="bottom">
                                     <button

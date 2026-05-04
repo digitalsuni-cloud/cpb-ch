@@ -7,6 +7,8 @@
   ],
   "permissions": [
     "core:default",
+    "updater:default",
+    "dialog:default",
     {
       "identifier": "http:default",
       "allow": [{ "url": "https://chapi.cloudhealthtech.com/*" }]

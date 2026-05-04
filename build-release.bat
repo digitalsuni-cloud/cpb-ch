@@ -10,20 +10,21 @@ call npm audit fix --force
 
 :: 2. Build Tauri App
 echo 🏗️ Building Tauri application...
+:: Force a fresh build to ensure productName is picked up
 call npm run tauri build -- --no-bundle
 
 :: 3. Prepare release directory
 echo 📂 Preparing release directory...
-if not exist release mkdir release
+if not exist release\Tauri mkdir release\Tauri
 
 :: 4. Extract version and handle artifacts
 for /f "tokens=*" %%a in ('node -p "require('./package.json').version"') do set VERSION=%%a
 echo 📌 Version detected: %VERSION%
 
-:: Use PowerShell to robustly find the .exe and copy it
-echo 🔍 Searching for CloudHealth Pricebook Studio.exe...
-powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter 'CloudHealth Pricebook Studio.exe' -Recurse | Select-Object -First 1; if (!$exe) { $exe = Get-ChildItem -Path src-tauri\target -Filter 'app.exe' -Recurse | Select-Object -First 1 }; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; echo \"✅ Found $exe. Moving to release\$newName\"; Copy-Item $exe.FullName 'release\$newName' -Force } else { echo '❌ Could not find the executable!'; exit 1 }"
+:: Use PowerShell to find ANY .exe in the target folder and rename it
+echo 🔍 Searching for executables in src-tauri\target...
+powershell -Command "$exe = Get-ChildItem -Path src-tauri\target -Filter '*.exe' -Recurse | Where-Object { $_.Name -notlike 'tauri*' -and $_.Name -notlike 'cargo*' } | Select-Object -First 1; if ($exe) { $newName = 'CloudHealth.Pricebook.Studio_%VERSION%_amd64.exe'; echo \"✅ Found binary: $($exe.Name). Moving to release\Tauri\$newName\"; Copy-Item $exe.FullName 'release\Tauri\$newName' -Force } else { echo '❌ Could not find any application executable!'; exit 1 }"
 
-echo 🎉 Build complete! Check the 'release' folder.
-dir release
+echo 🎉 Build complete! Check the 'release\Tauri' folder.
+dir release\Tauri
 pause
