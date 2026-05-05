@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import SettingsModal from '../components/SettingsModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCog, FaCloudDownloadAlt } from 'react-icons/fa';
+import { FaCog } from 'react-icons/fa';
 import Tooltip from '../components/Tooltip';
 import { isDesktopApp } from '../utils/env';
 
@@ -77,15 +77,6 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'absolute', right: '32px' }}>
                         {isDesktopApp() && (
                             <>
-                                <Tooltip title="Updates" content="Check for newer versions of the app on GitHub" position="bottom">
-                                    <button
-                                        onClick={onCheckUpdates}
-                                        className="header-icon-btn"
-                                        style={{ fontSize: '1.2rem', color: '#38bdf8' }}
-                                    >
-                                        <FaCloudDownloadAlt />
-                                    </button>
-                                </Tooltip>
                                 <Tooltip title="Settings" content="Add CloudHealth API Key" position="bottom">
                                     <button
                                         onClick={() => setShowSettings(true)}
@@ -127,6 +118,7 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
             <SettingsModal
                 isOpen={showSettings}
                 onClose={() => setShowSettings(false)}
+                onCheckUpdates={onCheckUpdates}
             />
         </div>
     );
