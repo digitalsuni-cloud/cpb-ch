@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { usePriceBook } from '../context/PriceBookContext';
 import { propertyTypes } from '../constants/propertyTypes';
 import { getIconForProduct } from '../utils/awsIcons';
-import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRight, FaTags, FaLayerGroup, FaUserEdit, FaFilePdf, FaSyncAlt } from 'react-icons/fa';
+import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRight, FaTags, FaLayerGroup, FaUserEdit, FaFilePdf, FaSyncAlt, FaFileCsv } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,6 +12,65 @@ const NaturalLanguageSummary = () => {
     const { priceBook } = state;
     const [isExporting, setIsExporting] = useState(false);
     const contentRef = useRef(null);
+
+    const handleDownloadCSV = () => {
+        const csvEscape = (v) => {
+            if (v === null || v === undefined) return '';
+            const s = String(v);
+            return s.includes(',') || s.includes('"') || s.includes('\n')
+                ? `"${s.replace(/"/g, '""')}"`
+                : s;
+        };
+        const join = (arr) => (arr || []).join(' | ');
+        const headers = [
+            'Rule Group #', 'Start Date', 'End Date', 'Payer Accounts',
+            'Billing Rule Name', 'Billing Adjustment', 'Rule Type',
+            'Include Data Transfer (Rule)', 'Include RI Purchases (Rule)',
+            'Product Name', 'Include Data Transfer (Product)', 'Include RI Purchases (Product)',
+            'Regions', 'Usage Types', 'Operations', 'Record Types',
+            'Savings Plan Offering Types', 'Instance Type', 'Instance Size', 'Instance Reserved',
+            'Line Item Description'
+        ];
+        const rows = [headers.map(csvEscape).join(',')];
+        (priceBook.ruleGroups || []).forEach((group, gIdx) => {
+            (group.rules || []).forEach(rule => {
+                (rule.products || []).forEach(product => {
+                    const props = product.properties || {};
+                    const regions      = join((props.region                  || []).map(v => String(v)));
+                    const usageTypes   = join((props.usageType               || []).map(v => String(v)));
+                    const operations   = join((props.operation               || []).map(v => String(v)));
+                    const recordTypes  = join((props.recordType              || []).map(v => String(v)));
+                    const savingsPlans = join((props.savingsPlanOfferingType || []).map(v => String(v)));
+                    const instTypes    = join((props.instanceProperty || []).map(v => v.type     || ''));
+                    const instSizes    = join((props.instanceProperty || []).map(v => v.size     || ''));
+                    const instReserved = join((props.instanceProperty || []).map(v => v.reserved || ''));
+                    const lineItems    = join((props.lineItemDescription || []).map(l => l.value ? `${l.matchType}:${l.value}` : ''));
+                    rows.push([
+                        gIdx + 1, group.startDate || '', group.endDate || '', group.payerAccounts || '',
+                        rule.name || '', rule.adjustment || '', rule.type || '',
+                        rule.includeDataTransfer || '', rule.includeRIPurchases || '',
+                        product.productName || '',
+                        product.includeDataTransfer !== 'inherit' ? (product.includeDataTransfer || '') : '',
+                        product.includeRIPurchases  !== 'inherit' ? (product.includeRIPurchases  || '') : '',
+                        regions, usageTypes, operations, recordTypes, savingsPlans,
+                        instTypes, instSizes, instReserved, lineItems
+                    ].map(csvEscape).join(','));
+                });
+            });
+        });
+        const csv = rows.join('\n');
+        const safeName = (priceBook.bookName || 'PriceBook').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const dateStr = new Date().toISOString().split('T')[0];
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${safeName}_${dateStr}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     const handleExportPDF = async () => {
         if (!contentRef.current || isExporting) return;
@@ -348,24 +407,57 @@ const NaturalLanguageSummary = () => {
                 <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
                     <FaLayerGroup style={{ color: 'var(--primary)' }} /> Pricing Execution Summary
                 </h3>
-                <button
-                    onClick={handleExportPDF}
-                    disabled={isExporting}
-                    title="Export summary as PDF"
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '9px 18px', borderRadius: '8px', border: 'none',
-                        background: isExporting ? 'var(--bg-deep)' : 'var(--primary)',
-                        color: 'white', cursor: isExporting ? 'not-allowed' : 'pointer',
-                        fontWeight: 700, fontSize: '0.85rem', opacity: isExporting ? 0.65 : 1,
-                        transition: 'opacity 0.2s, background 0.2s',
-                        boxShadow: isExporting ? 'none' : 'var(--shadow-glow)'
-                    }}
-                >
-                    {isExporting
-                        ? <><FaSyncAlt className="spin" size={13} /> Exporting...</>
-                        : <><FaFilePdf size={13} /> Export PDF</>}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                        onClick={handleDownloadCSV}
+                        title="Download rules as CSV"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '9px 18px', borderRadius: '8px',
+                            border: '1px solid rgba(5, 150, 105, 0.35)',
+                            background: 'rgba(5, 150, 105, 0.12)', color: '#6ee7b7',
+                            cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.background = 'rgba(5, 150, 105, 0.22)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.background = 'rgba(5, 150, 105, 0.12)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <FaFileCsv size={13} /> Download CSV
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        disabled={isExporting}
+                        title="Export summary as PDF"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '9px 18px', borderRadius: '8px',
+                            border: '1px solid rgba(139, 92, 246, 0.35)',
+                            background: isExporting ? 'var(--bg-deep)' : 'rgba(139, 92, 246, 0.15)',
+                            color: isExporting ? 'var(--text-muted)' : '#c4b5fd',
+                            cursor: isExporting ? 'not-allowed' : 'pointer',
+                            fontWeight: 600, fontSize: '0.85rem', opacity: isExporting ? 0.65 : 1,
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={e => { if (!isExporting) {
+                            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}}
+                        onMouseLeave={e => { if (!isExporting) {
+                            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}}
+                    >
+                        {isExporting
+                            ? <><FaSyncAlt className="spin" size={13} /> Exporting...</>
+                            : <><FaFilePdf size={13} /> Export PDF</>}
+                    </button>
+                </div>
             </div>
 
             {/* Capture target: remove scroll constraints so html2canvas sees full content */}
