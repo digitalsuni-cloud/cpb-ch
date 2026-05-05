@@ -1,0 +1,58 @@
+name: 'Tauri Build Windows'
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  build-windows:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install frontend dependencies
+        run: npm install
+
+      - name: build portable exe
+        run: npm run tauri build -- --no-bundle
+
+      - name: upload standardized assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $VERSION = node -p "require('./package.json').version"
+          $TAG = "tauri-v5.0.0"
+          $TARGET_DIR = "src-tauri\target\release"
+          
+          Write-Host "Searching for exe in $TARGET_DIR..."
+          $EXE = Get-ChildItem -Path $TARGET_DIR -Filter "*.exe" -Recurse | Where-Object { $_.Name -notlike "tauri*" -and $_.Name -notlike "cargo*" } | Select-Object -First 1
+          
+          if ($EXE) {
+            Write-Host "Found executable: $($EXE.FullName)"
+            $NEW_NAME = "CloudHealth.Pricebook.Studio_${VERSION}_amd64.exe"
+            $NEW_PATH = Join-Path -Path $EXE.DirectoryName -ChildPath $NEW_NAME
+            
+            Write-Host "Renaming to $NEW_PATH..."
+            Move-Item -Path $EXE.FullName -Destination $NEW_PATH -Force
+            
+            Write-Host "Uploading $NEW_PATH to release $TAG..."
+            gh release upload $TAG "$NEW_PATH" --clobber
+            
+            Write-Host "Cleaning up any rogue app.exe..."
+            cmd.exe /c "gh release delete-asset $TAG app.exe -y 2>NUL || exit 0"
+            Write-Host "Done!"
+          } else {
+            Write-Error "Could not find the .exe file in $TARGET_DIR"
+            exit 1
+          }
