@@ -1,5 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
+:: Set code page to UTF-8 to support emojis in the terminal
+chcp 65001 > nul
 
 echo 🚀 Starting standardized build process for Windows...
 
