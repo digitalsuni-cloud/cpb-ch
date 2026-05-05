@@ -19,8 +19,9 @@ echo "🏗️ Building Tauri application..."
 npm run tauri build
 
 # 3. Prepare release directory
+RELEASE_DIR="release/tauri"
 echo "📂 Preparing release directory..."
-mkdir -p release
+mkdir -p "$RELEASE_DIR"
 
 # 4. Extract version and handle artifacts
 VERSION=$(node -p "require('./package.json').version")
@@ -46,13 +47,12 @@ for dir in $TARGET_DIRS; do
     # Standardized Name: CloudHealth.Pricebook.Studio_VERSION_ARCH.EXT
     NEW_NAME="CloudHealth.Pricebook.Studio_${VERSION}_${ARCH}.${EXT}"
     
-    echo "✅ Moving $BASE -> release/$NEW_NAME"
-    cp "$f" "release/$NEW_NAME"
+    echo "✅ Moving $BASE -> $RELEASE_DIR/$NEW_NAME"
+    cp "$f" "$RELEASE_DIR/$NEW_NAME"
   done
 done
 
 # Clean up any leftover files that don't match our standard
-# This removes original files like x86_64.rpm after they've been renamed
 find "$RELEASE_DIR" -type f ! -name "CloudHealth.Pricebook.Studio_*" -delete
 
 echo "🚀 Build complete! Check the '$RELEASE_DIR' folder."
