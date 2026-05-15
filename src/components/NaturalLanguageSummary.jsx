@@ -49,7 +49,7 @@ const NaturalLanguageSummary = () => {
                         gIdx + 1, group.startDate || '', group.endDate || '', group.payerAccounts || '',
                         rule.name || '', rule.adjustment || '', rule.type || '',
                         rule.includeDataTransfer || '', rule.includeRIPurchases || '',
-                        product.productName || '',
+                        (product.productName || '').trim() || 'ANY',
                         product.includeDataTransfer !== 'inherit' ? (product.includeDataTransfer || '') : '',
                         product.includeRIPurchases  !== 'inherit' ? (product.includeRIPurchases  || '') : '',
                         regions, usageTypes, operations, recordTypes, savingsPlans,
@@ -308,7 +308,7 @@ const NaturalLanguageSummary = () => {
                                                                         <div key={prod.id || pIdx} style={{ padding: '12px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', color: 'var(--primary)' }}>
                                                                                 {React.cloneElement(getIconForProduct(prod.productName), { size: 18 })}
-                                                                                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{prod.productName === 'ANY' ? 'All AWS Services' : prod.productName}</span>
+                                                                                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{(!(prod.productName || '').trim() || prod.productName === 'ANY') ? 'All AWS Services' : prod.productName}</span>
                                                                             </div>
 
                                                                             {prod.properties && Object.keys(prod.properties).length > 0 ? (

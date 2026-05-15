@@ -67,7 +67,7 @@ const generateCSV = (priceBook) => {
                     rule.type           || '',
                     rule.includeDataTransfer || '',
                     rule.includeRIPurchases  || '',
-                    product.productName      || '',
+                    (product.productName || '').trim() || 'ANY',
                     product.includeDataTransfer !== 'inherit' ? (product.includeDataTransfer || '') : '',
                     product.includeRIPurchases  !== 'inherit' ? (product.includeRIPurchases  || '') : '',
                     regions, usageTypes, operations, recordTypes, savingsPlans,

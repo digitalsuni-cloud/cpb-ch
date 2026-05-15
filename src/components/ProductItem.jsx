@@ -254,7 +254,7 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         {getIconForProduct(product.productName)}
-                        <strong style={{ color: 'var(--text-main)' }}>{product.productName || '(No Product Selected)'}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{product.productName || 'ANY'}</strong>
 
                         {/* Property Filter Tags */}
                         {!expanded && Object.keys(product.properties).length > 0 && (
