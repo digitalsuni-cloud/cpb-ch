@@ -53,7 +53,7 @@ export const generateXML = (priceBook) => {
             groupXml += `\t\t\t<BasicBillingRule billingAdjustment="${ruleAdjustment}" billingRuleType="${rule.type || 'percentDiscount'}" />\n`;
 
             (rule.products || []).forEach(prod => {
-                const productName = prod.productName || 'ANY';
+                const productName = (prod.productName || '').trim() || 'ANY';
                 let prodTag = `\t\t\t<Product productName="${productName}"`;
                 // Only include if value is NOT 'inherit'
                 if (prod.includeDataTransfer && prod.includeDataTransfer !== 'inherit') prodTag += ` includeDataTransfer="${prod.includeDataTransfer}"`;

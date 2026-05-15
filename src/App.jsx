@@ -483,19 +483,19 @@ function App() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Reset Price Book</h3>
+                  <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Clear Rule Builder</h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Permanently delete all rules and configurations to start fresh.
+                    Remove all current rules from the form to start a new draft.
                   </p>
                 </div>
                 <button
                   onClick={async () => {
                     const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
                     if (!hasData || await confirm({
-                      title: 'Reset Price Book',
-                      message: "This will permanently delete all your rules and configurations. Are you absolutely sure?",
+                      title: 'Clear Rule Builder',
+                      message: "This will clear all rules currently in the builder. Any unsaved progress in this form will be lost. Continue?",
                       variant: 'danger',
-                      confirmLabel: 'Reset Everything'
+                      confirmLabel: 'Clear Form'
                     })) {
                       dispatch({ type: 'RESET_ALL' });
                     }
@@ -654,19 +654,19 @@ function App() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Reset Price Book</h3>
+                  <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Clear Rule Builder</h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Permanently delete all rules and configurations to start fresh.
+                    Remove all current rules from the form to start a new draft.
                   </p>
                 </div>
                 <button
                   onClick={async () => {
                     const hasData = state.priceBook.ruleGroups.some(g => g.startDate || g.rules.some(r => r.name || r.adjustment));
                     if (!hasData || await confirm({
-                      title: 'Reset Price Book',
-                      message: "This will permanently delete all your rules and configurations. Are you absolutely sure?",
+                      title: 'Clear Rule Builder',
+                      message: "This will clear all rules currently in the builder. Any unsaved progress in this form will be lost. Continue?",
                       variant: 'danger',
-                      confirmLabel: 'Reset Everything'
+                      confirmLabel: 'Clear Form'
                     })) {
                       dispatch({ type: 'RESET_ALL' });
                     }
