@@ -73,8 +73,27 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                             }
                         </div>
                         <div>
-                            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
-                                Rule Conflicts
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
+                                    Rule Conflicts
+                                </div>
+                                <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    padding: '2px 6px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(139,92,246,0.12)',
+                                    color: 'var(--primary)',
+                                    border: '1px solid rgba(139,92,246,0.3)',
+                                    lineHeight: 1,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    marginTop: '1px',
+                                }}>
+                                    Beta
+                                </span>
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                                 {conflicts.length === 0
