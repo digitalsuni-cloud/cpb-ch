@@ -26,6 +26,7 @@ You can preview the interface directly in your browser:
 
 ## ✨ Core Features
 - 🏗️ **Visual Rule Builder**: Drag, drop, and construct complex tiering logic without touching XML.
+- 🛡️ **Advanced Conflict Detector**: Real-time validation scans for chronological dates, sequential rule shadowing, redundant product filters, timeline coverage gaps, and adjustment sanity.
 - 📂 **Price Book Directory**: A live dashboard of all price books currently assigned to your tenant.
 - 📜 **Action History**: A detailed audit log of every assignment, deletion, and update performed locally.
 - ☁️ **Direct Sync**: Pull specifications directly from CloudHealth, modify them, and push patches in seconds.
@@ -52,6 +53,9 @@ If you want to contribute or build from source:
 
 3. **Build Standalone**
    ```bash
-   # Build for current OS
-   npm run electron:build
+   # Build for current OS using Tauri
+   npm run tauri build
+
+   # Or run the standardized release builder
+   ./build-release.sh
    ```
