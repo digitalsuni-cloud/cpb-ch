@@ -6,7 +6,7 @@ on:
       tag:
         description: 'Release Tag (for manual uploads)'
         required: false
-        default: '5.5.0'
+        default: 'v5.5.0'
   release:
     types: [created]
 
