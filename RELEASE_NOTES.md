@@ -18,13 +18,15 @@ Introduces a comprehensive, real-time logic engine that scans your Pricebooks fo
 - **CSV & PDF Exports**: Export Pricebook Rules in CSV format or generate high-quality PDF summary reports.
 
 ### 📚 Expanded Template Library
-Added several "out-of-the-box" templates for faster pricebook creation:
+Added several standardized "out-of-the-box" templates for faster pricebook creation:
 - **Remove Private & EDP Discounts**: Zeros out Private Rate and Enterprise Discount Program items.
-- **CloudWatch List Pricing**: Adjusts data storage and log processing to standard on-demand rates.
-- **CloudFront HTTP/S List Pricing**: Standardized request pricing for major global regions.
-- **S3 Custom Tier Pricing**: Pre-negotiated rates across multiple storage tiers.
+- **CloudWatch List Pricing (Standardized!)**: Consolidated rules under a single `2025-01-01` Rule Group, and updated all name suffixes to standard lowercase region codes (e.g. `- use1`, `- euc1`).
+- **CloudFront HTTP/S List Pricing (Standardized!)**: Merged all request rules into a single `2021-11-01` Rule Group.
+- **S3 Custom Tier Pricing (Standardized!)**: Consolidated all S3 custom tier pricing rules into a single logical `2025-05-01` Rule Group, resolving duplicate groups and false-positive overlaps.
 
 ### ⚙️ Maintenance, Portability & UX
+- **Clear Workspace Safe-Guards**: Updated the template application copy to clearly indicate that templates only modify the local editor workspace, keeping saved and active pricebooks completely secure.
+- **Premium Stacked Confirm Dialogs**: Redesigned multi-action confirm modals to layout buttons vertically when a tertiary choice is active, completely resolving text wrapping and cramped spacing.
 - **Enhanced Data Portability**: Import/Export for both Action History and the *Your Templates* library.
 - **Smart Template Logic**: Integrated collision detection and metadata preservation for template merges.
 - **General Improvements**: Resolved UI inconsistencies and patched performance bugs.

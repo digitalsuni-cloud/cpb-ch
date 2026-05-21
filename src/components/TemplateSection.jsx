@@ -285,12 +285,12 @@ const TemplateSection = ({ setActiveView }) => {
 
         if (hasExisting) {
             const userChoice = await confirm({
-                title: 'Apply Template',
-                message: `You already have ${state.priceBook.ruleGroups.length} rule groups in your pricebook.\n\nDo you want to add this template to your existing rules, or overwrite everything?`,
+                title: 'Apply to Rule Builder Workspace',
+                message: `You already have ${state.priceBook.ruleGroups.length} rule groups in your rule builder.\n\nThis will NOT overwrite your active or saved pricebook yet. It only overwrites the working rules in your rule builder workspace, where you can inspect, edit, or test them before saving.\n\nDo you want to add these template rules to your current builder workspace, or overwrite the builder workspace completely?`,
                 variant: 'warning',
-                confirmLabel: 'Overwrite Everything',
+                confirmLabel: 'Overwrite Builder Rules',
                 cancelLabel: 'Cancel',
-                tertiaryLabel: 'Add to Existing Rules'
+                tertiaryLabel: 'Add to Builder'
             });
 
             if (userChoice === false || userChoice === undefined || userChoice === null) return;
