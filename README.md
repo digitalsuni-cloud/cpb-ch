@@ -59,3 +59,50 @@ If you want to contribute or build from source:
    # Or run the standardized release builder
    ./build-release.sh
    ```
+
+---
+
+## 🚀 Release Checklist (Before Pushing/Publishing)
+
+To maintain high-quality releases, follow this checklist sequentially before and during a release:
+
+1. **Verify Local Builds**: Run `./build-release.sh` (for Mac) or local build scripts on target platforms to ensure compile-time checks and packages generate successfully.
+2. **Update Release Notes**: Review and revise `RELEASE_NOTES.md` with:
+   - Latest feature explanations, bug patches, and UX adjustments.
+   - Updated file download list and architectural tables matching the exact version release tag (e.g., swapping `5.5.0` to the new version).
+3. **Keep `README.md` Current**: Ensure all feature summaries, setup steps, and local build details match any new capabilities or CLI commands.
+4. **Trigger Release Action**:
+   - Manually run the **Create Release** workflow on GitHub.
+   - The action will automatically read the updated `RELEASE_NOTES.md`, substitute dynamic version placeholders, stamp `CHANGELOG.md` inside the release commit, and create the tagged draft release.
+5. **Publish Platform Assets**:
+   - Manually trigger **Tauri Build** (or wait for the automated release trigger) to compile and upload Windows and Linux release assets.
+   - Upload macOS installer binaries to the latest release page (e.g., via `gh release upload`).
+
+---
+
+### 📦 Post-Push & Publishing Workflow (After Code Push)
+
+Once your code modifications have been pushed to GitHub, complete the following pipeline steps to finalize the deployment:
+
+1. **Submit a Pull Request**: 
+   - Since `main` is protected from direct pushes, open a Pull Request from your feature branch (e.g., `feat/rule-conflict-detector`) to `main`.
+2. **Review Automated Checks**: 
+   - Verify that all automated pre-merge pipelines and test builds pass cleanly on the Pull Request.
+3. **Merge Pull Request**: 
+   - Merge the PR into the `main` branch once all checks are green.
+4. **Trigger Release Action**:
+   - Run the **Create Release** workflow in GitHub Actions (selecting the `main` branch and providing the target version, e.g., `v5.5.0`).
+   - If executed on `main`, the stamped `CHANGELOG.md` will be pushed to a dedicated `release/v5.5.0` branch. Open a quick PR to merge this changelog update back into `main`.
+5. **Sync macOS Desktop Assets**:
+   - Build macOS binaries locally using `./build-release.sh`.
+   - Upload the compiled dmg installers directly to the release page using the GitHub CLI:
+     ```bash
+     gh release upload v5.5.0 release/Tauri/CloudHealth.Pricebook.Studio_5.5.0_amd64.dmg release/Tauri/CloudHealth.Pricebook.Studio_5.5.0_arm64.dmg --clobber
+     ```
+6. **Trigger Cloud Tauri Builds (Windows & Linux)**:
+   - Go to GitHub Actions, trigger the **Tauri Build** workflow, and supply the release tag (`v5.5.0`). 
+   - The workflow will automatically compile the portable Windows executable and Linux packages (`.deb`, `.rpm`, `.AppImage`) and attach them to the release assets.
+7. **Verify Web Deployment**:
+   - Verify that the updated web app has been successfully pushed and is live on the **GitHub Pages Preview** branch.
+8. **Conduct Release Audit**:
+   - Double-check the **Latest Release** page to ensure all 9 assets (Mac DMG, Windows EXE, and Linux binaries/signatures) are attached and that all download links work correctly.

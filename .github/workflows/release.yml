@@ -35,25 +35,42 @@ jobs:
           DATE=$(date -u '+%Y-%m-%d')
           BRANCH="${{ github.ref_name }}"
 
+          # Extract Tag Version (with leading 'v') and Raw Version (without 'v')
+          if [[ $VERSION =~ ^v ]]; then
+            TAG_VERSION="$VERSION"
+            RAW_VERSION="${VERSION#v}"
+          else
+            TAG_VERSION="v$VERSION"
+            RAW_VERSION="$VERSION"
+          fi
+
           # Update or create CHANGELOG.md with the release entry
-          if grep -q "^## ${VERSION}" CHANGELOG.md 2>/dev/null; then
-            echo "CHANGELOG already has v${VERSION} entry, skipping."
+          if grep -q "^## ${TAG_VERSION}" CHANGELOG.md 2>/dev/null; then
+            echo "CHANGELOG already has ${TAG_VERSION} entry, skipping."
           else
             # Prepend to CHANGELOG.md
-            HEADER="## ${VERSION} — ${DATE}"
-            if [ -f CHANGELOG.md ]; then
-              echo -e "${HEADER}\n\nSee release notes for full details.\n\n$(cat CHANGELOG.md)" > CHANGELOG.md
+            HEADER="## ${TAG_VERSION} — ${DATE}"
+            
+            if [ -f RELEASE_NOTES.md ]; then
+              sed -e "s/v5.5.0/${TAG_VERSION}/g" -e "s/5.5.0/${RAW_VERSION}/g" RELEASE_NOTES.md > DYNAMIC_RELEASE_NOTES.md
+              NOTES_CONTENT=$(cat DYNAMIC_RELEASE_NOTES.md)
             else
-              echo -e "${HEADER}\n\nSee release notes for full details." > CHANGELOG.md
+              NOTES_CONTENT="See release notes for full details."
+            fi
+
+            if [ -f CHANGELOG.md ]; then
+              echo -e "${HEADER}\n\n${NOTES_CONTENT}\n\n$(cat CHANGELOG.md)" > CHANGELOG.md
+            else
+              echo -e "${HEADER}\n\n${NOTES_CONTENT}" > CHANGELOG.md
             fi
 
             git add CHANGELOG.md
-            git commit -m "chore: Release ${VERSION}"
+            git commit -m "chore: Release ${TAG_VERSION}"
             
             if [ "$BRANCH" = "main" ]; then
-              echo "⚠️ Pushing directly to main is protected. Pushing release commit to new branch release/${VERSION}..."
-              git push origin HEAD:refs/heads/release/${VERSION}
-              echo "Please open a PR to merge release/${VERSION} into main."
+              echo "⚠️ Pushing directly to main is protected. Pushing release commit to new branch release/${TAG_VERSION}..."
+              git push origin HEAD:refs/heads/release/${TAG_VERSION}
+              echo "Please open a PR to merge release/${TAG_VERSION} into main."
             else
               echo "Pushing release commit to current branch ${BRANCH}..."
               git push origin HEAD
@@ -67,19 +84,32 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           PRERELEASE="${{ github.event.inputs.prerelease }}"
 
+          # Extract Tag Version (with leading 'v') and Raw Version (without 'v')
+          if [[ $VERSION =~ ^v ]]; then
+            TAG_VERSION="$VERSION"
+            RAW_VERSION="${VERSION#v}"
+          else
+            TAG_VERSION="v$VERSION"
+            RAW_VERSION="$VERSION"
+          fi
+
           # Tag points to the Actions-created commit above (verified signature)
           COMMIT=$(git rev-parse HEAD)
 
-          if [ -f RELEASE_NOTES.md ]; then
-            gh release create "${VERSION}" \
-              --title "Release ${VERSION}" \
-              --notes-file RELEASE_NOTES.md \
+          if [ ! -f DYNAMIC_RELEASE_NOTES.md ] && [ -f RELEASE_NOTES.md ]; then
+            sed -e "s/v5.5.0/${TAG_VERSION}/g" -e "s/5.5.0/${RAW_VERSION}/g" RELEASE_NOTES.md > DYNAMIC_RELEASE_NOTES.md
+          fi
+
+          if [ -f DYNAMIC_RELEASE_NOTES.md ]; then
+            gh release create "${TAG_VERSION}" \
+              --title "Release ${TAG_VERSION}" \
+              --notes-file DYNAMIC_RELEASE_NOTES.md \
               --target "${COMMIT}" \
               $([ "$PRERELEASE" = "true" ] && echo "--prerelease" || echo "")
           else
-            gh release create "${VERSION}" \
-              --title "Release ${VERSION}" \
-              --notes "Release ${VERSION}" \
+            gh release create "${TAG_VERSION}" \
+              --title "Release ${TAG_VERSION}" \
+              --notes "Release ${TAG_VERSION}" \
               --target "${COMMIT}" \
               $([ "$PRERELEASE" = "true" ] && echo "--prerelease" || echo "")
           fi
