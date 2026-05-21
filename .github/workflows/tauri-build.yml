@@ -1,18 +1,19 @@
 name: 'Tauri Build'
 
 on:
-  workflow_dispatch: # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release Tag (for manual uploads)'
+        required: false
+        default: '5.5.0'
+  release:
+    types: [created]
 
 jobs:
   build-linux:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: 'x86_64'
-            target: 'x86_64-unknown-linux-gnu'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +27,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-unknown-linux-gnu
 
       - name: install dependencies
         run: |
@@ -40,65 +41,99 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          args: --target ${{ matrix.target }}
+          args: --target x86_64-unknown-linux-gnu
           includeRelease: true
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
-          tagName: tauri-v5.0.0
 
       - name: standardize artifacts and fix release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="tauri-v5.0.0"
-          TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
+          VERSION=$(node -p "require('./package.json').version")
+          TARGET_DIR="src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
           
-          # 1. Rename all local files to our standard (dots instead of spaces, amd64 instead of x86_64)
+          # Rename all local files to our standard (dots instead of spaces, amd64 instead of x86_64)
           find "$TARGET_DIR" -type f | while read f; do
             dir=$(dirname "$f")
             filename=$(basename "$f")
-            if [[ "$filename" != *"CloudHealth"* && "$filename" != *"cpb"* && "$filename" != *"app"* ]]; then continue; fi
+            if [[ "$filename" != *"CloudHealth"* && "$filename" != *"ch"* && "$filename" != *"app"* && "$filename" != *"cpb"* ]]; then continue; fi
             new_name="$filename"
             new_name="${new_name//CloudHealth Pricebook Studio/CloudHealth.Pricebook.Studio}"
             new_name="${new_name// /_}" # Replace any remaining spaces with underscores
             new_name="${new_name/x86_64/amd64}"
             new_name="${new_name/x64/amd64}"
-            # Standardize RPM naming to underscores and strip revision
+            
             if [[ "$new_name" == *".rpm"* ]]; then
               new_name="${new_name/-1./.}"
               new_name="${new_name//-/_}"
             fi
+            
             if [ "$filename" != "$new_name" ]; then
               mv "$f" "$dir/$new_name"
             fi
           done
           
-          # 2. TARGETED CLEANUP: ONLY delete the ghost x86_64 rpm
-          echo "Cleaning up ghost x86_64 rpm from $TAG..."
-          gh release view "$TAG" --json assets -q '.assets[].name' | grep -i 'x86_64' | grep '.rpm' | while read asset; do
-            echo "Deleting $asset..."
-            gh release delete-asset "$TAG" "$asset" -y || true
-          done
-          
-          # 3. Fix the updater.json locally before upload
-          mkdir -p temp_updater
-          cd temp_updater
-          gh release download "$TAG" -p "updater.json" || true
-          if [ -f "updater.json" ]; then
-            sed -i 's/x86_64/amd64/g' updater.json
-            sed -i 's/CloudHealth%20Pricebook%20Studio/CloudHealth.Pricebook.Studio/g' updater.json
-            sed -i 's/%20/_/g' updater.json
-            gh release upload "$TAG" updater.json --clobber
+          # Upload files to the release if it exists or manually triggered
+          if [[ "${{ github.event_name }}" == "release" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+            if [ -z "$TAG" ]; then TAG="${{ github.event.inputs.tag }}"; fi
+            
+            find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio*" | grep -E '\.(deb|rpm|AppImage|sig|tar\.gz)$' | while read file; do
+              echo "Uploading $file to $TAG..."
+              gh release upload "$TAG" "$file" --clobber
+            done
           fi
-          cd ..
-          
-          # 4. Upload our perfectly named files (filtered for binaries/signatures only)
-          find "$TARGET_DIR" -type f -name "CloudHealth.Pricebook.Studio*" | grep -E '\.(deb|rpm|AppImage|sig|tar\.gz|dmg|exe)$' | while read file; do
-            echo "Uploading $file..."
-            gh release upload "$TAG" "$file" --clobber
-          done
 
+  build-windows:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install frontend dependencies
+        run: npm install
+
+      - name: build portable exe
+        run: npm run tauri build -- --no-bundle
+
+      - name: upload standardized assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $VERSION = node -p "require('./package.json').version"
+          $TARGET_DIR = "src-tauri\target\release"
+          
+          Write-Host "Searching for exe in $TARGET_DIR..."
+          $EXE = Get-ChildItem -Path $TARGET_DIR -Filter "*.exe" -Recurse | Where-Object { $_.Name -notlike "tauri*" -and $_.Name -notlike "cargo*" } | Select-Object -First 1
+          
+          if ($EXE) {
+            Write-Host "Found executable: $($EXE.FullName)"
+            $NEW_NAME = "CloudHealth.Pricebook.Studio_${VERSION}_amd64.exe"
+            $NEW_PATH = Join-Path -Path $EXE.DirectoryName -ChildPath $NEW_NAME
+            
+            Write-Host "Renaming to $NEW_PATH..."
+            Move-Item -Path $EXE.FullName -Destination $NEW_PATH -Force
+            
+            if ("${{ github.event_name }}" -eq "release" -or "${{ github.event_name }}" -eq "workflow_dispatch") {
+              $TAG = "${{ github.event.release.tag_name }}"
+              if (-not $TAG) { $TAG = "${{ github.event.inputs.tag }}" }
+              
+              Write-Host "Uploading $NEW_PATH to release $TAG..."
+              gh release upload $TAG "$NEW_PATH" --clobber
+            }
+          } else {
+            Write-Error "Could not find the .exe file in $TARGET_DIR"
+          }

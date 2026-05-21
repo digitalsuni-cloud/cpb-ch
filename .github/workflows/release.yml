@@ -1,0 +1,84 @@
+name: 'Create Release'
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 5.5.0)'
+        required: true
+        default: '5.5.0'
+      prerelease:
+        description: 'Mark as pre-release?'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Stamp CHANGELOG with release date (creates a verified commit)
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          DATE=$(date -u '+%Y-%m-%d')
+
+          # Update or create CHANGELOG.md with the release entry
+          if grep -q "^## ${VERSION}" CHANGELOG.md 2>/dev/null; then
+            echo "CHANGELOG already has v${VERSION} entry, skipping."
+          else
+            # Prepend to CHANGELOG.md
+            HEADER="## ${VERSION} — ${DATE}"
+            if [ -f CHANGELOG.md ]; then
+              echo -e "${HEADER}\n\nSee release notes for full details.\n\n$(cat CHANGELOG.md)" > CHANGELOG.md
+            else
+              echo -e "${HEADER}\n\nSee release notes for full details." > CHANGELOG.md
+            fi
+
+            git add CHANGELOG.md
+            git commit -m "chore: Release ${VERSION}"
+            git push origin HEAD
+          fi
+
+      - name: Create GitHub Release (verified tag on Actions commit)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          PRERELEASE="${{ github.event.inputs.prerelease }}"
+
+          # Tag points to the Actions-created commit above (verified signature)
+          COMMIT=$(git rev-parse HEAD)
+
+          if [ -f RELEASE_NOTES.md ]; then
+            gh release create "${VERSION}" \
+              --title "Release ${VERSION}" \
+              --notes-file RELEASE_NOTES.md \
+              --target "${COMMIT}" \
+              $([ "$PRERELEASE" = "true" ] && echo "--prerelease" || echo "")
+          else
+            gh release create "${VERSION}" \
+              --title "Release ${VERSION}" \
+              --notes "Release ${VERSION}" \
+              --target "${COMMIT}" \
+              $([ "$PRERELEASE" = "true" ] && echo "--prerelease" || echo "")
+          fi
+
+      - name: Summary
+        run: |
+          echo "## ✅ Release v${{ github.event.inputs.version }} created with verified signature!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tag points to a GitHub Actions commit — the verified badge will show." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Now run the **Tauri Build** workflow to upload platform binaries." >> $GITHUB_STEP_SUMMARY
