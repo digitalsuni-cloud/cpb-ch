@@ -1,4 +1,4 @@
-This major release marks our official transition from Electron to **Tauri**, providing a much faster, lighter, and more secure desktop experience. It combines all the new features from v4.4 through v5.5, introducing the **Advanced Rule Conflict Detector**, **Template Library**, powerful **Rollback and Restore** capabilities, and new **Export Options**.
+This release introduces the new **Advanced Rule Conflict Detector & Safeguards**, standardizing real-time validation and offering crucial safety checks across all Pricebook adjustment groups.
 
 ### 🛡️ Advanced Rule Conflict Detector (New!)
 Introduces a comprehensive, real-time logic engine that scans your Pricebooks for errors and warnings before export:
