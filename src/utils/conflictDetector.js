@@ -100,19 +100,62 @@ const productsConflict = (prodA, prodB) => {
 };
 
 /**
- * Return true when two rules have a product-level conflict.
- * We check every pair of products from both rules.
+ * Return an array of overlapping product names if there's a conflict, or null if there is no conflict.
+ * If both rules lack products, or either targets ANY and overlaps, returns ['ANY'].
  */
-const rulesHaveProductConflict = (ruleA, ruleB) => {
+const getOverlappingProducts = (ruleA, ruleB) => {
     const prodsA = ruleA.products || [];
     const prodsB = ruleB.products || [];
-    if (prodsA.length === 0 || prodsB.length === 0) return true; // No product = ANY
+
+    if (prodsA.length === 0 || prodsB.length === 0) {
+        return ['ANY'];
+    }
+
+    const overlapping = [];
     for (const pA of prodsA) {
         for (const pB of prodsB) {
-            if (productsConflict(pA, pB)) return true;
+            if (productsConflict(pA, pB)) {
+                const nameA = normProduct(pA.productName);
+                const nameB = normProduct(pB.productName);
+                let overlapName = 'ANY';
+                if (nameA !== 'ANY' && nameB !== 'ANY') {
+                    overlapName = nameA; // they are equal
+                } else if (nameA !== 'ANY') {
+                    overlapName = nameA;
+                } else if (nameB !== 'ANY') {
+                    overlapName = nameB;
+                }
+                overlapping.push(overlapName);
+            }
         }
     }
-    return false;
+
+    return overlapping.length > 0 ? Array.from(new Set(overlapping)) : null;
+};
+
+/**
+ * Format the overlapping product names nicely for English descriptions.
+ */
+const formatOverlappingProducts = (products) => {
+    if (!products || products.length === 0) return 'overlapping products';
+    
+    // If it's just ['ANY'], return 'overlapping products'
+    if (products.length === 1 && products[0] === 'ANY') {
+        return 'overlapping products';
+    }
+
+    const cleaned = Array.from(new Set(products.filter(p => p !== 'ANY'))).map(p => `"${p}"`);
+    if (cleaned.length === 0) {
+        return 'overlapping products';
+    }
+
+    if (cleaned.length === 1) {
+        return `overlapping product ${cleaned[0]}`;
+    }
+    if (cleaned.length === 2) {
+        return `overlapping products ${cleaned[0]} and ${cleaned[1]}`;
+    }
+    return `overlapping products ${cleaned.slice(0, -1).join(', ')}, and ${cleaned[cleaned.length - 1]}`;
 };
 
 /**
@@ -202,7 +245,8 @@ export function detectConflicts(priceBook) {
                 const id = makeId(rA.id, rB.id);
                 if (seen.has(id)) continue;
 
-                if (rulesHaveProductConflict(rA, rB)) {
+                const overlapping = getOverlappingProducts(rA, rB);
+                if (overlapping) {
                     seen.add(id);
                     const severity = getSeverity(rA, rB);
                     const typeLabel = severity === 'error'
@@ -213,11 +257,12 @@ export function detectConflicts(priceBook) {
                         id,
                         severity,
                         type: 'SAME_GROUP',
-                        description: `"${rA.name || 'Untitled Rule'}" and "${rB.name || 'Untitled Rule'}" in Rule Group target overlapping products with ${typeLabel.toLowerCase()}.`,
+                        description: `"${rA.name || 'Untitled Rule'}" and "${rB.name || 'Untitled Rule'}" in Rule Group target ${formatOverlappingProducts(overlapping)} with ${typeLabel.toLowerCase()}.`,
                         groupIds: [group.id],
                         ruleIds:  [rA.id, rB.id],
                         ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
                         groupIndex: groups.indexOf(group),
+                        overlappingProducts: overlapping
                     });
                 }
             }
@@ -243,7 +288,8 @@ export function detectConflicts(priceBook) {
                     const id = makeId(rA.id, rB.id);
                     if (seen.has(id)) continue;
 
-                    if (rulesHaveProductConflict(rA, rB)) {
+                    const overlapping = getOverlappingProducts(rA, rB);
+                    if (overlapping) {
                         seen.add(id);
                         const severity = getSeverity(rA, rB);
 
@@ -255,12 +301,13 @@ export function detectConflicts(priceBook) {
                             severity: 'error',
                             type: isDupe ? 'DUPLICATE_RULE' : 'DATE_OVERLAP',
                             description: isDupe
-                                ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical name and overlapping product scope.`
-                                : `"${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) and "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) target overlapping products within overlapping date ranges.`,
+                                ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical name and overlapping product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
+                                : `"${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) and "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) target ${formatOverlappingProducts(overlapping)} within overlapping date ranges.`,
                             groupIds:  [gA.id, gB.id],
                             ruleIds:   [rA.id, rB.id],
                             ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
                             groupIndices: [gi, gj],
+                            overlappingProducts: overlapping,
                             ...(isDupe && { isDuplicate: true }),
                         });
                     }
