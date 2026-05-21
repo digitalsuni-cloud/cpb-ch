@@ -11,7 +11,7 @@ import DateInput from './DateInput';
 import CustomSelect from './CustomSelect';
 
 
-const RuleGroup = ({ group, index }) => {
+const RuleGroup = ({ group, index, conflicts = [] }) => {
     const { dispatch } = usePriceBook();
     const confirm = useConfirm();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
@@ -197,6 +197,30 @@ const RuleGroup = ({ group, index }) => {
                                     </span>
                                 </Tooltip>
                                 {renderRulesSummary()}
+                                {/* Group-level conflict indicator */}
+                                {conflicts.length > 0 && (() => {
+                                    const hasError = conflicts.some(c => c.severity === 'error');
+                                    const color = hasError ? '#ef4444' : '#f59e0b';
+                                    const bg = hasError ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
+                                    return (
+                                        <span style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            padding: '2px 9px',
+                                            borderRadius: '12px',
+                                            background: bg,
+                                            color,
+                                            border: `1px solid ${color}40`,
+                                            fontSize: '0.7rem',
+                                            fontWeight: 700,
+                                            flexShrink: 0,
+                                            whiteSpace: 'nowrap',
+                                        }}>
+                                            ⚠ {conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}
+                                        </span>
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -420,7 +444,7 @@ const RuleGroup = ({ group, index }) => {
                                 )}
                             </div>
 
-                            <BillingRuleList groupId={group.id} rules={group.rules} />
+                            <BillingRuleList groupId={group.id} rules={group.rules} conflicts={conflicts} />
                         </motion.div>
                     )}
                 </AnimatePresence>

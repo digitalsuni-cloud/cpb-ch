@@ -15,7 +15,7 @@ import CustomSelect from './CustomSelect';
 import ToggleSwitch from './ToggleSwitch';
 import Tooltip from './Tooltip';
 
-const BillingRule = ({ rule, groupId }) => {
+const BillingRule = ({ rule, groupId, conflicts = [] }) => {
     const { dispatch } = usePriceBook();
     const confirm = useConfirm();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rule.id });
@@ -191,6 +191,34 @@ const BillingRule = ({ rule, groupId }) => {
                             )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Conflict badge */}
+                            {conflicts.length > 0 && (() => {
+                                const hasError = conflicts.some(c => c.severity === 'error');
+                                const badgeColor = hasError ? '#ef4444' : '#f59e0b';
+                                const badgeBg = hasError ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)';
+                                const tooltipText = conflicts.map(c => c.description).join('\n');
+                                return (
+                                    <Tooltip title={hasError ? 'Rule Conflict' : 'Rule Warning'} content={tooltipText} variant={hasError ? 'danger' : 'warning'} position="top">
+                                        <span style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            background: badgeBg,
+                                            color: badgeColor,
+                                            border: `1px solid ${badgeColor}50`,
+                                            fontSize: '0.68rem',
+                                            fontWeight: 700,
+                                            cursor: 'default',
+                                            whiteSpace: 'nowrap',
+                                            flexShrink: 0,
+                                        }}>
+                                            ⚠ {conflicts.length}
+                                        </span>
+                                    </Tooltip>
+                                );
+                            })()}
                             <Tooltip title="Duplicate Rule" content={`Duplicate "${rule.name || 'Untitled Rule'}" with all its product filters below`}>
                                 <motion.button
                                     className="button-ghost"

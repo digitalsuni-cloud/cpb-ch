@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { FaPlus } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
-const RuleGroupList = () => {
+const RuleGroupList = ({ conflicts = [] }) => {
     const { state, dispatch } = usePriceBook();
     const [isTopHovered, setIsTopHovered] = React.useState(false);
 
@@ -112,7 +112,12 @@ const RuleGroupList = () => {
                     strategy={verticalListSortingStrategy}
                 >
                     {state.priceBook.ruleGroups.map((group, index) => (
-                        <RuleGroup key={group.id} group={group} index={index} />
+                        <RuleGroup
+                            key={group.id}
+                            group={group}
+                            index={index}
+                            conflicts={conflicts.filter(c => c.groupIds.includes(group.id))}
+                        />
                     ))}
                 </SortableContext>
             </div>

@@ -4,7 +4,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import BillingRule from './BillingRule';
 
-const BillingRuleList = ({ groupId, rules }) => {
+const BillingRuleList = ({ groupId, rules, conflicts = [] }) => {
     const { dispatch } = usePriceBook();
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -23,7 +23,12 @@ const BillingRuleList = ({ groupId, rules }) => {
             <div className="rules">
                 <SortableContext items={rules.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     {rules.map(rule => (
-                        <BillingRule key={rule.id} rule={rule} groupId={groupId} />
+                        <BillingRule
+                            key={rule.id}
+                            rule={rule}
+                            groupId={groupId}
+                            conflicts={conflicts.filter(c => c.ruleIds.includes(rule.id))}
+                        />
                     ))}
                 </SortableContext>
             </div>
