@@ -6,6 +6,7 @@ import { FaSlash, FaClock, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaArrowRi
 import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import Tooltip from './Tooltip';
 
 const NaturalLanguageSummary = () => {
     const { state } = usePriceBook();
@@ -408,46 +409,47 @@ const NaturalLanguageSummary = () => {
                     <FaLayerGroup style={{ color: 'var(--primary)' }} /> Pricing Execution Summary
                 </h3>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                        onClick={handleDownloadCSV}
-                        title="Download rules as CSV"
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            padding: '9px 18px', borderRadius: '8px',
-                            border: '1px solid rgba(5, 150, 105, 0.35)',
-                            background: 'rgba(5, 150, 105, 0.12)', color: '#6ee7b7',
-                            cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.background = 'rgba(5, 150, 105, 0.22)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.background = 'rgba(5, 150, 105, 0.12)';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                    >
-                        <FaFileCsv size={13} /> Download CSV
-                    </button>
-                    <button
-                        onClick={handleExportPDF}
-                        disabled={isExporting}
-                        title="Export summary as PDF"
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            padding: '9px 18px', borderRadius: '8px',
-                            border: '1px solid rgba(139, 92, 246, 0.35)',
-                            background: isExporting ? 'var(--bg-deep)' : 'rgba(139, 92, 246, 0.15)',
-                            color: isExporting ? 'var(--text-muted)' : '#c4b5fd',
-                            cursor: isExporting ? 'not-allowed' : 'pointer',
-                            fontWeight: 600, fontSize: '0.85rem', opacity: isExporting ? 0.65 : 1,
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={e => { if (!isExporting) {
-                            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}}
+                    <Tooltip title="Download CSV" content="Download rules as CSV" variant="glass">
+                        <button
+                            onClick={handleDownloadCSV}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '9px 18px', borderRadius: '8px',
+                                border: '1px solid rgba(5, 150, 105, 0.35)',
+                                background: 'rgba(5, 150, 105, 0.12)', color: '#6ee7b7',
+                                cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(5, 150, 105, 0.22)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(5, 150, 105, 0.12)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            <FaFileCsv size={13} /> Download CSV
+                        </button>
+                    </Tooltip>
+                    <Tooltip title="Export PDF" content="Export summary as PDF" variant="glass">
+                        <button
+                            onClick={handleExportPDF}
+                            disabled={isExporting}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '9px 18px', borderRadius: '8px',
+                                border: '1px solid rgba(139, 92, 246, 0.35)',
+                                background: isExporting ? 'var(--bg-deep)' : 'rgba(139, 92, 246, 0.15)',
+                                color: isExporting ? 'var(--text-muted)' : '#c4b5fd',
+                                cursor: isExporting ? 'not-allowed' : 'pointer',
+                                fontWeight: 600, fontSize: '0.85rem', opacity: isExporting ? 0.65 : 1,
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={e => { if (!isExporting) {
+                                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}}
                         onMouseLeave={e => { if (!isExporting) {
                             e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
                             e.currentTarget.style.transform = 'translateY(0)';
@@ -457,6 +459,7 @@ const NaturalLanguageSummary = () => {
                             ? <><FaSyncAlt className="spin" size={13} /> Exporting...</>
                             : <><FaFilePdf size={13} /> Export PDF</>}
                     </button>
+                    </Tooltip>
                 </div>
             </div>
 

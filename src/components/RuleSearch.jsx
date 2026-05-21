@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Select, { components } from 'react-select';
 import { usePriceBook } from '../context/PriceBookContext';
+import Tooltip from './Tooltip';
 
 const RuleSearch = () => {
     const { state, dispatch } = usePriceBook();
@@ -28,7 +29,6 @@ const RuleSearch = () => {
     const CustomOption = ({ innerProps, label, isFocused }) => (
         <div
             {...innerProps}
-            title={label}
             style={{
                 ...innerProps.style,
                 padding: '10px 12px 10px 16px',
@@ -41,15 +41,19 @@ const RuleSearch = () => {
                 fontSize: '0.85rem'
             }}
         >
-            {label}
+            <Tooltip content={label} variant="glass" style={{ display: 'block', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {label}
+            </Tooltip>
         </div>
     );
 
     const CustomSingleValue = (props) => (
         <components.SingleValue {...props}>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={props.children}>
-                {props.children}
-            </span>
+            <Tooltip content={props.children} variant="glass" style={{ display: 'block', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                    {props.children}
+                </span>
+            </Tooltip>
         </components.SingleValue>
     );
 

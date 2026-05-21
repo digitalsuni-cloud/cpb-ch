@@ -157,9 +157,9 @@ const PropertySection = ({ type, values, onChange, onRemove, expanded: controlle
                             <motion.span
                                 animate={{ rotate: isExpanded ? 0 : -90 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                style={{ display: 'flex', fontSize: '0.6rem' }}
+                                style={{ display: 'flex' }}
                             >
-                                ▼
+                                <FaChevronDown size={10} />
                             </motion.span>
                         </motion.button>
                     </Tooltip>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import Tooltip from './Tooltip';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -181,29 +182,30 @@ const DateInput = ({ name, value, onChange, placeholder = 'dd/mm/yyyy' }) => {
 
                 {/* Clear button */}
                 {value && (
-                    <button
-                        type="button"
-                        onClick={clear}
-                        title="Clear"
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            padding: '0 2px',
-                            fontSize: '11px',
-                            lineHeight: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            borderRadius: '50%',
-                            flexShrink: 0,
-                            transition: 'color 0.15s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                    >
-                        ✕
-                    </button>
+                    <Tooltip title="Clear" content="Clear selected date" variant="glass">
+                        <button
+                            type="button"
+                            onClick={clear}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '0 2px',
+                                fontSize: '11px',
+                                lineHeight: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                transition: 'color 0.15s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                        >
+                            ✕
+                        </button>
+                    </Tooltip>
                 )}
 
                 {/* Calendar icon */}

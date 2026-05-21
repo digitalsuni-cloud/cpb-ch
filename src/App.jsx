@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePriceBook } from './context/PriceBookContext';
 import { useConfirm } from './context/ConfirmContext';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -20,8 +20,11 @@ import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
 import { isElectronApp, isDesktopApp } from './utils/env';
+import { detectConflicts } from './utils/conflictDetector';
+import ConflictPanel from './components/ConflictPanel';
+import Tooltip from './components/Tooltip';
 
-import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaShieldAlt } from 'react-icons/fa';
 
 const ReleaseNotes = ({ body }) => {
   const [expanded, setExpanded] = useState(false);
@@ -275,7 +278,11 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard');
   const [deployHint, setDeployHint] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showConflictPanel, setShowConflictPanel] = useState(false);
   const { toasts, showToast, removeToast } = useToast();
+
+  // Re-compute conflicts whenever the priceBook changes
+  const conflicts = useMemo(() => detectConflicts(state.priceBook), [state.priceBook]);
 
   const checkForUpdates = useCallback(async (manual = false) => {
     if (!isDesktopApp()) return;
@@ -533,11 +540,65 @@ function App() {
             padding: '10px 20px 60px 20px',
             margin: '0 -20px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
               <RuleSearch />
+              {/* Validate Rules button */}
+              <Tooltip
+                content={conflicts.length > 0 ? `${conflicts.length} conflict(s) detected` : 'Validate rules for conflicts'}
+                variant={conflicts.length > 0 ? 'danger' : 'glass'}
+                position="bottom"
+                delay={0.2}
+              >
+                <button
+                  id="validate-rules-btn"
+                  onClick={() => setShowConflictPanel(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: conflicts.length > 0
+                      ? '1px solid rgba(239,68,68,0.5)'
+                      : '1px solid var(--border-glow)',
+                    background: conflicts.length > 0
+                      ? 'rgba(239,68,68,0.08)'
+                      : 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(6,182,212,0.08))',
+                    color: conflicts.length > 0 ? '#ef4444' : 'var(--primary)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                >
+                  <FaShieldAlt size={13} />
+                  Validate Rules
+                  {conflicts.length > 0 && (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '20px',
+                      height: '20px',
+                      borderRadius: '10px',
+                      background: '#ef4444',
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '0 5px',
+                    }}>
+                      {conflicts.length}
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
             </div>
 
-            <RuleGroupList />
+            <RuleGroupList conflicts={conflicts} />
 
             {state.priceBook.ruleGroups.length === 0 && (
               <div style={{
@@ -590,7 +651,13 @@ function App() {
             margin: '-20px'
           }}>
             <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
-              <DeploySection autoAssign={deployHint} onAutoAssignConsumed={() => setDeployHint(false)} showToast={showToast} />
+              <DeploySection
+            autoAssign={deployHint}
+            onAutoAssignConsumed={() => setDeployHint(false)}
+            showToast={showToast}
+            conflicts={conflicts}
+            onViewConflicts={() => setShowConflictPanel(true)}
+          />
             </div>
           </div>
         )}
@@ -696,7 +763,23 @@ function App() {
         )
         }
 
-      </DashboardLayout >
+      </DashboardLayout>
+
+      {/* Conflict Panel */}
+      {showConflictPanel && (
+        <ConflictPanel
+          conflicts={conflicts}
+          onClose={() => setShowConflictPanel(false)}
+          onJumpToRule={(ruleId) => {
+            setShowConflictPanel(false);
+            if (activeView !== 'builder') setActiveView('builder');
+            setTimeout(() => {
+              const el = document.getElementById(ruleId);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+          }}
+        />
+      )}
     </>
   );
 }

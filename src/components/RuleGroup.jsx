@@ -5,13 +5,13 @@ import { usePriceBook } from '../context/PriceBookContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import BillingRuleList from './BillingRuleList';
-import { FaPlus, FaTrash, FaCopy } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaCopy, FaChevronDown } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import DateInput from './DateInput';
 import CustomSelect from './CustomSelect';
 
 
-const RuleGroup = ({ group, index }) => {
+const RuleGroup = ({ group, index, conflicts = [] }) => {
     const { dispatch } = usePriceBook();
     const confirm = useConfirm();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
@@ -128,21 +128,28 @@ const RuleGroup = ({ group, index }) => {
                                         overflow: 'hidden'
                                     }}
                                 >
-                                    <span
-                                        title={name}
-                                        style={{
-                                            fontSize: '0.9rem',
-                                            color: 'var(--text-main)',
-                                            fontWeight: 500,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                            minWidth: 0,
-                                            cursor: 'default'
-                                        }}
+                                    <Tooltip
+                                        content={name}
+                                        position="top"
+                                        delay={0.2}
+                                        style={{ display: 'flex', minWidth: 0, overflow: 'hidden', flex: '1 1 0' }}
                                     >
-                                        {name}
-                                    </span>
+                                        <span
+                                            style={{
+                                                fontSize: '0.9rem',
+                                                color: 'var(--text-main)',
+                                                fontWeight: 500,
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                minWidth: 0,
+                                                cursor: 'default',
+                                                width: '100%'
+                                            }}
+                                        >
+                                            {name}
+                                        </span>
+                                    </Tooltip>
                                     <span style={{ flexShrink: 0 }}>
                                         {renderAdjustmentTagForRule(rule)}
                                     </span>
@@ -173,21 +180,27 @@ const RuleGroup = ({ group, index }) => {
         <div ref={setNodeRef} style={style} id={group.id}>
             <div className={`rule-group ${group.collapsed ? 'collapsed' : ''}`}>
                 <div className="rule-group-header" style={{ borderBottom: 'none', paddingBottom: group.collapsed ? '0' : '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             <Tooltip title="Reorder" content="Drag to reorder this rule group in the Price Book" position="right">
                                 <span {...attributes} {...listeners} className="drag-handle" style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '1.5rem', lineHeight: 1 }}>
                                     ⋮⋮
                                 </span>
                             </Tooltip>
+
                             <div 
-                                style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, overflow: 'hidden', cursor: 'pointer' }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, overflow: 'hidden', cursor: 'pointer', paddingRight: '16px' }}
                                 onClick={toggleCollapse}
-                                title={group.collapsed ? "Click to expand" : "Click to collapse"}
                             >
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                                    Rule Group {index + 1}
-                                </h3>
+                                <Tooltip
+                                    content={group.collapsed ? "Click to expand" : "Click to collapse"}
+                                    position="top"
+                                    delay={0.3}
+                                >
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                        Rule Group {index + 1}
+                                    </h3>
+                                </Tooltip>
                                 <Tooltip title="Group Status" content={getStatusTooltip(status)} variant="info">
                                     <span
                                         className={`status-badge ${status === 'ACTIVE' ? 'enabled' : 'disabled'}`}
@@ -197,10 +210,39 @@ const RuleGroup = ({ group, index }) => {
                                     </span>
                                 </Tooltip>
                                 {renderRulesSummary()}
+                                {/* Group-level conflict indicator */}
+                                {conflicts.length > 0 && (() => {
+                                    const hasError = conflicts.some(c => c.severity === 'error');
+                                    const color = hasError ? '#ef4444' : '#f59e0b';
+                                    const bg = hasError ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
+                                    const errors = conflicts.filter(c => c.severity === 'error').length;
+                                    const warnings = conflicts.filter(c => c.severity === 'warning').length;
+                                    const conflictText = `This rule group has ${errors > 0 ? `${errors} error(s)` : ''}${errors > 0 && warnings > 0 ? ' and ' : ''}${warnings > 0 ? `${warnings} warning(s)` : ''}. Click to open the Rule Conflicts panel on the right for details.`;
+                                    return (
+                                        <Tooltip title="Group Conflicts" content={conflictText} variant={hasError ? "danger" : "warning"} position="top" delay={0.2}>
+                                            <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                padding: '2px 9px',
+                                                borderRadius: '12px',
+                                                background: bg,
+                                                color,
+                                                border: `1px solid ${color}40`,
+                                                fontSize: '0.7rem',
+                                                fontWeight: 700,
+                                                flexShrink: 0,
+                                                whiteSpace: 'nowrap',
+                                            }}>
+                                                ⚠ {conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}
+                                            </span>
+                                        </Tooltip>
+                                    );
+                                })()}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Tooltip title="Duplicate Group" content={`Duplicate Rule Group ${index + 1} with all its billing rules below`}>
                                 <motion.button
                                     className="button-ghost"
@@ -215,7 +257,6 @@ const RuleGroup = ({ group, index }) => {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         color: 'var(--text-muted)',
-                                        marginRight: '8px',
                                         background: 'transparent',
                                         border: '1px solid rgba(6, 182, 212, 0.3)',
                                         borderRadius: '8px',
@@ -249,7 +290,6 @@ const RuleGroup = ({ group, index }) => {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         color: 'var(--text-muted)',
-                                        marginRight: '8px',
                                         background: 'transparent',
                                         border: '1px solid rgba(239, 68, 68, 0.3)',
                                         borderRadius: '8px',
@@ -284,7 +324,7 @@ const RuleGroup = ({ group, index }) => {
                                         transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                         style={{ display: 'flex' }}
                                     >
-                                        ▼
+                                        <FaChevronDown size={13} />
                                     </motion.span>
                                 </motion.button>
                             </Tooltip>
@@ -420,7 +460,7 @@ const RuleGroup = ({ group, index }) => {
                                 )}
                             </div>
 
-                            <BillingRuleList groupId={group.id} rules={group.rules} />
+                            <BillingRuleList groupId={group.id} rules={group.rules} conflicts={conflicts} />
                         </motion.div>
                     )}
                 </AnimatePresence>

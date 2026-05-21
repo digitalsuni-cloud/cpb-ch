@@ -13,7 +13,7 @@ import { getCredential } from "../utils/credentials";
 import CustomSelect from './CustomSelect';
 
 
-const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) => {
+const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast, conflicts = [], onViewConflicts }) => {
     const { state, dispatch } = usePriceBook();
     const confirm = useConfirm();
     const [actionType, setActionType] = useState('update'); // 'update' or 'create'
@@ -521,6 +521,49 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                 </p>
             </div>
 
+            {/* Rule Conflict Warning Banner */}
+            {conflicts.length > 0 && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    padding: '14px 16px',
+                    marginBottom: '20px',
+                    borderRadius: '10px',
+                    background: 'rgba(239,68,68,0.08)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                }}>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }}>⚠️</span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#ef4444', marginBottom: '4px' }}>
+                            {conflicts.length} rule conflict{conflicts.length !== 1 ? 's' : ''} detected
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            Review and resolve conflicts in the Rule Builder before deploying to avoid unpredictable pricing behaviour.
+                        </div>
+                    </div>
+                    <button
+                        onClick={onViewConflicts}
+                        style={{
+                            flexShrink: 0,
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(239,68,68,0.4)',
+                            background: 'rgba(239,68,68,0.12)',
+                            color: '#ef4444',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.22)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; }}
+                    >
+                        View Conflicts
+                    </button>
+                </div>
+            )}
+
             <datalist id="customer-suggestions">
                 {customerOptions.map(c => (
                     <option key={c.id} value={c.id}>{`${c.name} (${c.id})`}</option>
@@ -868,26 +911,32 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast }) 
                         )}
                     </div>
 
-                    <button
-                        className="action-button"
-                        onClick={handleDeploy}
-                        title={isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'}
-                        disabled={
-                            isDeploying ||
-                            (isDryRun
-                                ? (!dryRunCustomerId || !dryRunPayerId || dryRunPayerId.trim().toUpperCase() === 'ALL')
-                                : (actionType === 'update' ? !priceBookId : !newPricebookName)
-                            )
-                        }
+                    <Tooltip
+                        title={isDryRun ? 'Dry Run' : 'Deploy'}
+                        content={isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'}
+                        variant="glass"
+                        style={{ display: 'block', width: '100%' }}
                     >
-                        {isDeploying ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <FaSyncAlt className="spin" /> {deployStatus.message}
-                            </span>
-                        ) : (
-                            isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'
-                        )}
-                    </button>
+                        <button
+                            className="action-button"
+                            onClick={handleDeploy}
+                            disabled={
+                                isDeploying ||
+                                (isDryRun
+                                    ? (!dryRunCustomerId || !dryRunPayerId || dryRunPayerId.trim().toUpperCase() === 'ALL')
+                                    : (actionType === 'update' ? !priceBookId : !newPricebookName)
+                                )
+                            }
+                        >
+                            {isDeploying ? (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <FaSyncAlt className="spin" /> {deployStatus.message}
+                                </span>
+                            ) : (
+                                isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'
+                            )}
+                        </button>
+                    </Tooltip>
 
                     {deployStatus.message && createPortal(
                         <AnimatePresence>
