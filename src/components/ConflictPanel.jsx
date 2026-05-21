@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaCheckCircle, FaExclamationTriangle, FaExclamationCircle, FaCopy } from 'react-icons/fa';
+import Tooltip from './Tooltip';
 
 const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
     const errorCount   = conflicts.filter(c => c.severity === 'error').length;
@@ -103,28 +104,29 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                             </div>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        title="Close"
-                        style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border)',
-                            background: 'transparent',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                    >
-                        <FaTimes size={13} />
-                    </button>
+                    <Tooltip content="Close" position="left" delay={0.2}>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                width: '30px',
+                                height: '30px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border)',
+                                background: 'transparent',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                        >
+                            <FaTimes size={13} />
+                        </button>
+                    </Tooltip>
                 </div>
 
                 {/* ── Legend pills ── */}
@@ -262,30 +264,30 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                         {/* Rules involved */}
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                             {conflict.ruleNames.map((name, i) => (
-                                                <button
-                                                    key={conflict.ruleIds[i]}
-                                                    title="Click to scroll to this rule"
-                                                    onClick={() => onJumpToRule && onJumpToRule(conflict.ruleIds[i])}
-                                                    style={{
-                                                        fontSize: '0.72rem',
-                                                        fontWeight: 600,
-                                                        padding: '3px 10px',
-                                                        borderRadius: '20px',
-                                                        background: 'var(--bg-subtle)',
-                                                        color: 'var(--primary)',
-                                                        border: '1px solid rgba(139,92,246,0.3)',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s',
-                                                        maxWidth: '160px',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap',
-                                                    }}
-                                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-subtle)'; }}
-                                                >
-                                                    ↗ {name}
-                                                </button>
+                                                <Tooltip key={conflict.ruleIds[i]} content="Click to scroll to this rule" position="top" delay={0.3}>
+                                                    <button
+                                                        onClick={() => onJumpToRule && onJumpToRule(conflict.ruleIds[i])}
+                                                        style={{
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 600,
+                                                            padding: '3px 10px',
+                                                            borderRadius: '20px',
+                                                            background: 'var(--bg-subtle)',
+                                                            color: 'var(--primary)',
+                                                            border: '1px solid rgba(139,92,246,0.3)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s',
+                                                            maxWidth: '160px',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-subtle)'; }}
+                                                    >
+                                                        ↗ {name}
+                                                    </button>
+                                                </Tooltip>
                                             ))}
                                         </div>
                                     </motion.div>
