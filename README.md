@@ -103,6 +103,11 @@ Once your code modifications have been pushed to GitHub, complete the following 
    - Go to GitHub Actions, manually trigger the **Tauri Build** workflow, and supply the release tag (`v5.5.0`). 
    - The workflow will automatically compile the portable Windows executable and Linux packages (`.deb`, `.rpm`, `.AppImage`) and attach them to the release assets.
 7. **Verify Web Deployment**:
-   - Verify that the updated web app has been successfully pushed and is live on the **GitHub Pages Preview** branch.
+   - Deploy the latest build to GitHub Pages by running:
+     ```bash
+     npm run deploy
+     ```
+   - This automatically runs `npm run build` (via `predeploy`) then pushes only the `dist/` folder cleanly to the `gh-pages` branch.
+   - Verify that the updated web app is live at [https://digitalsuni-cloud.github.io/cpb-ch/](https://digitalsuni-cloud.github.io/cpb-ch/).
 8. **Conduct Release Audit**:
    - Double-check the **Latest Release** page to ensure all 9 assets (Mac DMG, Windows EXE, and Linux binaries/signatures) are attached and that all download links work correctly.
