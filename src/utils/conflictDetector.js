@@ -316,11 +316,10 @@ const formatOverlappingProducts = (products) => {
  */
 const getSeverity = (ruleA, ruleB) => (ruleA.type === ruleB.type ? 'error' : 'warning');
 
-/** Return true when two rules are exact duplicates (same name, same rule type) */
+/** Return true when two rules are exact duplicates (same rule type and identical product scope, ignoring name) */
 const areDuplicates = (ruleA, ruleB) => {
-    const nameA = (ruleA.name || '').trim().toLowerCase();
-    const nameB = (ruleB.name || '').trim().toLowerCase();
-    return nameA.length > 0 && nameA === nameB;
+    if (ruleA.type !== ruleB.type) return false;
+    return isRuleMoreGenericOrEqual(ruleA, ruleB) && isRuleMoreGenericOrEqual(ruleB, ruleA);
 };
 
 /** Parse a date string 'YYYY-MM-DD' → Date (returns far future for empty endDates) */
@@ -777,12 +776,16 @@ export function detectConflicts(priceBook) {
                         if (isDupe || isShadowed) {
                             seen.add(id);
 
+                            const areNamesEqual = rA.name && rB.name && rA.name.trim().toLowerCase() === rB.name.trim().toLowerCase();
+
                             conflicts.push({
                                 id,
                                 severity: 'error',
                                 type: isDupe ? 'DUPLICATE_RULE' : 'SHADOWING',
                                 description: isDupe
-                                    ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical name and overlapping product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
+                                    ? (areNamesEqual
+                                        ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
+                                        : `Duplicate rules "${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) and "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) exist with identical product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`)
                                     : `Rule "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) is shadowed by a broader rule "${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) above it. Since Group ${gi + 1} evaluates first, this rule will never be reached for ${formatOverlappingProducts(overlapping)}.`,
                                 groupIds:  [gA.id, gB.id],
                                 ruleIds:   [rA.id, rB.id],
