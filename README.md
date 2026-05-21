@@ -59,3 +59,21 @@ If you want to contribute or build from source:
    # Or run the standardized release builder
    ./build-release.sh
    ```
+
+---
+
+## 🚀 Release Checklist (Before Pushing/Publishing)
+
+To maintain high-quality releases, follow this checklist sequentially before and during a release:
+
+1. **Verify Local Builds**: Run `./build-release.sh` (for Mac) or local build scripts on target platforms to ensure compile-time checks and packages generate successfully.
+2. **Update Release Notes**: Review and revise `RELEASE_NOTES.md` with:
+   - Latest feature explanations, bug patches, and UX adjustments.
+   - Updated file download list and architectural tables matching the exact version release tag (e.g., swapping `5.5.0` to the new version).
+3. **Keep `README.md` Current**: Ensure all feature summaries, setup steps, and local build details match any new capabilities or CLI commands.
+4. **Trigger Release Action**:
+   - Manually run the **Create Release** workflow on GitHub.
+   - The action will automatically read the updated `RELEASE_NOTES.md`, substitute dynamic version placeholders, stamp `CHANGELOG.md` inside the release commit, and create the tagged draft release.
+5. **Publish Platform Assets**:
+   - Manually trigger **Tauri Build** (or wait for the automated release trigger) to compile and upload Windows and Linux release assets.
+   - Upload macOS installer binaries to the latest release page (e.g., via `gh release upload`).
