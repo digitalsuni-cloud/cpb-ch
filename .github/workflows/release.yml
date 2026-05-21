@@ -33,6 +33,7 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version }}"
           DATE=$(date -u '+%Y-%m-%d')
+          BRANCH="${{ github.ref_name }}"
 
           # Update or create CHANGELOG.md with the release entry
           if grep -q "^## ${VERSION}" CHANGELOG.md 2>/dev/null; then
@@ -48,7 +49,15 @@ jobs:
 
             git add CHANGELOG.md
             git commit -m "chore: Release ${VERSION}"
-            git push origin HEAD
+            
+            if [ "$BRANCH" = "main" ]; then
+              echo "⚠️ Pushing directly to main is protected. Pushing release commit to new branch release/${VERSION}..."
+              git push origin HEAD:refs/heads/release/${VERSION}
+              echo "Please open a PR to merge release/${VERSION} into main."
+            else
+              echo "Pushing release commit to current branch ${BRANCH}..."
+              git push origin HEAD
+            fi
           fi
 
       - name: Create GitHub Release (verified tag on Actions commit)
