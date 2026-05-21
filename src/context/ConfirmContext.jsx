@@ -174,71 +174,100 @@ export const ConfirmProvider = ({ children }) => {
                             </div>
 
                             <div style={{
-                                padding: '16px 24px 24px 24px',
+                                padding: '18px 24px 24px 24px',
                                 display: 'flex',
-                                justifyContent: 'flex-end',
-                                gap: '12px',
-                                background: 'var(--bg-subtle)'
+                                flexDirection: state.tertiaryLabel ? 'column-reverse' : 'row',
+                                alignItems: 'stretch',
+                                gap: state.tertiaryLabel ? '12px' : '10px',
+                                background: 'var(--bg-deep)',
+                                borderTop: '1px solid var(--border)'
                             }}>
                                 {state.type === 'confirm' && (
-                                    <button
+                                    <motion.button
                                         onClick={() => handleClose(false)}
+                                        whileHover={{ scale: 1.01, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'var(--text-muted)' }}
+                                        whileTap={{ scale: 0.99 }}
+                                        transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                         style={{
-                                            padding: '10px 20px',
-                                            borderRadius: '10px',
+                                            flex: state.tertiaryLabel ? 'none' : 1,
+                                            padding: '12px 14px',
+                                            minHeight: '44px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '12px',
                                             border: '1px solid var(--border)',
-                                            background: 'transparent',
-                                            color: 'var(--text-main)',
-                                            fontSize: '0.9rem',
+                                            background: 'rgba(255, 255, 255, 0.01)',
+                                            color: 'var(--text-secondary)',
+                                            fontSize: '0.85rem',
                                             fontWeight: 600,
                                             cursor: 'pointer',
-                                            transition: 'all 0.2s'
+                                            textAlign: 'center',
+                                            lineHeight: 1.25,
+                                            transition: 'color 0.15s ease'
                                         }}
-                                        onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                                        onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
                                         {state.cancelLabel}
-                                    </button>
+                                    </motion.button>
                                 )}
                                 {state.tertiaryLabel && (
-                                    <button
+                                    <motion.button
                                         onClick={() => handleClose('tertiary')}
+                                        whileHover={{ scale: 1.01, backgroundColor: 'rgba(99, 102, 241, 0.12)', borderColor: 'rgba(99, 102, 241, 0.5)', color: '#c7d2fe' }}
+                                        whileTap={{ scale: 0.99 }}
+                                        transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                         style={{
-                                            padding: '10px 20px',
-                                            borderRadius: '10px',
-                                            border: '1px solid var(--primary)',
-                                            background: 'transparent',
-                                            color: 'var(--primary)',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 700,
+                                            flex: state.tertiaryLabel ? 'none' : 1.2,
+                                            padding: '12px 14px',
+                                            minHeight: '44px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(99, 102, 241, 0.25)',
+                                            background: 'rgba(99, 102, 241, 0.05)',
+                                            color: '#a5b4fc',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 600,
                                             cursor: 'pointer',
-                                            transition: 'all 0.2s'
+                                            textAlign: 'center',
+                                            lineHeight: 1.25,
+                                            transition: 'color 0.15s ease'
                                         }}
-                                        onMouseEnter={(e) => { e.target.style.background = 'var(--primary)'; e.target.style.color = 'white'; }}
-                                        onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--primary)'; }}
                                     >
                                         {state.tertiaryLabel}
-                                    </button>
+                                    </motion.button>
                                 )}
-                                <button
+                                <motion.button
                                     onClick={() => handleClose(true)}
+                                    whileHover={{ scale: 1.01, filter: 'brightness(1.1)', boxShadow: state.variant === 'danger' ? '0 6px 16px rgba(239, 68, 68, 0.35)' : state.variant === 'warning' ? '0 6px 16px rgba(245, 158, 11, 0.35)' : '0 6px 16px rgba(99, 102, 241, 0.35)' }}
+                                    whileTap={{ scale: 0.99 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                     style={{
-                                        padding: '10px 24px',
-                                        borderRadius: '10px',
+                                        flex: state.tertiaryLabel ? 'none' : 1.2,
+                                        padding: '12px 14px',
+                                        minHeight: '44px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '12px',
                                         border: 'none',
-                                        background: state.variant === 'danger' ? '#ef4444' : 'var(--primary)',
-                                        color: 'white',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 700,
+                                        background: state.variant === 'danger' 
+                                            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                                            : state.variant === 'warning'
+                                                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                                                : 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
+                                        color: '#ffffff',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: `0 4px 12px ${state.variant === 'danger' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(139, 92, 246, 0.3)'}`
+                                        textAlign: 'center',
+                                        lineHeight: 1.25,
+                                        boxShadow: state.variant === 'danger' ? '0 4px 12px rgba(239, 68, 68, 0.2)' : state.variant === 'warning' ? '0 4px 12px rgba(245, 158, 11, 0.2)' : '0 4px 12px rgba(99, 102, 241, 0.2)'
                                     }}
-                                    onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
-                                    onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                                 >
                                     {state.type === 'alert' ? 'OK' : state.confirmLabel}
-                                </button>
+                                </motion.button>
                             </div>
                         </motion.div>
                     </div>

@@ -42,30 +42,24 @@ export const DEFAULT_TEMPLATES = [
 <CHTBillingRules createdBy="CloudHealth" date="2026-03-26">
   <Comment>Adjusting CloudWatch Pricing to Public On Demand Rate.</Comment>
   <RuleGroup startDate="2025-01-01">
-    <BillingRule name="CloudWatch Data Storage-USE1" includeDataTransfer="true">
+    <BillingRule name="CloudWatch Data Storage - use1" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.03" billingRuleType="fixedRate" />
       <Product productName="AmazonCloudWatch">
         <UsageType name="USE1-TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-01-01">
-    <BillingRule name="CloudWatch Custom log data ingested in Standard log class - USE1" includeDataTransfer="true">
+    <BillingRule name="CloudWatch Custom log data ingested in Standard log class - use1" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.5" billingRuleType="fixedRate" />
       <Product productName="AmazonCloudWatch">
         <UsageType name="USE1-DataProcessing-Bytes" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-01-01">
-    <BillingRule name="CloudWatch Custom log data ingested in Standard log class - EUC1" includeDataTransfer="true">
+    <BillingRule name="CloudWatch Custom log data ingested in Standard log class - euc1" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.63" billingRuleType="fixedRate" />
       <Product productName="AmazonCloudWatch">
         <UsageType name="EUC1-DataProcessing-Bytes" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-01-01">
     <BillingRule name="CloudWatch Dashboard per Month" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="3" billingRuleType="fixedRate" />
       <Product productName="AmazonCloudWatch">
@@ -90,8 +84,6 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="CA-Requests-Tier2-HTTPS" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTP usage in US region" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.00000075" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
@@ -99,8 +91,6 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="CA-Requests-Tier1" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTPS usage in EU, ME, JP, IN, ZA, and AP regions" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.0000012" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
@@ -112,8 +102,6 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="AP-Requests-Tier2-HTTPS" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTP usage in EU, ME, JP, IN, ZA, and AP regions" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.0000009" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
@@ -125,32 +113,24 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="AP-Requests-Tier1" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTPS usage in Australia region" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.00000125" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
         <UsageType name="AU-Requests-Tier2-HTTPS" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTP usage in Australia region" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.0000009" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
         <UsageType name="AU-Requests-Tier1" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTPS usage in South America region" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.0000022" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
         <UsageType name="SA-Requests-Tier2-HTTPS" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2021-11-01">
     <BillingRule name="List Price of CloudFront HTTP usage in South America region" includeDataTransfer="true">
       <BasicBillingRule billingAdjustment="0.0000016" billingRuleType="fixedRate" />
       <Product productName="CloudFront">
@@ -165,10 +145,10 @@ export const DEFAULT_TEMPLATES = [
         name: 'S3 Custom Tier Pricing',
         description: 'Updates Amazon S3 storage rates across specific regions based on negotiated pricing for tiers including Standard, Infrequent Access, and Intelligent-Tiering.',
         xml: `<?xml version="1.0" encoding="UTF-8"?>
-<CHTBillingRules createdBy="CloudHealth" date="2026-03-26">
-  <Comment>Updates S3 storage rates across regions based on negotiated pricing for specific storage tiers including Standard, Infrequent Access, and Intelligent-Tiering.</Comment>
+<CHTBillingRules createdBy="CloudHealth" date="2026-05-21">
+  <Comment>Updates S3 storage rates across regions based on negotiated pricing for specific storage tiers including Standard, Infrequent Access, and Intelligent-Tiering. - Template Name (S3 Custom Tier Pricing)</Comment>
   <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - ape1, apne1, apne2, apne3, aps1, aps2, apse1, apse2, apse3, apse4, cac1, mec1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0108" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="ap-east-1" />
@@ -186,9 +166,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-SIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - ape1, apne1, apne2, apne3, aps1, aps2, apse1, apse2, apse3, apse4, cac1, mec1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0179" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="ap-east-1" />
@@ -206,9 +184,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - ape1, apne1, apne2, apne3, aps1, aps2, apse1, apse2, apse3, apse4, cac1, mec1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0108" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="ap-east-1" />
@@ -226,9 +202,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Archive Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Archive Access Custom Pricing - apne1, aps1, aps2, apse2, apse3, apse4" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.00351" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="ap-northeast-1" />
@@ -237,13 +211,10 @@ export const DEFAULT_TEMPLATES = [
         <Region name="ap-southeast-2" />
         <Region name="ap-southeast-3" />
         <Region name="ap-southeast-4" />
-        <Region name="eu-west-1" />
         <UsageType name="*TimedStorage-INT-AA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Glacier Flexible Retrieval Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Glacier Flexible Retrieval Storage Custom Pricing - apne1, aps1, aps2, apse2, apse3, apse4" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.00351" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="ap-northeast-1" />
@@ -252,11 +223,10 @@ export const DEFAULT_TEMPLATES = [
         <Region name="ap-southeast-2" />
         <Region name="ap-southeast-3" />
         <Region name="ap-southeast-4" />
-        <Region name="eu-west-1" />
         <UsageType name="*TimedStorage-GlacierByteHrs" />
       </Product>
     </BillingRule>
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard Storage Custom Pricing - eun1, eus2, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0164" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -268,7 +238,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - eun1, eus2, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0098" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -280,7 +250,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-SIA-ByteHrs" />
       </Product>
     </BillingRule>
-    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing - eun1, eus2, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0078" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -292,7 +262,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-ZIA-ByteHrs" />
       </Product>
     </BillingRule>
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - eun1, eus2, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0164" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -304,7 +274,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
       </Product>
     </BillingRule>
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - eun1, eus2, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0098" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -316,7 +286,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
       </Product>
     </BillingRule>
-    <BillingRule name="S3 Intelligent-Tiering Archive Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Archive Access Custom Pricing - eun1, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.00281" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -327,92 +297,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-INT-AA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0164" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-north-1" />
-        <Region name="eu-south-2" />
-        <Region name="eu-west-1" />
-        <Region name="us-east-1" />
-        <Region name="us-east-2" />
-        <Region name="us-west-2" />
-        <UsageType name="*TimedStorage-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0098" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-north-1" />
-        <Region name="eu-south-2" />
-        <Region name="eu-west-1" />
-        <Region name="us-east-1" />
-        <Region name="us-east-2" />
-        <Region name="us-west-2" />
-        <UsageType name="*TimedStorage-SIA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0078" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-north-1" />
-        <Region name="eu-south-2" />
-        <Region name="eu-west-1" />
-        <Region name="us-east-1" />
-        <Region name="us-east-2" />
-        <Region name="us-west-2" />
-        <UsageType name="*TimedStorage-ZIA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0164" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-north-1" />
-        <Region name="eu-south-2" />
-        <Region name="eu-west-1" />
-        <Region name="us-east-1" />
-        <Region name="us-east-2" />
-        <Region name="us-west-2" />
-        <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0098" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-north-1" />
-        <Region name="eu-south-2" />
-        <Region name="eu-west-1" />
-        <Region name="us-east-1" />
-        <Region name="us-east-2" />
-        <Region name="us-west-2" />
-        <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Archive Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.00281" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-north-1" />
-        <Region name="eu-west-1" />
-        <Region name="us-east-1" />
-        <Region name="us-east-2" />
-        <Region name="us-west-2" />
-        <UsageType name="*TimedStorage-INT-AA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Glacier Flexible Retrieval Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Glacier Flexible Retrieval Storage Custom Pricing - eun1, euw1, use1, use2, usw2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.00281" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-north-1" />
@@ -423,9 +308,7 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-GlacierByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard Storage Custom Pricing - eus1, euw2, euw3" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0172" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-south-1" />
@@ -434,110 +317,104 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0112" billingRuleType="fixedRate" />
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - eus1, euw2, euw3" includeDataTransfer="false">
+      <BasicBillingRule billingAdjustment="0.0102" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
-        <Region name="us-west-1" />
+        <Region name="eu-south-1" />
+        <Region name="eu-west-2" />
+        <Region name="eu-west-3" />
         <UsageType name="*TimedStorage-SIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - eus1, euw2, euw3" includeDataTransfer="false">
+      <BasicBillingRule billingAdjustment="0.0172" billingRuleType="fixedRate" />
+      <Product productName="Amazon Simple Storage Service">
+        <Region name="eu-south-1" />
+        <Region name="eu-west-2" />
+        <Region name="eu-west-3" />
+        <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
+      </Product>
+    </BillingRule>
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - eus1, euw2, euw3" includeDataTransfer="false">
+      <BasicBillingRule billingAdjustment="0.0102" billingRuleType="fixedRate" />
+      <Product productName="Amazon Simple Storage Service">
+        <Region name="eu-south-1" />
+        <Region name="eu-west-2" />
+        <Region name="eu-west-3" />
+        <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
+      </Product>
+    </BillingRule>
+    <BillingRule name="S3 Standard Storage Custom Pricing - usw1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0187" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="us-west-1" />
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - usw1" includeDataTransfer="false">
+      <BasicBillingRule billingAdjustment="0.0112" billingRuleType="fixedRate" />
+      <Product productName="Amazon Simple Storage Service">
+        <Region name="us-west-1" />
+        <UsageType name="*TimedStorage-SIA-ByteHrs" />
+      </Product>
+    </BillingRule>
+    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing - usw1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.009" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="us-west-1" />
         <UsageType name="*TimedStorage-ZIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - usw1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0187" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="us-west-1" />
         <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - usw1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0112" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="us-west-1" />
         <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0102" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-west-2" />
-        <Region name="eu-west-3" />
-        <Region name="eu-south-1" />
-        <UsageType name="*TimedStorage-SIA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard Storage Custom Pricing - euc1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0176" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-1" />
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - euc1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0105" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-1" />
         <UsageType name="*TimedStorage-SIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - euc1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0176" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-1" />
         <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - euc1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0105" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-1" />
         <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard Storage Custom Pricing - euc2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0193" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-2" />
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - afs1, euc2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0116" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-2" />
@@ -545,27 +422,21 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-SIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - euc2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0193" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-2" />
         <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing - euc2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0093" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="eu-central-2" />
         <UsageType name="*TimedStorage-ZIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - afs1, euc2" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0116" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="af-south-1" />
@@ -573,54 +444,42 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard Storage Custom Pricing - sae1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0289" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="sa-east-1" />
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard-Infrequent Access Custom Pricing - sae1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0172" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="sa-east-1" />
         <UsageType name="*TimedStorage-SIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing - sae1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0138" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="sa-east-1" />
         <UsageType name="*TimedStorage-ZIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - sae1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0289" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="sa-east-1" />
         <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing - sae1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0172" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="sa-east-1" />
         <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 One Zone-Infrequent Access Custom Pricing - aps1, apse1, apse2, apse3, mec1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0086" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="ap-south-1" />
@@ -631,40 +490,14 @@ export const DEFAULT_TEMPLATES = [
         <UsageType name="*TimedStorage-ZIA-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0172" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-south-1" />
-        <Region name="eu-west-2" />
-        <Region name="eu-west-3" />
-        <UsageType name="*TimedStorage-INT-FA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Infrequent Access Custom Pricing" includeDataTransfer="false">
-      <BasicBillingRule billingAdjustment="0.0102" billingRuleType="fixedRate" />
-      <Product productName="Amazon Simple Storage Service">
-        <Region name="eu-south-1" />
-        <Region name="eu-west-2" />
-        <Region name="eu-west-3" />
-        <UsageType name="*TimedStorage-INT-IA-ByteHrs" />
-      </Product>
-    </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Standard Storage Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Standard Storage Custom Pricing - afs1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0195" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="af-south-1" />
         <UsageType name="*TimedStorage-ByteHrs" />
       </Product>
     </BillingRule>
-  </RuleGroup>
-  <RuleGroup startDate="2025-05-01">
-    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing" includeDataTransfer="false">
+    <BillingRule name="S3 Intelligent-Tiering Frequent Access Custom Pricing - afs1" includeDataTransfer="false">
       <BasicBillingRule billingAdjustment="0.0195" billingRuleType="fixedRate" />
       <Product productName="Amazon Simple Storage Service">
         <Region name="af-south-1" />

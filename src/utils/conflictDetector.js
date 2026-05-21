@@ -9,9 +9,140 @@
 const normProduct = (name) => (name || '').trim() || 'ANY';
 
 /**
+ * Helper to convert glob/wildcard pattern (using '*') to regex
+ */
+const globToRegex = (pattern) => {
+    const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const regexStr = '^' + escaped.replace(/\*/g, '.*') + '$';
+    return new RegExp(regexStr, 'i');
+};
+
+const patternMatches = (pattern, str) => {
+    return globToRegex(pattern).test(str);
+};
+
+/**
+ * Check if two patterns (which may contain wildcards like '*') can overlap.
+ */
+const patternsOverlap = (patA, patB) => {
+    const a = patA.trim();
+    const b = patB.trim();
+    if (a === '*' || b === '*') return true;
+
+    const la = a.toLowerCase();
+    const lb = b.toLowerCase();
+
+    if (la === lb) return true;
+
+    const hasWildA = la.includes('*');
+    const hasWildB = lb.includes('*');
+
+    if (!hasWildA && !hasWildB) {
+        return la === lb;
+    }
+
+    if (!hasWildA) return patternMatches(b, la);
+    if (!hasWildB) return patternMatches(a, lb);
+
+    // Both have wildcards: check suffix wildcards (e.g. *suffix)
+    if (la.startsWith('*') && !la.slice(1).includes('*') && lb.startsWith('*') && !lb.slice(1).includes('*')) {
+        const sufA = la.slice(1);
+        const sufB = lb.slice(1);
+        return sufA.endsWith(sufB) || sufB.endsWith(sufA);
+    }
+
+    // Check prefix wildcards (e.g. prefix*)
+    if (la.endsWith('*') && !la.slice(0, -1).includes('*') && lb.endsWith('*') && !lb.slice(0, -1).includes('*')) {
+        const preA = la.slice(0, -1);
+        const preB = lb.slice(0, -1);
+        return preA.startsWith(preB) || preB.startsWith(preA);
+    }
+
+    // If one is prefix* and the other is *suffix, they overlap (e.g. prefix + suffix matches both)
+    if (la.endsWith('*') && !la.slice(0, -1).includes('*') && lb.startsWith('*') && !lb.slice(1).includes('*')) {
+        return true;
+    }
+    if (lb.endsWith('*') && !lb.slice(0, -1).includes('*') && la.startsWith('*') && !la.slice(1).includes('*')) {
+        return true;
+    }
+
+    return true;
+};
+
+/**
+ * Check if two values (either string or instanceProperty object) can overlap.
+ */
+const valuesOverlap = (valA, valB) => {
+    if (typeof valA === 'string' && typeof valB === 'string') {
+        return patternsOverlap(valA, valB);
+    }
+    if (typeof valA === 'object' && valA !== null && typeof valB === 'object' && valB !== null) {
+        const typeMatch = !valA.type || !valB.type || valA.type.toLowerCase() === valB.type.toLowerCase();
+        const sizeMatch = !valA.size || !valB.size || valA.size.toLowerCase() === valB.size.toLowerCase();
+        const reservedMatch = !valA.reserved || !valB.reserved || valA.reserved === valB.reserved;
+        return typeMatch && sizeMatch && reservedMatch;
+    }
+    return valA === valB;
+};
+
+/**
+ * Check if value a is more generic than or equal to value b.
+ */
+const valueIsMoreGenericOrEqual = (valA, valB) => {
+    if (typeof valA === 'string' && typeof valB === 'string') {
+        const a = valA.trim();
+        const b = valB.trim();
+        if (a === '*') return true;
+        const la = a.toLowerCase();
+        const lb = b.toLowerCase();
+        if (la === lb) return true;
+
+        const hasWildA = la.includes('*');
+        const hasWildB = lb.includes('*');
+
+        if (!hasWildA) return false;
+        if (!hasWildB) return patternMatches(a, lb);
+
+        if (la.startsWith('*') && !la.slice(1).includes('*') && lb.startsWith('*') && !lb.slice(1).includes('*')) {
+            return lb.endsWith(la.slice(1));
+        }
+
+        if (la.endsWith('*') && !la.slice(0, -1).includes('*') && lb.endsWith('*') && !lb.slice(0, -1).includes('*')) {
+            return lb.startsWith(la.slice(0, -1));
+        }
+
+        return globToRegex(la).test(lb.replace(/\*/g, ''));
+    }
+    
+    if (typeof valA === 'object' && valA !== null && typeof valB === 'object' && valB !== null) {
+        const typeCompatible = !valA.type || (valB.type && valA.type.toLowerCase() === valB.type.toLowerCase());
+        const sizeCompatible = !valA.size || (valB.size && valA.size.toLowerCase() === valB.size.toLowerCase());
+        const reservedCompatible = !valA.reserved || valA.reserved === valB.reserved;
+        return typeCompatible && sizeCompatible && reservedCompatible;
+    }
+    
+    return valA === valB;
+};
+
+/**
+ * Check if two values are identical in content.
+ */
+const valuesIdentical = (valA, valB) => {
+    if (typeof valA === 'string' && typeof valB === 'string') {
+        return valA.toLowerCase() === valB.toLowerCase();
+    }
+    if (typeof valA === 'object' && valA !== null && typeof valB === 'object' && valB !== null) {
+        return (valA.type || '') === (valB.type || '') &&
+               (valA.size || '') === (valB.size || '') &&
+               (valA.reserved || '') === (valB.reserved || '');
+    }
+    return valA === valB;
+};
+
+/**
  * Categorise a property values array:
  *  'lineItem'  → objects like { matchType, value }  (LineItemDescription filter)
- *  'standard'  → plain strings  (Region, UsageType, InstanceType, etc.)
+ *  'standard'  → plain strings or objects  (Region, UsageType, InstanceType, etc.)
  *  'empty'     → no entries
  */
 const classifyProp = (values) => {
@@ -29,8 +160,8 @@ const classifyProp = (values) => {
  *     never conflicts with a rule scoped by Region or UsageType — they target completely
  *     different cost-dimension axes.
  *  2. Two lineItem-only rules conflict only if they share the same description text.
- *  3. Standard filter comparison: if both have standard filters, they conflict only when
- *     they share at least one value in a shared dimension key.
+ *  3. Standard filter comparison: two rules only overlap if their filters overlap in EVERY
+ *     shared dimension key. If ANY shared dimension key is completely disjoint, they do not overlap.
  */
 const filtersOverlap = (propsA, propsB) => {
     const entriesA = Object.entries(propsA || {}).filter(([, v]) => Array.isArray(v) && v.length > 0);
@@ -80,13 +211,27 @@ const filtersOverlap = (propsA, propsB) => {
     // No shared filter dimension → different axes don't restrict each other → overlap
     if (sharedKeys.length === 0) return true;
 
+    // Two rules only overlap if their filters overlap in EVERY shared dimension.
+    // If ANY shared dimension is completely disjoint, they do not overlap.
     for (const key of sharedKeys) {
-        const setA = new Set(standardMapA[key]);
-        const intersection = (standardMapB[key] || []).filter(v => setA.has(v));
-        if (intersection.length > 0) return true;
+        const listA = standardMapA[key] || [];
+        const listB = standardMapB[key] || [];
+        
+        let keyOverlaps = false;
+        for (const a of listA) {
+            for (const b of listB) {
+                if (valuesOverlap(a, b)) {
+                    keyOverlaps = true;
+                    break;
+                }
+            }
+            if (keyOverlaps) break;
+        }
+        
+        if (!keyOverlaps) return false;
     }
 
-    return false;
+    return true;
 };
 
 /**
@@ -171,11 +316,10 @@ const formatOverlappingProducts = (products) => {
  */
 const getSeverity = (ruleA, ruleB) => (ruleA.type === ruleB.type ? 'error' : 'warning');
 
-/** Return true when two rules are exact duplicates (same name, same rule type) */
+/** Return true when two rules are exact duplicates (same rule type and identical product scope, ignoring name) */
 const areDuplicates = (ruleA, ruleB) => {
-    const nameA = (ruleA.name || '').trim().toLowerCase();
-    const nameB = (ruleB.name || '').trim().toLowerCase();
-    return nameA.length > 0 && nameA === nameB;
+    if (ruleA.type !== ruleB.type) return false;
+    return isRuleMoreGenericOrEqual(ruleA, ruleB) && isRuleMoreGenericOrEqual(ruleB, ruleA);
 };
 
 /** Parse a date string 'YYYY-MM-DD' → Date (returns far future for empty endDates) */
@@ -260,8 +404,8 @@ const isProductMoreGenericOrEqual = (prodA, prodB) => {
         if (classA !== classB) return false;
 
         if (classA === 'standard') {
-            const setA = new Set(valA);
-            if (valB.some(v => !setA.has(v))) return false;
+            const covered = valB.every(vB => valA.some(vA => valueIsMoreGenericOrEqual(vA, vB)));
+            if (!covered) return false;
         } else if (classA === 'lineItem') {
             const setA = new Set(valA.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean));
             const textsB = valB.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean);
@@ -310,8 +454,9 @@ const arePropertiesIdentical = (propsA, propsB) => {
         if (classA !== classB) return false;
 
         if (classA === 'standard') {
-            const setA = new Set(valA);
-            if (valB.length !== valA.length || valB.some(v => !setA.has(v))) return false;
+            if (valB.length !== valA.length) return false;
+            const matchesAll = valB.every(vB => valA.some(vA => valuesIdentical(vA, vB)));
+            if (!matchesAll) return false;
         } else if (classA === 'lineItem') {
             const setA = new Set(valA.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean));
             const textsB = valB.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean);
@@ -631,12 +776,16 @@ export function detectConflicts(priceBook) {
                         if (isDupe || isShadowed) {
                             seen.add(id);
 
+                            const areNamesEqual = rA.name && rB.name && rA.name.trim().toLowerCase() === rB.name.trim().toLowerCase();
+
                             conflicts.push({
                                 id,
                                 severity: 'error',
                                 type: isDupe ? 'DUPLICATE_RULE' : 'SHADOWING',
                                 description: isDupe
-                                    ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical name and overlapping product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
+                                    ? (areNamesEqual
+                                        ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
+                                        : `Duplicate rules "${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) and "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) exist with identical product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`)
                                     : `Rule "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) is shadowed by a broader rule "${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) above it. Since Group ${gi + 1} evaluates first, this rule will never be reached for ${formatOverlappingProducts(overlapping)}.`,
                                 groupIds:  [gA.id, gB.id],
                                 ruleIds:   [rA.id, rB.id],
