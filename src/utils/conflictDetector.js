@@ -152,6 +152,31 @@ const dateRangesOverlap = (start1, end1, start2, end2) => {
 /** Generate a stable id from rule ids */
 const makeId = (...ids) => ids.sort().join('::');
 
+/**
+ * Return true if a rule is completely empty / default placeholder.
+ * A rule is empty if:
+ * 1. It has no name.
+ * 2. It has no adjustment value (empty string, or null/undefined).
+ * 3. Its products are either empty, or it has a single product with an empty name and no property filters.
+ */
+const isEmptyRule = (rule) => {
+    if (!rule) return true;
+    if ((rule.name || '').trim() !== '') return false;
+    if ((rule.adjustment || '').trim() !== '') return false;
+
+    const prods = rule.products || [];
+    if (prods.length === 0) return true;
+    if (prods.length === 1) {
+        const p = prods[0];
+        const hasProductName = (p.productName || '').trim() !== '';
+        const hasFilters = Object.values(p.properties || {}).some(
+            (v) => Array.isArray(v) && v.length > 0
+        );
+        if (!hasProductName && !hasFilters) return true;
+    }
+    return false;
+};
+
 // ─── Main detector ───────────────────────────────────────────────────────────
 
 /**
@@ -169,7 +194,7 @@ export function detectConflicts(priceBook) {
 
     // ── 1. Within-group conflicts ────────────────────────────────────────────
     for (const group of groups) {
-        const rules = group.rules || [];
+        const rules = (group.rules || []).filter(r => !isEmptyRule(r));
         for (let i = 0; i < rules.length; i++) {
             for (let j = i + 1; j < rules.length; j++) {
                 const rA = rules[i];
@@ -205,10 +230,13 @@ export function detectConflicts(priceBook) {
             const gA = groups[gi];
             const gB = groups[gj];
 
+            // Draft / incomplete groups without a defined start date cannot overlap
+            if (!gA.startDate || gA.startDate.trim() === '' || !gB.startDate || gB.startDate.trim() === '') continue;
+
             if (!dateRangesOverlap(gA.startDate, gA.endDate, gB.startDate, gB.endDate)) continue;
 
-            const rulesA = gA.rules || [];
-            const rulesB = gB.rules || [];
+            const rulesA = (gA.rules || []).filter(r => !isEmptyRule(r));
+            const rulesB = (gB.rules || []).filter(r => !isEmptyRule(r));
 
             for (const rA of rulesA) {
                 for (const rB of rulesB) {
