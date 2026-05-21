@@ -141,6 +141,7 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                     }}>
                         {[
                             { label: 'Duplicate Rule', color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
+                            { label: 'Rule Shadowing', color: '#ec4899', bg: 'rgba(236,72,153,0.1)' },
                             { label: 'Error — exact overlap', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
                             { label: 'Warning — type mismatch', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
                         ].map(({ label, color, bg }) => (
@@ -192,19 +193,49 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {conflicts.map((conflict, idx) => {
-                                const isDupe  = conflict.type === 'DUPLICATE_RULE';
-                                const isError = conflict.severity === 'error';
-                                const color   = isDupe ? '#f97316' : isError ? '#ef4444' : '#f59e0b';
-                                const bgColor = isDupe ? 'rgba(249,115,22,0.07)' : isError ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)';
-                                const borderColor = isDupe ? 'rgba(249,115,22,0.28)' : isError ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)';
+                                const isDupe   = conflict.type === 'DUPLICATE_RULE';
+                                const isShadow = conflict.type === 'SHADOWING' || conflict.type === 'SEQUENTIAL_SHADOWING';
+                                const isError  = conflict.severity === 'error';
+
+                                let color = '#ef4444';
+                                let bgColor = 'rgba(239,68,68,0.07)';
+                                let borderColor = 'rgba(239,68,68,0.25)';
+
+                                if (isShadow) {
+                                    color = '#ec4899';
+                                    bgColor = 'rgba(236,72,153,0.07)';
+                                    borderColor = 'rgba(236,72,153,0.28)';
+                                } else if (isDupe) {
+                                    color = '#f97316';
+                                    bgColor = 'rgba(249,115,22,0.07)';
+                                    borderColor = 'rgba(249,115,22,0.28)';
+                                } else if (isError) {
+                                    color = '#ef4444';
+                                    bgColor = 'rgba(239,68,68,0.07)';
+                                    borderColor = 'rgba(239,68,68,0.25)';
+                                } else {
+                                    color = '#f59e0b';
+                                    bgColor = 'rgba(245,158,11,0.07)';
+                                    borderColor = 'rgba(245,158,11,0.25)';
+                                }
 
                                 const badgeLabel =
-                                    isDupe  ? 'Duplicate Rule' :
-                                    isError ? 'Conflict' : 'Warning';
+                                    isDupe   ? 'Duplicate Rule' :
+                                    isShadow ? 'Rule Shadowing' :
+                                    conflict.type === 'CHRONOLOGICAL_ERROR' ? 'Date Range Error' :
+                                    conflict.type === 'COVERAGE_GAP' ? 'Coverage Gap' :
+                                    conflict.type === 'REDUNDANT_PRODUCT_FILTER' ? 'Redundant Filter' :
+                                    conflict.type === 'ADJUSTMENT_SANITY' ? 'Pricing Warning' :
+                                    isError  ? 'Conflict' : 'Warning';
 
                                 const badgeType =
-                                    isDupe  ? 'Duplicate' :
-                                    conflict.type === 'SAME_GROUP' ? 'Same Group' : 'Date Overlap';
+                                    isDupe   ? 'Duplicate' :
+                                    isShadow ? 'Shadowing' :
+                                    conflict.type === 'SAME_GROUP' ? 'Same Group' :
+                                    conflict.type === 'CHRONOLOGICAL_ERROR' ? 'Range Error' :
+                                    conflict.type === 'COVERAGE_GAP' ? 'Coverage Gap' :
+                                    conflict.type === 'REDUNDANT_PRODUCT_FILTER' ? 'Redundant Filter' :
+                                    conflict.type === 'ADJUSTMENT_SANITY' ? 'Pricing Check' : 'Overlap';
 
                                 const Icon = isDupe ? FaCopy : isError ? FaExclamationCircle : FaExclamationTriangle;
 
@@ -261,34 +292,63 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                             {conflict.description}
                                         </p>
 
-                                        {/* Rules involved */}
+                                        {/* Rules / Groups involved */}
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                            {conflict.ruleNames.map((name, i) => (
-                                                <Tooltip key={conflict.ruleIds[i]} content="Click to scroll to this rule" position="top" delay={0.3}>
-                                                    <button
-                                                        onClick={() => onJumpToRule && onJumpToRule(conflict.ruleIds[i])}
-                                                        style={{
-                                                            fontSize: '0.72rem',
-                                                            fontWeight: 600,
-                                                            padding: '3px 10px',
-                                                            borderRadius: '20px',
-                                                            background: 'var(--bg-subtle)',
-                                                            color: 'var(--primary)',
-                                                            border: '1px solid rgba(139,92,246,0.3)',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s',
-                                                            maxWidth: '160px',
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
-                                                        }}
-                                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-subtle)'; }}
-                                                    >
-                                                        ↗ {name}
-                                                    </button>
-                                                </Tooltip>
-                                            ))}
+                                            {conflict.ruleNames && conflict.ruleNames.length > 0 ? (
+                                                conflict.ruleNames.map((name, i) => (
+                                                    <Tooltip key={conflict.ruleIds[i]} content="Click to scroll to this rule" position="top" delay={0.3}>
+                                                        <button
+                                                            onClick={() => onJumpToRule && onJumpToRule(conflict.ruleIds[i])}
+                                                            style={{
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 600,
+                                                                padding: '3px 10px',
+                                                                borderRadius: '20px',
+                                                                background: 'var(--bg-subtle)',
+                                                                color: 'var(--primary)',
+                                                                border: '1px solid rgba(139,92,246,0.3)',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s',
+                                                                maxWidth: '160px',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-subtle)'; }}
+                                                        >
+                                                            ↗ {name}
+                                                        </button>
+                                                    </Tooltip>
+                                                ))
+                                            ) : (
+                                                conflict.groupIds && conflict.groupIds.map((groupId) => (
+                                                    <Tooltip key={groupId} content="Click to scroll to this rule group" position="top" delay={0.3}>
+                                                        <button
+                                                            onClick={() => onJumpToRule && onJumpToRule(groupId)}
+                                                            style={{
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 600,
+                                                                padding: '3px 10px',
+                                                                borderRadius: '20px',
+                                                                background: 'var(--bg-subtle)',
+                                                                color: 'var(--primary)',
+                                                                border: '1px solid rgba(139,92,246,0.3)',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s',
+                                                                maxWidth: '160px',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-subtle)'; }}
+                                                        >
+                                                            ↗ Scroll to Group
+                                                        </button>
+                                                    </Tooltip>
+                                                ))
+                                            )}
                                         </div>
                                     </motion.div>
                                 );

@@ -46,6 +46,11 @@ const filtersOverlap = (propsA, propsB) => {
     const hasStandardA = standardA.length > 0;
     const hasStandardB = standardB.length > 0;
 
+    const isUnrestrictedA = !hasLineItemA && !hasStandardA;
+    const isUnrestrictedB = !hasLineItemB && !hasStandardB;
+
+    if (isUnrestrictedA || isUnrestrictedB) return true;
+
     // ── Both sides use ONLY lineItem filters ─────────────────────────────────
     // Conflict only if they share the same description text
     if (hasLineItemA && !hasStandardA && hasLineItemB && !hasStandardB) {
@@ -59,7 +64,7 @@ const filtersOverlap = (propsA, propsB) => {
         return false;
     }
 
-    // ── One side uses ONLY lineItem, other uses standard (or nothing) ─────────
+    // ── One side uses ONLY lineItem, other uses standard ──────────────────────
     // Orthogonal scopes → NO overlap
     if (hasLineItemA && !hasStandardA) return false;
     if (hasLineItemB && !hasStandardB) return false;
@@ -220,6 +225,110 @@ const isEmptyRule = (rule) => {
     return false;
 };
 
+/**
+ * Return true if prodA is more generic than or equal to prodB.
+ */
+const isProductMoreGenericOrEqual = (prodA, prodB) => {
+    const nameA = normProduct(prodA.productName);
+    const nameB = normProduct(prodB.productName);
+
+    const nameCompatible = nameA === 'ANY' || nameA === nameB;
+    if (!nameCompatible) return false;
+
+    const propsA = prodA.properties || {};
+    const propsB = prodB.properties || {};
+
+    const keysA = Object.keys(propsA).filter(k => Array.isArray(propsA[k]) && propsA[k].length > 0);
+    const keysB = Object.keys(propsB).filter(k => Array.isArray(propsB[k]) && propsB[k].length > 0);
+
+    const allKeys = Array.from(new Set([...keysA, ...keysB]));
+
+    for (const key of allKeys) {
+        const valA = propsA[key];
+        const valB = propsB[key];
+
+        const classA = classifyProp(valA);
+        const classB = classifyProp(valB);
+
+        // If prodA has no filter on this key, it matches any value, so it is more generic on this key
+        if (classA === 'empty') continue;
+
+        // If prodA has a filter but prodB does not, prodA is more specific on this key
+        if (classB === 'empty') return false;
+
+        // If they filter differently, not more generic
+        if (classA !== classB) return false;
+
+        if (classA === 'standard') {
+            const setA = new Set(valA);
+            if (valB.some(v => !setA.has(v))) return false;
+        } else if (classA === 'lineItem') {
+            const setA = new Set(valA.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean));
+            const textsB = valB.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean);
+            if (textsB.some(t => !setA.has(t))) return false;
+        }
+    }
+
+    return true;
+};
+
+/**
+ * Return true if ruleA is more generic than or equal to ruleB.
+ */
+const isRuleMoreGenericOrEqual = (ruleA, ruleB) => {
+    const prodsA = ruleA.products || [];
+    const prodsB = ruleB.products || [];
+
+    // If ruleA has no products, it targets everything (ANY)
+    if (prodsA.length === 0) return true;
+    // If ruleB has no products but ruleA does, ruleA is more specific
+    if (prodsB.length === 0) return false;
+
+    // ruleA is more generic than or equal to ruleB if every product filter in ruleB
+    // is covered by a more generic or equal product filter in ruleA.
+    return prodsB.every(pB => {
+        return prodsA.some(pA => isProductMoreGenericOrEqual(pA, pB));
+    });
+};
+
+/**
+ * Return true if two property filter sets are identical in content.
+ */
+const arePropertiesIdentical = (propsA, propsB) => {
+    const keysA = Object.keys(propsA || {}).filter(k => Array.isArray(propsA[k]) && propsA[k].length > 0).sort();
+    const keysB = Object.keys(propsB || {}).filter(k => Array.isArray(propsB[k]) && propsB[k].length > 0).sort();
+
+    if (keysA.length !== keysB.length) return false;
+    for (let i = 0; i < keysA.length; i++) {
+        if (keysA[i] !== keysB[i]) return false;
+        const key = keysA[i];
+        const valA = propsA[key];
+        const valB = propsB[key];
+
+        const classA = classifyProp(valA);
+        const classB = classifyProp(valB);
+        if (classA !== classB) return false;
+
+        if (classA === 'standard') {
+            const setA = new Set(valA);
+            if (valB.length !== valA.length || valB.some(v => !setA.has(v))) return false;
+        } else if (classA === 'lineItem') {
+            const setA = new Set(valA.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean));
+            const textsB = valB.map(x => (x.value || '').trim().toLowerCase()).filter(Boolean);
+            if (textsB.length !== setA.size || textsB.some(t => !setA.has(t))) return false;
+        }
+    }
+    return true;
+};
+
+/**
+ * Return true if two product declarations have the identical name and identical properties filters.
+ */
+const areProductsIdentical = (pA, pB) => {
+    if (normProduct(pA.productName) !== normProduct(pB.productName)) return false;
+    return arePropertiesIdentical(pA.properties, pB.properties);
+};
+
 // ─── Main detector ───────────────────────────────────────────────────────────
 
 /**
@@ -235,7 +344,27 @@ export function detectConflicts(priceBook) {
     const seen = new Set();
     const groups = priceBook.ruleGroups;
 
-    // ── 1. Within-group conflicts ────────────────────────────────────────────
+    // ── 1. Group Chronological & Date Sanity Checks ──────────────────────────
+    for (const group of groups) {
+        if (group.startDate && group.endDate) {
+            const start = new Date(group.startDate);
+            const end = new Date(group.endDate);
+            if (!isNaN(start) && !isNaN(end) && start > end) {
+                conflicts.push({
+                    id: `date-error::${group.id}`,
+                    severity: 'error',
+                    type: 'CHRONOLOGICAL_ERROR',
+                    description: `Rule Group "${group.name || 'Untitled Group'}" has an invalid range: start date (${group.startDate}) is after end date (${group.endDate}).`,
+                    groupIds: [group.id],
+                    ruleIds: [],
+                    ruleNames: [],
+                    groupIndex: groups.indexOf(group)
+                });
+            }
+        }
+    }
+
+    // ── 2. Within-group conflicts & Sequential Shadowing ──────────────────────
     for (const group of groups) {
         const rules = (group.rules || []).filter(r => !isEmptyRule(r));
         for (let i = 0; i < rules.length; i++) {
@@ -247,29 +376,235 @@ export function detectConflicts(priceBook) {
 
                 const overlapping = getOverlappingProducts(rA, rB);
                 if (overlapping) {
-                    seen.add(id);
+                    const isShadowed = isRuleMoreGenericOrEqual(rA, rB);
                     const severity = getSeverity(rA, rB);
-                    const typeLabel = severity === 'error'
-                        ? 'Same rule type'
-                        : 'Different rule types';
 
+                    if (isShadowed) {
+                        seen.add(id);
+                        conflicts.push({
+                            id,
+                            severity,
+                            type: 'SEQUENTIAL_SHADOWING',
+                            description: `Rule "${rB.name || 'Untitled Rule'}" is shadowed by a broader rule "${rA.name || 'Untitled Rule'}" above it in Group "${group.name || 'Untitled Group'}". Since rules are evaluated top-down sequentially, "${rB.name || 'Untitled Rule'}" will never be reached for ${formatOverlappingProducts(overlapping)}.`,
+                            groupIds: [group.id],
+                            ruleIds:  [rA.id, rB.id],
+                            ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
+                            groupIndex: groups.indexOf(group),
+                            overlappingProducts: overlapping
+                        });
+                    } else {
+                        seen.add(id);
+                        const typeLabel = severity === 'error'
+                            ? 'Same rule type'
+                            : 'Different rule types';
+
+                        conflicts.push({
+                            id,
+                            severity,
+                            type: 'SAME_GROUP',
+                            description: `"${rA.name || 'Untitled Rule'}" and "${rB.name || 'Untitled Rule'}" in Rule Group target ${formatOverlappingProducts(overlapping)} with ${typeLabel.toLowerCase()}.`,
+                            groupIds: [group.id],
+                            ruleIds:  [rA.id, rB.id],
+                            ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
+                            groupIndex: groups.indexOf(group),
+                            overlappingProducts: overlapping
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // ── 3. Redundant Product Filter Checks ──────────────────────────────────
+    for (const group of groups) {
+        const rules = (group.rules || []).filter(r => !isEmptyRule(r));
+        for (const rule of rules) {
+            const prods = rule.products || [];
+            for (let i = 0; i < prods.length; i++) {
+                for (let j = i + 1; j < prods.length; j++) {
+                    if (areProductsIdentical(prods[i], prods[j])) {
+                        const prodName = prods[i].productName || 'ANY';
+                        const id = `redundant-prod::${rule.id}::${i}::${j}`;
+                        if (!seen.has(id)) {
+                            seen.add(id);
+                            conflicts.push({
+                                id,
+                                severity: 'warning',
+                                type: 'REDUNDANT_PRODUCT_FILTER',
+                                description: `Rule "${rule.name || 'Untitled Rule'}" in Group "${group.name || 'Untitled Group'}" contains redundant duplicate product scope specifications for "${prodName}". Consider merging these duplicate scope blocks.`,
+                                groupIds: [group.id],
+                                ruleIds: [rule.id],
+                                ruleNames: [rule.name || 'Untitled Rule'],
+                                groupIndex: groups.indexOf(group)
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── 4. Billing Coverage Gap Detector (Pricing "Dead Zones") ──────────────
+    const activeGroups = groups
+        .filter(g => g.startDate && g.startDate.trim() !== '')
+        .map((g, idx) => ({
+            group: g,
+            originalIndex: idx,
+            start: new Date(g.startDate),
+            end: g.endDate && g.endDate.trim() !== '' ? new Date(g.endDate) : FAR_FUTURE
+        }))
+        .sort((a, b) => a.start - b.start);
+
+    for (let i = 0; i < activeGroups.length - 1; i++) {
+        const curr = activeGroups[i];
+        const next = activeGroups[i + 1];
+        if (curr.group.endDate && curr.end < next.start) {
+            const diffMs = next.start.getTime() - curr.end.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) - 1;
+            if (diffDays >= 1) {
+                const id = `coverage-gap::${curr.group.id}::${next.group.id}`;
+                if (!seen.has(id)) {
+                    seen.add(id);
                     conflicts.push({
                         id,
-                        severity,
-                        type: 'SAME_GROUP',
-                        description: `"${rA.name || 'Untitled Rule'}" and "${rB.name || 'Untitled Rule'}" in Rule Group target ${formatOverlappingProducts(overlapping)} with ${typeLabel.toLowerCase()}.`,
-                        groupIds: [group.id],
-                        ruleIds:  [rA.id, rB.id],
-                        ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
-                        groupIndex: groups.indexOf(group),
-                        overlappingProducts: overlapping
+                        severity: 'warning',
+                        type: 'COVERAGE_GAP',
+                        description: `A billing coverage gap of ${diffDays} day(s) exists between Group "${curr.group.name || `Group ${curr.originalIndex + 1}`}" (ends ${curr.group.endDate}) and Group "${next.group.name || `Group ${next.originalIndex + 1}`}" (starts ${next.group.startDate}). Cost items in this gap will revert to standard retail prices.`,
+                        groupIds: [curr.group.id, next.group.id],
+                        ruleIds: [],
+                        ruleNames: [],
+                        groupIndex: curr.originalIndex
                     });
                 }
             }
         }
     }
 
-    // ── 2. Cross-group date-overlap conflicts ────────────────────────────────
+    // ── 5. Adjustment Sanity & Extreme Pricing Guardrails ────────────────────
+    for (const group of groups) {
+        const rules = (group.rules || []).filter(r => !isEmptyRule(r));
+        for (const rule of rules) {
+            const val = parseFloat(rule.adjustment);
+            if (rule.adjustment && !isNaN(val)) {
+                const idPrefix = `sanity::${rule.id}`;
+
+                if (rule.type === 'percentDiscount') {
+                    if (val === 100) {
+                        const id = `${idPrefix}::100percent`;
+                        if (!seen.has(id)) {
+                            seen.add(id);
+                            conflicts.push({
+                                id,
+                                severity: 'warning',
+                                type: 'ADJUSTMENT_SANITY',
+                                description: `Rule "${rule.name || 'Untitled Rule'}" in Group "${group.name || 'Untitled Group'}" specifies a 100% discount. This will zero out the matching billing line item (even if it is a credit or a negative charge). Ensure this is intended.`,
+                                groupIds: [group.id],
+                                ruleIds: [rule.id],
+                                ruleNames: [rule.name || 'Untitled Rule'],
+                                groupIndex: groups.indexOf(group)
+                           });
+                        }
+                    } else if (val > 100) {
+                        const id = `${idPrefix}::over100percent`;
+                        if (!seen.has(id)) {
+                            seen.add(id);
+                            conflicts.push({
+                                id,
+                                severity: 'warning',
+                                type: 'ADJUSTMENT_SANITY',
+                                description: `Rule "${rule.name || 'Untitled Rule'}" in Group "${group.name || 'Untitled Group'}" has a discount of ${val}%, which is greater than 100%. Verify if this is correct.`,
+                                groupIds: [group.id],
+                                ruleIds: [rule.id],
+                                ruleNames: [rule.name || 'Untitled Rule'],
+                                groupIndex: groups.indexOf(group)
+                            });
+                        }
+                    } else if (val < 0) {
+                        const id = `${idPrefix}::negDiscount`;
+                        if (!seen.has(id)) {
+                            seen.add(id);
+                            conflicts.push({
+                                id,
+                                severity: 'warning',
+                                type: 'ADJUSTMENT_SANITY',
+                                description: `Rule "${rule.name || 'Untitled Rule'}" has a negative discount of ${val}%. For markups, use a Percent Increase rule type instead.`,
+                                groupIds: [group.id],
+                                ruleIds: [rule.id],
+                                ruleNames: [rule.name || 'Untitled Rule'],
+                                groupIndex: groups.indexOf(group)
+                            });
+                        }
+                    }
+                } else if (rule.type === 'percentIncrease') {
+                   if (val > 500) {
+                       const id = `${idPrefix}::highIncrease`;
+                       if (!seen.has(id)) {
+                           seen.add(id);
+                           conflicts.push({
+                               id,
+                               severity: 'warning',
+                               type: 'ADJUSTMENT_SANITY',
+                               description: `Rule "${rule.name || 'Untitled Rule'}" specifies an exceptionally high price increase of ${val}%. Verify if this markup is intended.`,
+                               groupIds: [group.id],
+                               ruleIds: [rule.id],
+                               ruleNames: [rule.name || 'Untitled Rule'],
+                               groupIndex: groups.indexOf(group)
+                           });
+                       }
+                   } else if (val < 0) {
+                       const id = `${idPrefix}::negIncrease`;
+                       if (!seen.has(id)) {
+                           seen.add(id);
+                           conflicts.push({
+                               id,
+                               severity: 'warning',
+                               type: 'ADJUSTMENT_SANITY',
+                               description: `Rule "${rule.name || 'Untitled Rule'}" specifies a negative price increase of ${val}%. For discounts, use a Percent Discount rule type instead.`,
+                               groupIds: [group.id],
+                               ruleIds: [rule.id],
+                               ruleNames: [rule.name || 'Untitled Rule'],
+                               groupIndex: groups.indexOf(group)
+                           });
+                       }
+                   }
+                } else if (rule.type === 'fixedRate') {
+                   if (val < 0) {
+                       const id = `${idPrefix}::negFixed`;
+                       if (!seen.has(id)) {
+                           seen.add(id);
+                           conflicts.push({
+                               id,
+                               severity: 'warning',
+                               type: 'ADJUSTMENT_SANITY',
+                               description: `Rule "${rule.name || 'Untitled Rule'}" specifies a negative Fixed Rate of $${val}. Verify if this is correct.`,
+                               groupIds: [group.id],
+                               ruleIds: [rule.id],
+                               ruleNames: [rule.name || 'Untitled Rule'],
+                               groupIndex: groups.indexOf(group)
+                           });
+                       }
+                   } else if (val > 10000) {
+                       const id = `${idPrefix}::highFixed`;
+                       if (!seen.has(id)) {
+                           seen.add(id);
+                           conflicts.push({
+                               id,
+                               severity: 'warning',
+                               type: 'ADJUSTMENT_SANITY',
+                               description: `Rule "${rule.name || 'Untitled Rule'}" specifies a very high Fixed Rate of $${val}. Verify if this is correct.`,
+                               groupIds: [group.id],
+                               ruleIds: [rule.id],
+                               ruleNames: [rule.name || 'Untitled Rule'],
+                               groupIndex: groups.indexOf(group)
+                           });
+                       }
+                   }
+                }
+            }
+        }
+    }
+
+    // ── 6. Cross-group date-overlap conflicts ────────────────────────────────
     for (let gi = 0; gi < groups.length; gi++) {
         for (let gj = gi + 1; gj < groups.length; gj++) {
             const gA = groups[gi];
@@ -290,26 +625,27 @@ export function detectConflicts(priceBook) {
 
                     const overlapping = getOverlappingProducts(rA, rB);
                     if (overlapping) {
-                        seen.add(id);
-                        const severity = getSeverity(rA, rB);
-
-                        // Upgrade to DUPLICATE_RULE when names match
                         const isDupe = areDuplicates(rA, rB);
+                        const isShadowed = isRuleMoreGenericOrEqual(rA, rB);
 
-                        conflicts.push({
-                            id,
-                            severity: 'error',
-                            type: isDupe ? 'DUPLICATE_RULE' : 'DATE_OVERLAP',
-                            description: isDupe
-                                ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical name and overlapping product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
-                                : `"${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) and "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) target ${formatOverlappingProducts(overlapping)} within overlapping date ranges.`,
-                            groupIds:  [gA.id, gB.id],
-                            ruleIds:   [rA.id, rB.id],
-                            ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
-                            groupIndices: [gi, gj],
-                            overlappingProducts: overlapping,
-                            ...(isDupe && { isDuplicate: true }),
-                        });
+                        if (isDupe || isShadowed) {
+                            seen.add(id);
+
+                            conflicts.push({
+                                id,
+                                severity: 'error',
+                                type: isDupe ? 'DUPLICATE_RULE' : 'SHADOWING',
+                                description: isDupe
+                                    ? `Duplicate rule "${rA.name || 'Untitled Rule'}" exists in Group ${gi + 1} and Group ${gj + 1} with identical name and overlapping product scope (${formatOverlappingProducts(overlapping).replace('overlapping ', '')}).`
+                                    : `Rule "${rB.name || 'Untitled Rule'}" (Group ${gj + 1}) is shadowed by a broader rule "${rA.name || 'Untitled Rule'}" (Group ${gi + 1}) above it. Since Group ${gi + 1} evaluates first, this rule will never be reached for ${formatOverlappingProducts(overlapping)}.`,
+                                groupIds:  [gA.id, gB.id],
+                                ruleIds:   [rA.id, rB.id],
+                                ruleNames: [rA.name || 'Untitled Rule', rB.name || 'Untitled Rule'],
+                                groupIndices: [gi, gj],
+                                overlappingProducts: overlapping,
+                                ...(isDupe && { isDuplicate: true }),
+                            });
+                        }
                     }
                 }
             }

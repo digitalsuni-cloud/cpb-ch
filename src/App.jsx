@@ -22,6 +22,7 @@ import { AWSProducts } from './constants/products';
 import { isElectronApp, isDesktopApp } from './utils/env';
 import { detectConflicts } from './utils/conflictDetector';
 import ConflictPanel from './components/ConflictPanel';
+import Tooltip from './components/Tooltip';
 
 import { FaChevronDown, FaChevronUp, FaShieldAlt } from 'react-icons/fa';
 
@@ -542,53 +543,59 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
               <RuleSearch />
               {/* Validate Rules button */}
-              <button
-                id="validate-rules-btn"
-                onClick={() => setShowConflictPanel(true)}
-                title={conflicts.length > 0 ? `${conflicts.length} conflict(s) detected` : 'Validate rules for conflicts'}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  border: conflicts.length > 0
-                    ? '1px solid rgba(239,68,68,0.5)'
-                    : '1px solid var(--border-glow)',
-                  background: conflicts.length > 0
-                    ? 'rgba(239,68,68,0.08)'
-                    : 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(6,182,212,0.08))',
-                  color: conflicts.length > 0 ? '#ef4444' : 'var(--primary)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+              <Tooltip
+                content={conflicts.length > 0 ? `${conflicts.length} conflict(s) detected` : 'Validate rules for conflicts'}
+                variant={conflicts.length > 0 ? 'danger' : 'glass'}
+                position="bottom"
+                delay={0.2}
               >
-                <FaShieldAlt size={13} />
-                Validate Rules
-                {conflicts.length > 0 && (
-                  <span style={{
-                    display: 'inline-flex',
+                <button
+                  id="validate-rules-btn"
+                  onClick={() => setShowConflictPanel(true)}
+                  style={{
+                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: '20px',
-                    height: '20px',
+                    gap: '8px',
+                    padding: '8px 16px',
                     borderRadius: '10px',
-                    background: '#ef4444',
-                    color: 'white',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    padding: '0 5px',
-                  }}>
-                    {conflicts.length}
-                  </span>
-                )}
-              </button>
+                    border: conflicts.length > 0
+                      ? '1px solid rgba(239,68,68,0.5)'
+                      : '1px solid var(--border-glow)',
+                    background: conflicts.length > 0
+                      ? 'rgba(239,68,68,0.08)'
+                      : 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(6,182,212,0.08))',
+                    color: conflicts.length > 0 ? '#ef4444' : 'var(--primary)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                >
+                  <FaShieldAlt size={13} />
+                  Validate Rules
+                  {conflicts.length > 0 && (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '20px',
+                      height: '20px',
+                      borderRadius: '10px',
+                      background: '#ef4444',
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '0 5px',
+                    }}>
+                      {conflicts.length}
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
             </div>
 
             <RuleGroupList conflicts={conflicts} />

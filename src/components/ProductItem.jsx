@@ -9,7 +9,7 @@ import { AWSProducts } from '../constants/products';
 import PropertySection from './PropertySection';
 import { propertyTypes } from '../constants/propertyTypes';
 import { getIconForProduct } from '../utils/awsIcons';
-import { FaTrash, FaPlus } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaChevronDown } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
 const customStyles = {
@@ -389,8 +389,8 @@ const ProductItem = ({ product, index, groupId, ruleId }) => {
                                     animate={{ rotate: !expanded ? -90 : 0 }}
                                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                     style={{ display: 'flex' }}
-                                >
-                                    ▼
+                                  >
+                                    <FaChevronDown size={12} />
                                 </motion.span>
                             </motion.button>
                         </Tooltip>

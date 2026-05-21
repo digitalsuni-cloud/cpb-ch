@@ -911,26 +911,32 @@ const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast, co
                         )}
                     </div>
 
-                    <button
-                        className="action-button"
-                        onClick={handleDeploy}
-                        title={isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'}
-                        disabled={
-                            isDeploying ||
-                            (isDryRun
-                                ? (!dryRunCustomerId || !dryRunPayerId || dryRunPayerId.trim().toUpperCase() === 'ALL')
-                                : (actionType === 'update' ? !priceBookId : !newPricebookName)
-                            )
-                        }
+                    <Tooltip
+                        title={isDryRun ? 'Dry Run' : 'Deploy'}
+                        content={isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'}
+                        variant="glass"
+                        style={{ display: 'block', width: '100%' }}
                     >
-                        {isDeploying ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <FaSyncAlt className="spin" /> {deployStatus.message}
-                            </span>
-                        ) : (
-                            isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'
-                        )}
-                    </button>
+                        <button
+                            className="action-button"
+                            onClick={handleDeploy}
+                            disabled={
+                                isDeploying ||
+                                (isDryRun
+                                    ? (!dryRunCustomerId || !dryRunPayerId || dryRunPayerId.trim().toUpperCase() === 'ALL')
+                                    : (actionType === 'update' ? !priceBookId : !newPricebookName)
+                                )
+                            }
+                        >
+                            {isDeploying ? (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <FaSyncAlt className="spin" /> {deployStatus.message}
+                                </span>
+                            ) : (
+                                isDryRun ? 'Launch Dry Run Evaluation' : 'Commit and Deploy!'
+                            )}
+                        </button>
+                    </Tooltip>
 
                     {deployStatus.message && createPortal(
                         <AnimatePresence>

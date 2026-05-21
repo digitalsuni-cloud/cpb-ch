@@ -300,7 +300,7 @@ const BillingRule = ({ rule, groupId, conflicts = [] }) => {
                                         transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                         style={{ display: 'flex' }}
                                     >
-                                        ▼
+                                        <FaChevronDown size={11} />
                                     </motion.span>
                                 </motion.button>
                             </Tooltip>
