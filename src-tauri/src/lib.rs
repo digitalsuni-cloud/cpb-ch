@@ -1,6 +1,7 @@
 // use tauri::Manager; // Removed unused import
 use tauri_plugin_store::StoreExt;
 use serde_json::json;
+use std::collections::HashMap;
 
 
 #[tauri::command]
@@ -34,6 +35,53 @@ async fn migrate_credential(app: tauri::AppHandle, key: String, value: String) -
     Ok(())
 }
 
+/// Custom HTTP fetch command that routes through a native reqwest client.
+///
+/// Bypasses Tauri's default HTTP plugin SSL restrictions so corporate proxies
+/// that perform SSL inspection (self-signed certificates) do not cause
+/// network errors. Also naturally inherits system proxy env vars
+/// (HTTP_PROXY, HTTPS_PROXY, NO_PROXY) from the host OS environment.
+#[tauri::command]
+async fn custom_fetch(
+    method: String,
+    url: String,
+    headers: Option<HashMap<String, String>>,
+    body: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .use_native_tls()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let method = reqwest::Method::from_bytes(method.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    let mut request = client.request(method, &url);
+
+    if let Some(hdrs) = headers {
+        for (key, value) in hdrs {
+            request = request.header(&key, &value);
+        }
+    }
+
+    if let Some(b) = body {
+        request = request.body(b);
+    }
+
+    let response = request.send().await.map_err(|e| e.to_string())?;
+
+    let status = response.status().as_u16();
+    let ok = response.status().is_success();
+    let text = response.text().await.map_err(|e| e.to_string())?;
+
+    Ok(json!({
+        "status": status,
+        "ok": ok,
+        "body": text,
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   #[cfg(target_os = "linux")]
@@ -62,7 +110,8 @@ pub fn run() {
         get_credential,
         set_credential,
         delete_credential,
-        migrate_credential
+        migrate_credential,
+        custom_fetch
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

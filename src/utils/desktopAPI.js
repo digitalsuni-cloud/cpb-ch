@@ -2,33 +2,48 @@ import { isTauriApp, isElectronApp } from './env';
 
 // ── API Fetch ───────────────────────────────────────────────────────────────
 
-let _tauriFetch = null;
+/**
+ * Custom Tauri fetch that routes through a native Rust reqwest client via IPC.
+ *
+ * Why: Tauri's default @tauri-apps/plugin-http uses a strict TLS policy that
+ * rejects self-signed certificates installed by corporate SSL inspection proxies
+ * (common on enterprise laptops). The Rust-side custom_fetch command configures
+ * reqwest with danger_accept_invalid_certs(true) and native-tls, matching the
+ * robust network behaviour of Electron while also inheriting system proxy env
+ * vars (HTTP_PROXY, HTTPS_PROXY, NO_PROXY) automatically.
+ *
+ * Returns a Fetch-like response object so all callers (chApi.js) work unchanged.
+ */
+const customTauriFetch = async (url, options = {}) => {
+    const { invoke } = await import('@tauri-apps/api/core');
 
-const getTauriFetch = async () => {
-    if (_tauriFetch) return _tauriFetch;
-    
-    if (isTauriApp()) {
-        try {
-            const mod = await import('@tauri-apps/plugin-http');
-            _tauriFetch = mod.fetch;
-        } catch (e) {
-            console.warn('[desktopAPI] Tauri HTTP plugin not available, falling back to fetch:', e);
-            _tauriFetch = window.fetch.bind(window);
-        }
-    } else {
-        // Electron or Web browser
-        _tauriFetch = window.fetch.bind(window);
-    }
-    return _tauriFetch;
+    const method = (options.method || 'GET').toUpperCase();
+    const headers = options.headers || {};
+    const body = options.body || null;
+
+    const result = await invoke('custom_fetch', { method, url, headers, body });
+
+    return {
+        ok: result.ok,
+        status: result.status,
+        text: async () => result.body,
+        json: async () => JSON.parse(result.body),
+    };
 };
 
 /**
- * Universal fetch that automatically selects Tauri HTTP or browser fetch.
+ * Universal fetch that automatically selects the appropriate transport:
+ * - Tauri desktop: routes through custom Rust HTTP command (TLS-bypass capable)
+ * - Electron / Web: uses native window.fetch
  */
 export const apiFetch = async (url, options = {}) => {
-    const fetchFn = await getTauriFetch();
-    return fetchFn(url, options);
+    if (isTauriApp()) {
+        return customTauriFetch(url, options);
+    }
+    // Electron or Web browser
+    return window.fetch(url, options);
 };
+
 
 // ── Desktop Credential Store ─────────────────────────────────────────────────
 // Uses @tauri-apps/plugin-store for Tauri, window.electron for Electron,
