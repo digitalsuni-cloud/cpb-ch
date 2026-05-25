@@ -20,6 +20,7 @@ import DeploySection from './components/DeploySection';
 import DirectorySection from './components/DirectorySection';
 import { AWSProducts } from './constants/products';
 import { isElectronApp, isDesktopApp } from './utils/env';
+import { openExternal } from './utils/desktopAPI';
 import { detectConflicts } from './utils/conflictDetector';
 import ConflictPanel from './components/ConflictPanel';
 import Tooltip from './components/Tooltip';
@@ -73,10 +74,8 @@ const ReleaseNotes = ({ body }) => {
             <a
               key={match.index}
               href={urlMatch[1]}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600, borderBottom: '1px solid rgba(139, 92, 246, 0.3)' }}
-              onClick={(e) => e.stopPropagation()}
+              style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600, borderBottom: '1px solid rgba(139, 92, 246, 0.3)', cursor: 'pointer' }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openExternal(urlMatch[1]); }}
             >
               {labelMatch[1]}
             </a>
@@ -315,7 +314,7 @@ function App() {
             action: {
               label: 'Go to Downloads',
               icon: <span style={{ marginRight: '2px' }}>⬇️</span>,
-              onClick: () => window.open(data.html_url, '_blank')
+              onClick: () => openExternal(data.html_url)
             }
           });
         } else if (manual) {

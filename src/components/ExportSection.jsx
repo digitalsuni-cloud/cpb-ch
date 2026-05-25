@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { openExternal } from '../utils/desktopAPI';
 import DOMPurify from 'dompurify';
 import { usePriceBook } from '../context/PriceBookContext';
 import { generateXML, getDeploymentSteps } from '../utils/converter';
@@ -663,8 +664,8 @@ const ExportSection = () => {
                                         content={`Download the latest executable for ${btn.os}`}
                                         variant="info"
                                     >
-                                        <a
-                                            href={btn.url}
+                                        <button
+                                            onClick={() => openExternal(btn.url)}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -694,7 +695,7 @@ const ExportSection = () => {
                                         >
                                             <span style={{ fontSize: '1rem' }}>{btn.icon}</span>
                                             {btn.os}
-                                        </a>
+                                        </button>
                                     </Tooltip>
                                 ))}
                             </div>
