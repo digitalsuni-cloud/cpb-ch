@@ -44,6 +44,20 @@ export const apiFetch = async (url, options = {}) => {
     return window.fetch(url, options);
 };
 
+/**
+ * Opens an external URL safely across all environments.
+ * - Tauri: uses tauri-plugin-shell open() — the OS default browser handles it,
+ *   bypassing Tauri's webview link restrictions entirely.
+ * - Web / Electron: uses window.open() with noopener for security.
+ */
+export const openExternal = async (url) => {
+    if (isTauriApp()) {
+        const { open } = await import('@tauri-apps/plugin-shell');
+        await open(url);
+    } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+};
 
 // ── Desktop Credential Store ─────────────────────────────────────────────────
 // Uses @tauri-apps/plugin-store for Tauri, window.electron for Electron,

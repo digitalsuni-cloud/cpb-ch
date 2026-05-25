@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { openExternal } from '../utils/desktopAPI';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaExternalLinkAlt, FaTimes, FaBook, FaPuzzlePiece, FaFilter, FaRocket,
@@ -446,7 +447,11 @@ const HelpSection = ({ isOpen, onClose }) => {
             content: (
                 <div style={{ fontSize: '0.85rem' }}>
                     <p style={{ marginTop: 0 }}>
-                        Based on the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
+                        Based on the <a
+                            href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api"
+                            style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                            onClick={(e) => { e.preventDefault(); openExternal('https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api'); }}
+                        >
                             CloudHealth Price Book API Docs <FaExternalLinkAlt style={{ fontSize: '0.65rem' }} />
                         </a>:
                     </p>
@@ -593,10 +598,22 @@ const HelpSection = ({ isOpen, onClose }) => {
                             <>
                                 <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                                     <p>
-                                        <a href="https://github.com/digitalsuni-cloud/cpb-ch/issues" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', marginRight: '15px' }}>Report Issue on GitHub</a>
-                                        <a href="mailto:sunil-ac.kumar@broadcom.com?subject=CloudHealth Pricebook Studio Feedback" style={{ color: 'var(--primary)' }}>Contact Developer</a>
+                                        <a
+                                            href="https://github.com/digitalsuni-cloud/cpb-ch/issues"
+                                            style={{ color: 'var(--primary)', marginRight: '15px', cursor: 'pointer' }}
+                                            onClick={(e) => { e.preventDefault(); openExternal('https://github.com/digitalsuni-cloud/cpb-ch/issues'); }}
+                                        >Report Issue on GitHub</a>
+                                        <a
+                                            href="mailto:sunil-ac.kumar@broadcom.com?subject=CloudHealth Pricebook Studio Feedback"
+                                            style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                                            onClick={(e) => { e.preventDefault(); openExternal('mailto:sunil-ac.kumar@broadcom.com?subject=CloudHealth Pricebook Studio Feedback'); }}
+                                        >Contact Developer</a>
                                     </p>
-                                    <p style={{ marginTop: '12px' }}>Need more help? Visit the <a href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Official Documentation</a>.</p>
+                                    <p style={{ marginTop: '12px' }}>Need more help? Visit the <a
+                                        href="https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api"
+                                        style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                                        onClick={(e) => { e.preventDefault(); openExternal('https://apidocs.cloudhealthtech.com/#price-book_introduction-to-price-book-api'); }}
+                                    >Official Documentation</a>.</p>
                                     <p style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: '6px', color: 'var(--text-muted)', fontStyle: 'italic' }}>⚠️ This is not an official CloudHealth product. It is an internal tool built by Sunil @ CloudHealth to simplify Custom Price Book management.</p>
                                 </div>
                             </>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { openExternal } from '../utils/desktopAPI';
 
 import {
     FaLayerGroup,
@@ -160,10 +161,8 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                         position="right"
                         variant="primary"
                     >
-                        <motion.a
-                            href="https://github.com/digitalsuni-cloud/cpb-ch/releases/latest"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <motion.button
+                            onClick={() => openExternal('https://github.com/digitalsuni-cloud/cpb-ch/releases/latest')}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             style={{
@@ -186,15 +185,13 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                             }}
                         >
                             <span style={{ fontSize: '1.1rem' }}><FaDownload /></span> Download App
-                        </motion.a>
+                        </motion.button>
                     </Tooltip>
                 )}
 
                 <Tooltip title="Report Issue" content="Report a bug or request a feature on GitHub" position="right">
-                    <motion.a
-                        href="https://github.com/digitalsuni-cloud/cpb-ch/issues"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <motion.button
+                        onClick={() => openExternal('https://github.com/digitalsuni-cloud/cpb-ch/issues')}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         style={{
@@ -223,7 +220,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                         }}
                     >
                         <span style={{ fontSize: '1.1rem' }}><FaBug /></span> Report Issue
-                    </motion.a>
+                    </motion.button>
                 </Tooltip>
 
                 <Tooltip title="Help" content="Open the user guide and API reference" position="right">
