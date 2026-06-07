@@ -8,7 +8,7 @@ A professional, visual interface for building, managing, and securely deploying 
 
 Running the studio as a standalone application is the **fastest and most secure way** to manage your price books. The desktop apps are optimized to securely communicate with the CloudHealth API directly from your machine—bypassing all browser CORS (Cross-Origin Resource Sharing) restrictions and removing the need for local proxy servers.
 
-**[Download the Latest Release (Mac, Windows, Linux) 🚀](https://github.com/digitalsuni-cloud/cpb-ch/releases/latest)**
+**[Download the Latest Release (Mac, Windows, Linux) 🚀](https://digitalsuni-cloud.github.io/cpb-ch/release.html)**
 
 *   **macOS**: Universal DMG (supports both Intel and Apple Silicon/M-series)
 *   **Windows**: Portable executable (no installation required)

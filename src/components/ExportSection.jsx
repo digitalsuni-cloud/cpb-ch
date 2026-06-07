@@ -653,9 +653,9 @@ const ExportSection = () => {
                                 {(() => {
                                     const ver = import.meta.env.VITE_APP_VERSION;
                                     return [
-                                        { os: 'Windows', icon: <FaWindows />, url: "https://github.com/digitalsuni-cloud/cpb-ch/releases/latest" },
-                                        { os: 'macOS', icon: <FaApple />, url: "https://github.com/digitalsuni-cloud/cpb-ch/releases/latest" },
-                                        { os: 'Linux', icon: <FaLinux />, url: "https://github.com/digitalsuni-cloud/cpb-ch/releases/latest" }
+                                        { os: 'Windows', icon: <FaWindows />, url: "https://digitalsuni-cloud.github.io/cpb-ch/release.html" },
+                                        { os: 'macOS', icon: <FaApple />, url: "https://digitalsuni-cloud.github.io/cpb-ch/release.html" },
+                                        { os: 'Linux', icon: <FaLinux />, url: "https://digitalsuni-cloud.github.io/cpb-ch/release.html" }
                                     ];
                                 })().map((btn) => (
                                     <Tooltip
