@@ -162,7 +162,7 @@ const Sidebar = ({ activeView, setActiveView, showHelp, setShowHelp }) => {
                         variant="primary"
                     >
                         <motion.button
-                            onClick={() => openExternal('https://github.com/digitalsuni-cloud/cpb-ch/releases/latest')}
+                            onClick={() => openExternal('https://digitalsuni-cloud.github.io/cpb-ch/release.html')}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             style={{
