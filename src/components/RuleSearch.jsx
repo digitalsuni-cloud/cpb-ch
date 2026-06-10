@@ -100,7 +100,8 @@ const RuleSearch = () => {
             borderRadius: 'var(--radius-md)',
             boxShadow: state.isFocused ? '0 0 0 1px var(--primary)' : 'none',
             color: 'var(--text-main)',
-            minHeight: '40px',
+            minHeight: '36px',
+            height: '36px',
             '&:hover': {
                 borderColor: 'var(--text-muted)'
             }
@@ -148,7 +149,8 @@ const RuleSearch = () => {
         }),
         valueContainer: (provided) => ({
             ...provided,
-            padding: '2px 8px'
+            padding: '0 8px',
+            height: '36px',
         }),
         indicatorSeparator: () => ({
             display: 'none'
@@ -156,18 +158,7 @@ const RuleSearch = () => {
     };
 
     return (
-        <div style={{ marginBottom: '24px', zIndex: 100, position: 'relative', width: '100%' }}>
-            <label style={{
-                marginBottom: '8px',
-                display: 'block',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: 'var(--secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-            }}>
-                Go to Billing Rule:
-            </label>
+        <div style={{ zIndex: 100, position: 'relative', width: '100%' }}>
             <Select
                 options={options}
                 onChange={handleChange}

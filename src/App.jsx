@@ -25,7 +25,7 @@ import { detectConflicts } from './utils/conflictDetector';
 import ConflictPanel from './components/ConflictPanel';
 import Tooltip from './components/Tooltip';
 
-import { FaChevronDown, FaChevronUp, FaShieldAlt } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaShieldAlt, FaCompressAlt, FaExpandAlt, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 const ReleaseNotes = ({ body }) => {
   const [expanded, setExpanded] = useState(false);
@@ -276,6 +276,7 @@ function App() {
   const confirm = useConfirm();
   const [activeView, setActiveView] = useState('dashboard');
   const [deployHint, setDeployHint] = useState(false);
+  const [deployActionType, setDeployActionType] = useState('update');
   const [showHelp, setShowHelp] = useState(false);
   const [showConflictPanel, setShowConflictPanel] = useState(false);
   const { toasts, showToast, removeToast } = useToast();
@@ -535,13 +536,65 @@ function App() {
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '24px',
+            gap: '8px',
             padding: '10px 20px 60px 20px',
             margin: '0 -20px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <label style={{
+                display: 'block',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                color: 'var(--secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '6px',
+            }}>
+              Go to Billing Rule:
+            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
               <RuleSearch />
-              {/* Validate Rules button */}
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Tooltip
+                  content={state.priceBook?.ruleGroups?.some(g => !g.collapsed) ? "Collapse all rule groups" : "Expand all rule groups"}
+                  position="bottom"
+                  delay={0.2}
+                >
+                  <button
+                    onClick={() => dispatch({ type: 'TOGGLE_ALL_RULE_GROUPS' })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      height: '36px',
+                      padding: '0 16px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg-deep)',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.color = 'var(--text)';
+                      e.currentTarget.style.border = '1px solid var(--border-glow)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.border = '1px solid var(--border)';
+                    }}
+                  >
+                    {state.priceBook?.ruleGroups?.some(g => !g.collapsed) ? <FaCompressAlt size={13} /> : <FaExpandAlt size={13} />}
+                    {state.priceBook?.ruleGroups?.some(g => !g.collapsed) ? 'Collapse All' : 'Expand All'}
+                  </button>
+                </Tooltip>
+
+                {/* Validate Rules button */}
               <Tooltip
                 content={conflicts.length > 0 ? `${conflicts.length} conflict(s) detected` : 'Validate rules for conflicts'}
                 variant={conflicts.length > 0 ? 'danger' : 'glass'}
@@ -555,7 +608,8 @@ function App() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    padding: '8px 16px',
+                    height: '36px',
+                    padding: '0 16px',
                     borderRadius: '10px',
                     border: conflicts.length > 0
                       ? '1px solid rgba(239,68,68,0.5)'
@@ -595,6 +649,7 @@ function App() {
                   )}
                 </button>
               </Tooltip>
+              </div>
             </div>
 
             <RuleGroupList conflicts={conflicts} />
@@ -611,6 +666,165 @@ function App() {
                 <p style={{ color: 'var(--text-secondary)' }}>Click the button above to start building your price book logic.</p>
               </div>
             )}
+
+            {/* Ready to Deploy button */}
+            {(() => {
+              const isUpdate = !!state.priceBook?.cxAPIId;
+              const color    = isUpdate ? '#38bdf8' : '#10b981';      // cyan : emerald
+              const colorRgb = isUpdate ? '56,189,248' : '16,185,129';
+              const label    = isUpdate ? 'Update Existing' : 'Create New';
+              const icon     = isUpdate ? '🔄' : '✨';
+              return (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 8px' }}>
+                  <button
+                    onClick={() => {
+                      setDeployActionType(isUpdate ? 'update' : 'create');
+                      setActiveView('deploy');
+                    }}
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '13px 36px',
+                      borderRadius: '14px',
+                      border: `1px solid rgba(${colorRgb}, 0.45)`,
+                      background: `linear-gradient(135deg, rgba(${colorRgb}, 0.13) 0%, rgba(${colorRgb}, 0.06) 100%)`,
+                      color: color,
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.25s',
+                      letterSpacing: '0.03em',
+                      boxShadow: `0 0 0 0 rgba(${colorRgb}, 0)`,
+                      backdropFilter: 'blur(8px)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = `linear-gradient(135deg, rgba(${colorRgb}, 0.25) 0%, rgba(${colorRgb}, 0.12) 100%)`;
+                      e.currentTarget.style.border = `1px solid rgba(${colorRgb}, 0.75)`;
+                      e.currentTarget.style.boxShadow = `0 0 24px rgba(${colorRgb}, 0.3), 0 4px 20px rgba(${colorRgb}, 0.15)`;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = `linear-gradient(135deg, rgba(${colorRgb}, 0.13) 0%, rgba(${colorRgb}, 0.06) 100%)`;
+                      e.currentTarget.style.border = `1px solid rgba(${colorRgb}, 0.45)`;
+                      e.currentTarget.style.boxShadow = `0 0 0 0 rgba(${colorRgb}, 0)`;
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🚀</span>
+                    <span>Ready to Deploy</span>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: color,
+                      background: `rgba(${colorRgb}, 0.12)`,
+                      border: `1px solid rgba(${colorRgb}, 0.35)`,
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}>
+                      {icon} {label}
+                    </span>
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Scroll-to-Top / Scroll-to-Bottom floating buttons */}
+            <div style={{
+              position: 'fixed',
+              right: '16px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              zIndex: 200,
+            }}>
+              <Tooltip content="Scroll to top" position="left" delay={0.2}>
+                <button
+                  onClick={() => {
+                    const main = document.getElementById('dashboard-main');
+                    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(6, 182, 212, 0.35)',
+                    background: 'rgba(6, 182, 212, 0.1)',
+                    color: 'rgba(6, 182, 212, 0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 2px 8px rgba(6, 182, 212, 0.15)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(6, 182, 212, 0.25)';
+                    e.currentTarget.style.border = '1px solid rgba(6, 182, 212, 0.7)';
+                    e.currentTarget.style.color = '#22d3ee';
+                    e.currentTarget.style.boxShadow = '0 0 14px rgba(6, 182, 212, 0.4)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)';
+                    e.currentTarget.style.border = '1px solid rgba(6, 182, 212, 0.35)';
+                    e.currentTarget.style.color = 'rgba(6, 182, 212, 0.8)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(6, 182, 212, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <FaArrowUp size={13} />
+                </button>
+              </Tooltip>
+              <Tooltip content="Scroll to bottom" position="left" delay={0.2}>
+                <button
+                  onClick={() => {
+                    const main = document.getElementById('dashboard-main');
+                    if (main) main.scrollTo({ top: main.scrollHeight, behavior: 'smooth' });
+                  }}
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(6, 182, 212, 0.35)',
+                    background: 'rgba(6, 182, 212, 0.1)',
+                    color: 'rgba(6, 182, 212, 0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 2px 8px rgba(6, 182, 212, 0.15)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(6, 182, 212, 0.25)';
+                    e.currentTarget.style.border = '1px solid rgba(6, 182, 212, 0.7)';
+                    e.currentTarget.style.color = '#22d3ee';
+                    e.currentTarget.style.boxShadow = '0 0 14px rgba(6, 182, 212, 0.4)';
+                    e.currentTarget.style.transform = 'translateY(1px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)';
+                    e.currentTarget.style.border = '1px solid rgba(6, 182, 212, 0.35)';
+                    e.currentTarget.style.color = 'rgba(6, 182, 212, 0.8)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(6, 182, 212, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <FaArrowDown size={13} />
+                </button>
+              </Tooltip>
+            </div>
           </div>
         )}
 
@@ -656,6 +870,7 @@ function App() {
             showToast={showToast}
             conflicts={conflicts}
             onViewConflicts={() => setShowConflictPanel(true)}
+            initialActionType={deployActionType}
           />
             </div>
           </div>

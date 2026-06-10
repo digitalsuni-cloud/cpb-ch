@@ -147,6 +147,17 @@ function priceBookReducer(state, action) {
                     lastUpdated: new Date().toISOString().split('T')[0]
                 }
             };
+        case 'TOGGLE_ALL_RULE_GROUPS': {
+            const anyExpanded = state.priceBook.ruleGroups.some(g => !g.collapsed);
+            return {
+                ...state,
+                priceBook: {
+                    ...state.priceBook,
+                    ruleGroups: state.priceBook.ruleGroups.map(g => ({ ...g, collapsed: anyExpanded })),
+                    lastUpdated: new Date().toISOString().split('T')[0]
+                }
+            };
+        }
         case 'REORDER_RULE_GROUPS':
             {
                 const { activeId, overId } = action;

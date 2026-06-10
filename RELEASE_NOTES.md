@@ -1,3 +1,16 @@
+This release delivers **Rule Builder UX improvements** and **smarter conflict detection** for a more productive pricebook authoring experience.
+
+### ✨ Rule Builder Enhancements
+- **Expand / Collapse All**: New toolbar buttons instantly expand or collapse all rule groups in one click — no more scrolling through hundreds of groups to toggle them individually.
+- **Scroll-to-Top & Scroll-to-Bottom**: Floating navigation buttons on the right edge of the Rule Builder allow instant jumping to the top or bottom of the rules list.
+- **Ready to Deploy Button**: A prominent call-to-action button at the bottom of the Rule Builder navigates directly to the Deploy page. Automatically selects **"Modify Existing Pricebook"** if the pricebook has an existing CloudHealth API ID, or **"Create New Pricebook"** for new builds — no manual tab switching required.
+
+### 🛡️ Conflict Detector Improvements
+- **Exclusion / Carve-Out Pattern Recognition**: The conflict detector now correctly identifies the common "exclusion override" pattern — a rule with a `0%` adjustment targeting a narrower usage type scope (e.g. `*SpotUsage:g4dn*`) alongside a broader markup rule (e.g. `*SpotUsage*`) — and no longer raises a false-positive conflict for this intentional design.
+- **Usage Type Colon Normalisation**: Usage type patterns ending in `:*` (e.g. `*SpotUsage:*`) are now treated as semantically equivalent to the bare wildcard form (e.g. `*SpotUsage*`), since the colon is a CloudHealth qualifier separator and `:*` matches any or no qualifier.
+
+---
+
 This release introduces the new **Advanced Rule Conflict Detector & Safeguards**, standardizing real-time validation and offering crucial safety checks across all Pricebook adjustment groups.
 
 ### 🛡️ Advanced Rule Conflict Detector (New!)
@@ -36,15 +49,15 @@ Added several standardized "out-of-the-box" templates for faster pricebook creat
 
 | Architecture | Platform | File to Download |
 | :--- | :--- | :--- |
-| ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Apple Silicon | [CloudHealth.Pricebook.Studio_5.5.0_arm64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_arm64.dmg) |
-| ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Intel | [CloudHealth.Pricebook.Studio_5.5.0_amd64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_amd64.dmg) |
-| ![Windows](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/windows.svg) | Universal / Portable | [CloudHealth.Pricebook.Studio_5.5.0_amd64.exe](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_amd64.exe) |
-| ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | x64 (Deb) | [CloudHealth.Pricebook.Studio_5.5.0_amd64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_amd64.deb) |
-| ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | x64 (AppImage) | [CloudHealth.Pricebook.Studio_5.5.0_amd64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_amd64.AppImage) |
-| ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | x64 (RPM) | [CloudHealth.Pricebook.Studio_5.5.0_amd64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_amd64.rpm) |
-| ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | ARM64 (Deb) | [CloudHealth.Pricebook.Studio_5.5.0_arm64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_arm64.deb) |
-| ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | ARM64 (AppImage) | [CloudHealth.Pricebook.Studio_5.5.0_arm64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_arm64.AppImage) |
-| ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | ARM64 (RPM) | [CloudHealth.Pricebook.Studio_5.5.0_arm64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.0/CloudHealth.Pricebook.Studio_5.5.0_arm64.rpm) |
+| ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Apple Silicon | [CloudHealth.Pricebook.Studio_5.5.4_arm64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_arm64.dmg) |
+| ![macOS](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/macos.svg) | Intel | [CloudHealth.Pricebook.Studio_5.5.4_amd64.dmg](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_amd64.dmg) |
+| ![Windows](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/windows.svg) | Universal / Portable | [CloudHealth.Pricebook.Studio_5.5.4_amd64.exe](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_amd64.exe) |
+| ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | x64 (Deb) | [CloudHealth.Pricebook.Studio_5.5.4_amd64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_amd64.deb) |
+| ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | x64 (AppImage) | [CloudHealth.Pricebook.Studio_5.5.4_amd64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_amd64.AppImage) |
+| ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | x64 (RPM) | [CloudHealth.Pricebook.Studio_5.5.4_amd64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_amd64.rpm) |
+| ![Linux Deb](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-deb.svg) | ARM64 (Deb) | [CloudHealth.Pricebook.Studio_5.5.4_arm64.deb](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_arm64.deb) |
+| ![Linux App](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-app.svg) | ARM64 (AppImage) | [CloudHealth.Pricebook.Studio_5.5.4_arm64.AppImage](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_arm64.AppImage) |
+| ![Linux RPM](https://raw.githubusercontent.com/digitalsuni-cloud/cpb-ch/main/public/badges/linux-rpm.svg) | ARM64 (RPM) | [CloudHealth.Pricebook.Studio_5.5.4_arm64.rpm](https://github.com/digitalsuni-cloud/cpb-ch/releases/download/v5.5.4/CloudHealth.Pricebook.Studio_5.5.4_arm64.rpm) |
 
 > **Note for macOS Users:**
 > Because this is an internal application, it is not code-signed via the Apple Developer program. To run it for the first time, you must remove the quarantine attribute. Open your Terminal and run:

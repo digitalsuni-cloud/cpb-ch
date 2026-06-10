@@ -24,11 +24,12 @@ const DashboardLayout = ({ children, activeView, setActiveView, showHelp, setSho
                 setShowHelp={setShowHelp}
             />
 
-            <main style={{
+            <main id="dashboard-main" style={{
                 flex: 1,
                 height: '100vh',
                 overflowY: 'auto',
-                position: 'relative'
+                position: 'relative',
+                scrollBehavior: 'smooth'
             }}>
                 {/* Top Bar / Header */}
                 <header style={{

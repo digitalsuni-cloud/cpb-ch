@@ -183,7 +183,6 @@ const BillingRule = ({ rule, groupId, conflicts = [] }) => {
                                             placeholder="Billing Rule Name"
                                             className="ruleName"
                                             style={{ flex: 1, minWidth: 0 }}
-                                            autoFocus={true}
                                         />
                                     </Tooltip>
                                     {renderAdjustmentTag()}
