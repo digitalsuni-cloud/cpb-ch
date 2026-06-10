@@ -668,7 +668,7 @@ function App() {
             )}
 
             {/* Ready to Deploy button */}
-            {(() => {
+            {isDesktopApp() && (() => {
               const isUpdate = !!state.priceBook?.cxAPIId;
               const color    = isUpdate ? '#38bdf8' : '#10b981';      // cyan : emerald
               const colorRgb = isUpdate ? '56,189,248' : '16,185,129';
