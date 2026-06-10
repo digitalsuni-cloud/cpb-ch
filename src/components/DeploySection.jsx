@@ -13,10 +13,10 @@ import { getCredential } from "../utils/credentials";
 import CustomSelect from './CustomSelect';
 
 
-const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast, conflicts = [], onViewConflicts }) => {
+const DeploySection = ({ autoAssign = false, onAutoAssignConsumed, showToast, conflicts = [], onViewConflicts, initialActionType }) => {
     const { state, dispatch } = usePriceBook();
     const confirm = useConfirm();
-    const [actionType, setActionType] = useState('update'); // 'update' or 'create'
+    const [actionType, setActionType] = useState(initialActionType || 'update'); // 'update' or 'create'
     const [priceBookId, setPriceBookId] = useState(state.priceBook.cxAPIId || '');
     const [newPricebookName, setNewPricebookName] = useState('');
     const [assignCustomer, setAssignCustomer] = useState(false);

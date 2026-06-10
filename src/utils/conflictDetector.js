@@ -22,11 +22,28 @@ const patternMatches = (pattern, str) => {
 };
 
 /**
+ * Normalise a usage-type pattern so that trailing wildcard qualifiers
+ * after a colon are collapsed.  This makes *SpotUsage:* equivalent to
+ * *SpotUsage* because the colon is just a qualifier separator in CH usage
+ * type names and `:*` matches any (or no) qualifier.
+ *
+ * Examples:
+ *   *SpotUsage:*  → *SpotUsage*
+ *   *SpotUsage:g4dn*  unchanged  (specific qualifier — keep it)
+ *   BoxUsage:*  → BoxUsage*
+ */
+const normalizeUsagePattern = (pattern) => {
+    // Replace any occurrence of :* (colon followed immediately by a wildcard)
+    // with just * so the colon qualifier is treated as optional.
+    return pattern.replace(/:(\*)/g, '$1');
+};
+
+/**
  * Check if two patterns (which may contain wildcards like '*') can overlap.
  */
 const patternsOverlap = (patA, patB) => {
-    const a = patA.trim();
-    const b = patB.trim();
+    const a = normalizeUsagePattern(patA.trim());
+    const b = normalizeUsagePattern(patB.trim());
     if (a === '*' || b === '*') return true;
 
     const la = a.toLowerCase();
@@ -90,8 +107,8 @@ const valuesOverlap = (valA, valB) => {
  */
 const valueIsMoreGenericOrEqual = (valA, valB) => {
     if (typeof valA === 'string' && typeof valB === 'string') {
-        const a = valA.trim();
-        const b = valB.trim();
+        const a = normalizeUsagePattern(valA.trim());
+        const b = normalizeUsagePattern(valB.trim());
         if (a === '*') return true;
         const la = a.toLowerCase();
         const lb = b.toLowerCase();
@@ -523,6 +540,17 @@ export function detectConflicts(priceBook) {
                 if (overlapping) {
                     const isShadowed = isRuleMoreGenericOrEqual(rA, rB);
                     const severity = getSeverity(rA, rB);
+
+                    // ── Exclusion / carve-out pattern ─────────────────────────
+                    // If one rule has a 0 adjustment and a strictly narrower scope
+                    // than the other (it doesn't cover everything the other covers),
+                    // it's an intentional override/exclusion — not a real conflict.
+                    const adjA = parseFloat(rA.adjustment);
+                    const adjB = parseFloat(rB.adjustment);
+                    const aIsZeroCarveOut = adjA === 0 && !isRuleMoreGenericOrEqual(rA, rB);
+                    const bIsZeroCarveOut = adjB === 0 && !isRuleMoreGenericOrEqual(rB, rA);
+                    if (aIsZeroCarveOut || bIsZeroCarveOut) continue;
+                    // ─────────────────────────────────────────────────────────
 
                     if (isShadowed) {
                         seen.add(id);
