@@ -741,7 +741,7 @@ export function detectConflicts(priceBook) {
                        }
                    }
                 } else if (rule.type === 'fixedRate') {
-                   if (val < 0) {
+                   if (val <= -1000) {
                        const id = `${idPrefix}::negFixed`;
                        if (!seen.has(id)) {
                            seen.add(id);

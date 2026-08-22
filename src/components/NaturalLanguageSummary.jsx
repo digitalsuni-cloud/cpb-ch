@@ -158,7 +158,10 @@ const NaturalLanguageSummary = () => {
 
         // Format to avoid scientific notation (e.g., 7.5e-7 -> 0.00000075)
         // Using toFixed(10) covers the user's example precision, then trimming trailing zeros
-        const formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
+        let formattedVal = val.toString();
+        if (formattedVal.includes('e')) {
+            formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
+        }
 
         if (type === 'percentDiscount') return { text: `-${formattedVal}% Discount`, className: 'adj-tag-discount' };
         if (type === 'percentIncrease') return { text: `+${formattedVal}% Markup`, className: 'adj-tag-markup' };

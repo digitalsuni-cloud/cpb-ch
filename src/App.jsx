@@ -282,7 +282,11 @@ function App() {
   const { toasts, showToast, removeToast } = useToast();
 
   // Re-compute conflicts whenever the priceBook changes
-  const conflicts = useMemo(() => detectConflicts(state.priceBook), [state.priceBook]);
+  const allConflicts = useMemo(() => detectConflicts(state.priceBook), [state.priceBook]);
+  const conflicts = useMemo(() => {
+    const accepted = state.priceBook.acceptedConflicts || [];
+    return allConflicts.filter(c => !accepted.includes(c.id));
+  }, [allConflicts, state.priceBook.acceptedConflicts]);
 
   const checkForUpdates = useCallback(async (manual = false) => {
     if (!isDesktopApp()) return;
@@ -982,8 +986,11 @@ function App() {
       {/* Conflict Panel */}
       {showConflictPanel && (
         <ConflictPanel
-          conflicts={conflicts}
+          conflicts={allConflicts}
+          acceptedConflictIds={state.priceBook.acceptedConflicts || []}
           onClose={() => setShowConflictPanel(false)}
+          onAcceptConflict={(id) => dispatch({ type: 'ACCEPT_CONFLICT', id })}
+          onUndoAcceptConflict={(id) => dispatch({ type: 'UNDO_ACCEPT_CONFLICT', id })}
           onJumpToRule={(ruleId) => {
             setShowConflictPanel(false);
             if (activeView !== 'builder') setActiveView('builder');

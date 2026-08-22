@@ -53,7 +53,10 @@ const BillingRule = ({ rule, groupId, conflicts = [] }) => {
         if (!rule.adjustment || isNaN(val)) return null;
 
         // Format to avoid scientific notation (e.g., 7.5e-7 -> 0.00000075)
-        const formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
+        let formattedVal = val.toString();
+        if (formattedVal.includes('e')) {
+            formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
+        }
 
         let label = '';
         let color = '';
