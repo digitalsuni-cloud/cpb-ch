@@ -75,7 +75,7 @@ To maintain high-quality releases, follow this checklist sequentially before and
    - **CRITICAL**: Only run the **Create Release** workflow on GitHub when there is a brand-new release version to publish (i.e. when version numbers are being bumped). Do not trigger it for general feature merges or patches within the same release.
    - The action will automatically read the updated `RELEASE_NOTES.md`, substitute dynamic version placeholders, stamp `CHANGELOG.md` inside the release commit, and create the tagged draft release.
 5. **Publish Platform Assets**:
-   - **CRITICAL**: Go to GitHub Actions and manually trigger the **Tauri Build** workflow, supplying the release tag (e.g., `v5.5.0`), to compile and upload Windows and Linux release assets.
+   - **CRITICAL**: Trigger the **Tauri Build** workflow via GitHub Actions UI or CLI (`gh workflow run tauri-build.yml -f tag=v5.5.4`), supplying the target release tag, to compile and upload Windows and Linux release assets.
    - Upload macOS installer binaries to the latest release page (e.g., via `gh release upload`).
 
 ---
@@ -100,7 +100,10 @@ Once your code modifications have been pushed to GitHub, complete the following 
      gh release upload v5.5.0 release/Tauri/CloudHealth.Pricebook.Studio_5.5.0_amd64.dmg release/Tauri/CloudHealth.Pricebook.Studio_5.5.0_arm64.dmg --clobber
      ```
 6. **Trigger Cloud Tauri Builds (Windows & Linux)**:
-   - Go to GitHub Actions, manually trigger the **Tauri Build** workflow, and supply the release tag (`v5.5.0`). 
+   - Trigger the **Tauri Build** workflow via GitHub Actions UI or using the GitHub CLI, supplying the target release tag (`v5.5.4`):
+     ```bash
+     gh workflow run tauri-build.yml -f tag=v5.5.4
+     ```
    - The workflow will automatically compile the portable Windows executable and Linux packages (`.deb`, `.rpm`, `.AppImage`) and attach them to the release assets.
 7. **Verify Web Deployment**:
    - Deploy the latest build to GitHub Pages by running:
