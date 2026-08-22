@@ -42,6 +42,7 @@ const initialPriceBook = {
     cxAPIId: '',
     cxPayerId: '',
     customerApiId: '',
+    acceptedConflicts: [],
     ruleGroups: [createRuleGroup()]
 };
 
@@ -171,6 +172,34 @@ function priceBookReducer(state, action) {
                     priceBook: { ...state.priceBook, ruleGroups: newGroups }
                 };
             }
+
+        case 'ACCEPT_CONFLICT': {
+            const accepted = state.priceBook.acceptedConflicts || [];
+            if (!accepted.includes(action.id)) {
+                return {
+                    ...state,
+                    priceBook: {
+                        ...state.priceBook,
+                        acceptedConflicts: [...accepted, action.id]
+                    }
+                };
+            }
+            return state;
+        }
+
+        case 'UNDO_ACCEPT_CONFLICT': {
+            const accepted = state.priceBook.acceptedConflicts || [];
+            if (accepted.includes(action.id)) {
+                return {
+                    ...state,
+                    priceBook: {
+                        ...state.priceBook,
+                        acceptedConflicts: accepted.filter(id => id !== action.id)
+                    }
+                };
+            }
+            return state;
+        }
 
         // Billing Rule Actions
         case 'ADD_BILLING_RULE':

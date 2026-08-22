@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaCheckCircle, FaExclamationTriangle, FaExclamationCircle, FaCopy } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 
-const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
-    const errorCount   = conflicts.filter(c => c.severity === 'error').length;
-    const warningCount = conflicts.filter(c => c.severity === 'warning').length;
+const ConflictPanel = ({ conflicts = [], acceptedConflictIds = [], onClose, onJumpToRule, onAcceptConflict, onUndoAcceptConflict }) => {
+    const activeConflicts = conflicts.filter(c => !acceptedConflictIds.includes(c.id));
+    const errorCount   = activeConflicts.filter(c => c.severity === 'error').length;
+    const warningCount = activeConflicts.filter(c => c.severity === 'warning').length;
 
     return (
         <AnimatePresence>
@@ -61,14 +62,14 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '10px',
-                            background: conflicts.length > 0
+                            background: activeConflicts.length > 0
                                 ? 'rgba(239,68,68,0.12)'
                                 : 'rgba(16,185,129,0.12)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}>
-                            {conflicts.length > 0
+                            {activeConflicts.length > 0
                                 ? <FaExclamationTriangle color="#ef4444" size={16} />
                                 : <FaCheckCircle color="#10b981" size={16} />
                             }
@@ -97,8 +98,8 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                 </span>
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                                {conflicts.length === 0
-                                    ? 'All clear'
+                                {activeConflicts.length === 0
+                                    ? (conflicts.length > 0 ? `${conflicts.length} accepted` : 'All clear')
                                     : `${errorCount} error${errorCount !== 1 ? 's' : ''}, ${warningCount} warning${warningCount !== 1 ? 's' : ''}`
                                 }
                             </div>
@@ -193,6 +194,7 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {conflicts.map((conflict, idx) => {
+                                const isAccepted = acceptedConflictIds.includes(conflict.id);
                                 const isDupe   = conflict.type === 'DUPLICATE_RULE';
                                 const isShadow = conflict.type === 'SHADOWING' || conflict.type === 'SEQUENTIAL_SHADOWING';
                                 const isError  = conflict.severity === 'error';
@@ -201,7 +203,11 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                 let bgColor = 'rgba(239,68,68,0.07)';
                                 let borderColor = 'rgba(239,68,68,0.25)';
 
-                                if (isShadow) {
+                                if (isAccepted) {
+                                    color = '#10b981';
+                                    bgColor = 'rgba(16,185,129,0.07)';
+                                    borderColor = 'rgba(16,185,129,0.25)';
+                                } else if (isShadow) {
                                     color = '#ec4899';
                                     bgColor = 'rgba(236,72,153,0.07)';
                                     borderColor = 'rgba(236,72,153,0.28)';
@@ -220,6 +226,7 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                 }
 
                                 const badgeLabel =
+                                    isAccepted ? 'Risk Accepted' :
                                     isDupe   ? 'Duplicate Rule' :
                                     isShadow ? 'Rule Shadowing' :
                                     conflict.type === 'CHRONOLOGICAL_ERROR' ? 'Date Range Error' :
@@ -229,6 +236,7 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                     isError  ? 'Conflict' : 'Warning';
 
                                 const badgeType =
+                                    isAccepted ? 'Ignored' :
                                     isDupe   ? 'Duplicate' :
                                     isShadow ? 'Shadowing' :
                                     conflict.type === 'SAME_GROUP' ? 'Same Group' :
@@ -237,7 +245,7 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                     conflict.type === 'REDUNDANT_PRODUCT_FILTER' ? 'Redundant Filter' :
                                     conflict.type === 'ADJUSTMENT_SANITY' ? 'Pricing Check' : 'Overlap';
 
-                                const Icon = isDupe ? FaCopy : isError ? FaExclamationCircle : FaExclamationTriangle;
+                                const Icon = isAccepted ? FaCheckCircle : isDupe ? FaCopy : isError ? FaExclamationCircle : FaExclamationTriangle;
 
                                 return (
                                     <motion.div
@@ -348,6 +356,54 @@ const ConflictPanel = ({ conflicts = [], onClose, onJumpToRule }) => {
                                                         </button>
                                                     </Tooltip>
                                                 ))
+                                            )}
+                                            {isAccepted && onUndoAcceptConflict && (
+                                                <Tooltip content="Undo accept risk and restore conflict" position="top" delay={0.3}>
+                                                    <button
+                                                        onClick={() => onUndoAcceptConflict(conflict.id)}
+                                                        style={{
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 600,
+                                                            padding: '3px 10px',
+                                                            borderRadius: '20px',
+                                                            background: 'transparent',
+                                                            color: 'var(--text-muted)',
+                                                            border: '1px solid var(--border)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s',
+                                                            marginLeft: 'auto',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                                                    >
+                                                        Undo Accept Risk
+                                                    </button>
+                                                </Tooltip>
+                                            )}
+                                            {!isAccepted && onAcceptConflict && (
+                                                <Tooltip content="Accept this conflict and hide it from the list" position="top" delay={0.3}>
+                                                    <button
+                                                        onClick={() => onAcceptConflict(conflict.id)}
+                                                        style={{
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 600,
+                                                            padding: '3px 10px',
+                                                            borderRadius: '20px',
+                                                            background: 'transparent',
+                                                            color: 'var(--text-muted)',
+                                                            border: '1px solid var(--border)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s',
+                                                            marginLeft: 'auto',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                                                    >
+                                                        Accept Risk
+                                                    </button>
+                                                </Tooltip>
                                             )}
                                         </div>
                                     </motion.div>
