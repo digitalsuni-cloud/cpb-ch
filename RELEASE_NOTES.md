@@ -9,6 +9,9 @@ This release delivers **Rule Builder UX improvements** and **smarter conflict de
 - **Exclusion / Carve-Out Pattern Recognition**: The conflict detector now correctly identifies the common "exclusion override" pattern — a rule with a `0%` adjustment targeting a narrower usage type scope (e.g. `*SpotUsage:g4dn*`) alongside a broader markup rule (e.g. `*SpotUsage*`) — and no longer raises a false-positive conflict for this intentional design.
 - **Usage Type Colon Normalisation**: Usage type patterns ending in `:*` (e.g. `*SpotUsage:*`) are now treated as semantically equivalent to the bare wildcard form (e.g. `*SpotUsage*`), since the colon is a CloudHealth qualifier separator and `:*` matches any or no qualifier.
 
+### 🐛 Bug Fixes & Precision Improvements
+- **Billing Rule Adjustment Precision**: Fixed an issue where numeric adjustments in billing rules (e.g. `-18895.29`) had excess decimal digits appended in generated XML specifications (e.g. `-18895.290000000001`) due to floating-point formatting. Added dedicated normalization preserving exact user decimal inputs and cleaning existing XML artifacts.
+
 ---
 
 This release introduces the new **Advanced Rule Conflict Detector & Safeguards**, standardizing real-time validation and offering crucial safety checks across all Pricebook adjustment groups.

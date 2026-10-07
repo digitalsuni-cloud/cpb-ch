@@ -9,6 +9,7 @@ import { FaPlus, FaTrash, FaCopy, FaChevronDown } from 'react-icons/fa';
 import Tooltip from './Tooltip';
 import DateInput from './DateInput';
 import CustomSelect from './CustomSelect';
+import { formatAdjustment } from '../utils/converter';
 
 
 const RuleGroup = ({ group, index, conflicts = [] }) => {
@@ -87,12 +88,13 @@ const RuleGroup = ({ group, index, conflicts = [] }) => {
 
     const renderAdjustmentTagForRule = (rule) => {
         if (!rule.adjustment || isNaN(parseFloat(rule.adjustment))) return null;
+        const formattedVal = formatAdjustment(rule.adjustment);
         let label = '';
         let className = '';
         switch (rule.type) {
-            case 'percentDiscount': label = `-${rule.adjustment}%`; className = 'adj-tag-discount'; break;
-            case 'percentIncrease': label = `+${rule.adjustment}%`; className = 'adj-tag-markup'; break;
-            case 'fixedRate': label = `$${rule.adjustment}`; className = 'adj-tag-fixed'; break;
+            case 'percentDiscount': label = `-${formattedVal}%`; className = 'adj-tag-discount'; break;
+            case 'percentIncrease': label = `+${formattedVal}%`; className = 'adj-tag-markup'; break;
+            case 'fixedRate': label = `$${formattedVal}`; className = 'adj-tag-fixed'; break;
             default: return null;
         }
         return (

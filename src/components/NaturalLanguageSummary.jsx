@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Tooltip from './Tooltip';
+import { formatAdjustment } from '../utils/converter';
 
 const NaturalLanguageSummary = () => {
     const { state } = usePriceBook();
@@ -48,7 +49,7 @@ const NaturalLanguageSummary = () => {
                     const lineItems    = join((props.lineItemDescription || []).map(l => l.value ? `${l.matchType}:${l.value}` : ''));
                     rows.push([
                         gIdx + 1, group.startDate || '', group.endDate || '', group.payerAccounts || '',
-                        rule.name || '', rule.adjustment || '', rule.type || '',
+                        rule.name || '', rule.adjustment ? formatAdjustment(rule.adjustment) : '', rule.type || '',
                         rule.includeDataTransfer || '', rule.includeRIPurchases || '',
                         (product.productName || '').trim() || 'ANY',
                         product.includeDataTransfer !== 'inherit' ? (product.includeDataTransfer || '') : '',
@@ -153,15 +154,9 @@ const NaturalLanguageSummary = () => {
 
     const toReadableAdjustment = (type, adj) => {
         if (!type) return { text: '', className: '' };
-        const val = parseFloat(adj);
-        if (isNaN(val)) return { text: adj, className: '' };
+        if (!adj || isNaN(parseFloat(adj))) return { text: adj || '', className: '' };
 
-        // Format to avoid scientific notation (e.g., 7.5e-7 -> 0.00000075)
-        // Using toFixed(10) covers the user's example precision, then trimming trailing zeros
-        let formattedVal = val.toString();
-        if (formattedVal.includes('e')) {
-            formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
-        }
+        const formattedVal = formatAdjustment(adj);
 
         if (type === 'percentDiscount') return { text: `-${formattedVal}% Discount`, className: 'adj-tag-discount' };
         if (type === 'percentIncrease') return { text: `+${formattedVal}% Markup`, className: 'adj-tag-markup' };

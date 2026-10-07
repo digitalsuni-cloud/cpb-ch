@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { openExternal } from '../utils/desktopAPI';
 import DOMPurify from 'dompurify';
 import { usePriceBook } from '../context/PriceBookContext';
-import { generateXML, getDeploymentSteps } from '../utils/converter';
+import { generateXML, getDeploymentSteps, formatAdjustment } from '../utils/converter';
 import { FaDownload, FaCopy, FaCheck, FaRocket, FaSmile, FaSlash, FaFileCsv } from 'react-icons/fa';
 import { productIconMapping } from '../utils/awsIconMapping';
 import { getIconForProduct } from '../utils/awsIcons';
@@ -64,7 +64,7 @@ const generateCSV = (priceBook) => {
                     group.endDate       || '',
                     group.payerAccounts || '',
                     rule.name           || '',
-                    rule.adjustment     || '',
+                    rule.adjustment ? formatAdjustment(rule.adjustment) : '',
                     rule.type           || '',
                     rule.includeDataTransfer || '',
                     rule.includeRIPurchases  || '',
