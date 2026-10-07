@@ -14,6 +14,7 @@ import CustomSelect from './CustomSelect';
 
 import ToggleSwitch from './ToggleSwitch';
 import Tooltip from './Tooltip';
+import { formatAdjustment } from '../utils/converter';
 
 const BillingRule = ({ rule, groupId, conflicts = [] }) => {
     const { dispatch } = usePriceBook();
@@ -49,14 +50,8 @@ const BillingRule = ({ rule, groupId, conflicts = [] }) => {
         setSelectedProp('');
     };
     const renderAdjustmentTag = () => {
-        const val = parseFloat(rule.adjustment);
-        if (!rule.adjustment || isNaN(val)) return null;
-
-        // Format to avoid scientific notation (e.g., 7.5e-7 -> 0.00000075)
-        let formattedVal = val.toString();
-        if (formattedVal.includes('e')) {
-            formattedVal = val.toFixed(12).replace(/\.?0+$/, '');
-        }
+        if (!rule.adjustment || isNaN(parseFloat(rule.adjustment))) return null;
+        const formattedVal = formatAdjustment(rule.adjustment);
 
         let label = '';
         let color = '';

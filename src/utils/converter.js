@@ -1,6 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
 import { propertyTypes } from '../constants/propertyTypes';
 import { createBillingRule, createProduct, createRuleGroup } from '../context/PriceBookContext';
+import { formatAdjustment } from './adjustment';
+export { formatAdjustment };
 
 const getXmlTag = (key) => {
     switch (key) {
@@ -41,15 +42,13 @@ export const generateXML = (priceBook) => {
         if (group.enabled === "false") groupXml += ` enabled="false"`;
         groupXml += `>\n`;
 
-        let hasRules = false;
         validRules.forEach(rule => {
-            hasRules = true;
             let ruleTag = `\t\t<BillingRule name="${rule.name}" includeDataTransfer="${rule.includeDataTransfer}"`;
             // Only toggle off if explicitly false, otherwise default (true) is assumed/omitted
             if (rule.includeRIPurchases === "false") ruleTag += ` includeRIPurchases="false"`;
             groupXml += ruleTag + `>\n`;
 
-            const ruleAdjustment = rule.adjustment ? parseFloat(rule.adjustment).toFixed(12).replace(/\.?0+$/, '') : '0.00';
+            const ruleAdjustment = formatAdjustment(rule.adjustment);
             groupXml += `\t\t\t<BasicBillingRule billingAdjustment="${ruleAdjustment}" billingRuleType="${rule.type || 'percentDiscount'}" />\n`;
 
             (rule.products || []).forEach(prod => {
@@ -219,7 +218,8 @@ export const parseXMLToState = (xmlString, fallbackJson = {}) => {
 
             const basic = ruleEl.getElementsByTagName('BasicBillingRule')[0];
             if (basic) {
-                rule.adjustment = basic.getAttribute('billingAdjustment') || '';
+                const rawAdj = basic.getAttribute('billingAdjustment');
+                rule.adjustment = rawAdj ? formatAdjustment(rawAdj) : '';
                 rule.type = basic.getAttribute('billingRuleType') || 'percentDiscount';
             }
 
